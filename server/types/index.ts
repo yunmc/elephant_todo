@@ -321,32 +321,32 @@ export interface UpdateImportantDateDTO {
 export interface PeriodRecordRow extends RowDataPacket {
   id: number
   user_id: number
+  person_name: string
   start_date: Date
   end_date: Date | null
   cycle_length: number | null
   period_length: number | null
   flow_level: 'light' | 'moderate' | 'heavy'
   symptoms: string[] | null
-  mood: string | null
   note: string | null
   created_at: Date
   updated_at: Date
 }
 
 export interface CreatePeriodRecordDTO {
+  person_name?: string
   start_date: string
   end_date?: string
   flow_level?: 'light' | 'moderate' | 'heavy'
   symptoms?: string[]
-  mood?: string
   note?: string
 }
 
 export interface UpdatePeriodRecordDTO {
+  person_name?: string
   start_date?: string
   end_date?: string | null
   flow_level?: 'light' | 'moderate' | 'heavy'
   symptoms?: string[]
-  mood?: string
   note?: string
 }

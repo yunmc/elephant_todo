@@ -2,6 +2,24 @@
   <div class="page-container">
     <h1 class="page-title">经期追踪</h1>
 
+    <!-- Person Switcher -->
+    <div class="person-switcher">
+      <button
+        v-for="name in periodStore.personNames"
+        :key="name"
+        :class="['person-btn', { active: periodStore.selectedPerson === name }]"
+        @click="periodStore.switchPerson(name)"
+      >{{ name }}</button>
+      <button class="person-btn add-btn" @click="showAddPerson = true">+</button>
+    </div>
+
+    <!-- Add Person Mini-Modal -->
+    <div v-if="showAddPerson" class="add-person-row">
+      <n-input v-model:value="newPersonName" placeholder="输入名称" size="small" :maxlength="50" style="flex: 1;" @keyup.enter="confirmAddPerson" />
+      <n-button size="small" type="primary" :disabled="!newPersonName.trim()" @click="confirmAddPerson">确认</n-button>
+      <n-button size="small" @click="showAddPerson = false; newPersonName = ''">取消</n-button>
+    </div>
+
     <!-- Prediction Card -->
     <div v-if="periodStore.prediction" class="prediction-card">
       <div class="prediction-header">📊 周期预测</div>
@@ -63,7 +81,6 @@
           <span class="flow-badge" :class="record.flow_level">
             {{ flowLabels[record.flow_level] }}
           </span>
-          <span v-if="record.mood" class="mood-badge">{{ record.mood }}</span>
           <span v-for="s in (record.symptoms || [])" :key="s" class="symptom-badge">{{ symptomLabels[s] || s }}</span>
         </div>
         <div v-if="record.note" class="period-note">{{ record.note }}</div>
@@ -97,18 +114,8 @@
               >{{ label }}</button>
             </div>
           </n-form-item>
-          <n-form-item label="心情">
-            <div class="mood-picker">
-              <button
-                v-for="(label, key) in moodLabels"
-                :key="key"
-                :class="['mood-btn', { active: form.mood === key }]"
-                @click="form.mood = form.mood === key ? '' : key"
-              >{{ label }}</button>
-            </div>
-          </n-form-item>
           <n-form-item label="备注">
-            <n-input v-model:value="form.note" type="textarea" placeholder="可选备注" :rows="2" />
+            <n-input v-model:value="form.note" type="textarea" placeholder="可选备注" :rows="2" :maxlength="500" show-count />
           </n-form-item>
         </n-form>
         <template #action>
@@ -132,6 +139,8 @@ const message = useMessage()
 
 const showModal = ref(false)
 const editingId = ref<number | null>(null)
+const showAddPerson = ref(false)
+const newPersonName = ref('')
 
 const flowLabels: Record<string, string> = {
   light: '少量',
@@ -150,25 +159,16 @@ const symptomLabels: Record<string, string> = {
   acne: '痘痘',
 }
 
-const moodLabels: Record<string, string> = {
-  '😊': '开心',
-  '😐': '一般',
-  '😢': '低落',
-  '😤': '烦躁',
-  '😴': '疲惫',
-  '🥰': '甜蜜',
-}
-
 const form = reactive({
   start_date_ts: Date.now(),
   end_date_ts: null as number | null,
   flow_level: 'moderate' as 'light' | 'moderate' | 'heavy',
   symptoms: [] as string[],
-  mood: '',
   note: '',
 })
 
 await useAsyncData('period-init', async () => {
+  await periodStore.fetchPersonNames()
   await Promise.all([
     periodStore.fetchRecords(),
     periodStore.fetchPrediction(),
@@ -176,13 +176,23 @@ await useAsyncData('period-init', async () => {
   return true
 })
 
+function confirmAddPerson() {
+  const name = newPersonName.value.trim()
+  if (!name) return
+  if (!periodStore.personNames.includes(name)) {
+    periodStore.personNames.push(name)
+  }
+  periodStore.switchPerson(name)
+  showAddPerson.value = false
+  newPersonName.value = ''
+}
+
 function openAddModal() {
   editingId.value = null
   form.start_date_ts = Date.now()
   form.end_date_ts = null
   form.flow_level = 'moderate'
   form.symptoms = []
-  form.mood = ''
   form.note = ''
   showModal.value = true
 }
@@ -193,7 +203,6 @@ function openEditModal(record: PeriodRecord) {
   form.end_date_ts = record.end_date ? new Date(record.end_date).getTime() : null
   form.flow_level = record.flow_level
   form.symptoms = record.symptoms ? [...record.symptoms] : []
-  form.mood = record.mood || ''
   form.note = record.note || ''
   showModal.value = true
 }
@@ -207,43 +216,98 @@ function toggleSymptom(key: string) {
   }
 }
 
+function formatLocalDate(ts: number | null): string | undefined {
+  if (!ts) return undefined
+  const d = new Date(ts)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 async function handleSave() {
   if (!form.start_date_ts) return
-  const fmtDate = (ts: number | null) => ts ? new Date(ts).toISOString().split('T')[0] : undefined
+  try {
+    const data = {
+      person_name: periodStore.selectedPerson,
+      start_date: formatLocalDate(form.start_date_ts)!,
+      end_date: formatLocalDate(form.end_date_ts),
+      flow_level: form.flow_level,
+      symptoms: form.symptoms.length > 0 ? form.symptoms : undefined,
+      note: form.note || undefined,
+    }
 
-  const data = {
-    start_date: fmtDate(form.start_date_ts)!,
-    end_date: fmtDate(form.end_date_ts),
-    flow_level: form.flow_level,
-    symptoms: form.symptoms.length > 0 ? form.symptoms : undefined,
-    mood: form.mood || undefined,
-    note: form.note || undefined,
+    if (editingId.value) {
+      await periodStore.updateRecord(editingId.value, data)
+      message.success('已更新')
+    } else {
+      await periodStore.createRecord(data)
+      message.success('已记录')
+    }
+    showModal.value = false
+  } catch (e: any) {
+    message.error(e?.message || '操作失败')
   }
-
-  if (editingId.value) {
-    await periodStore.updateRecord(editingId.value, data)
-    message.success('已更新')
-  } else {
-    await periodStore.createRecord(data)
-    message.success('已记录')
-  }
-  showModal.value = false
 }
 
 async function handleDelete() {
   if (!editingId.value) return
-  await periodStore.deleteRecord(editingId.value)
-  showModal.value = false
-  message.success('已删除')
+  try {
+    await periodStore.deleteRecord(editingId.value)
+    showModal.value = false
+    message.success('已删除')
+  } catch (e: any) {
+    message.error(e?.message || '删除失败')
+  }
 }
 
 function formatDateShort(dateStr: string) {
-  const d = new Date(dateStr)
-  return `${d.getMonth() + 1}月${d.getDate()}日`
+  // Parse YYYY-MM-DD without timezone shift
+  const parts = dateStr.split('-')
+  if (parts.length === 3) {
+    const m = parseInt(parts[1], 10)
+    const d = parseInt(parts[2], 10)
+    return `${m}月${d}日`
+  }
+  const dt = new Date(dateStr)
+  return `${dt.getMonth() + 1}月${dt.getDate()}日`
 }
 </script>
 
 <style scoped>
+.person-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.person-btn {
+  padding: 6px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  background: transparent;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.person-btn.active {
+  border-color: #ec4899;
+  background: rgba(236, 72, 153, 0.1);
+  color: #ec4899;
+  font-weight: 600;
+}
+.person-btn.add-btn {
+  border-style: dashed;
+  color: var(--color-text-muted);
+}
+.add-person-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
 .prediction-card {
   background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(168, 85, 247, 0.08));
   border: 1px solid rgba(236, 72, 153, 0.15);
@@ -372,13 +436,6 @@ function formatDateShort(dateStr: string) {
 .flow-badge.moderate { background: rgba(245, 158, 11, 0.1); color: #d97706; }
 .flow-badge.heavy { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
 
-.mood-badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: rgba(168, 85, 247, 0.1);
-  color: #7c3aed;
-}
 .symptom-badge {
   font-size: 11px;
   padding: 2px 8px;
@@ -393,12 +450,12 @@ function formatDateShort(dateStr: string) {
   margin-top: 4px;
 }
 
-.symptom-picker, .mood-picker {
+.symptom-picker {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
-.symptom-btn, .mood-btn {
+.symptom-btn {
   padding: 6px 12px;
   border: 1px solid var(--color-border);
   border-radius: 16px;
@@ -414,10 +471,5 @@ function formatDateShort(dateStr: string) {
   border-color: #ec4899;
   background: rgba(236, 72, 153, 0.1);
   color: #ec4899;
-}
-.mood-btn.active {
-  border-color: #a855f7;
-  background: rgba(168, 85, 247, 0.1);
-  color: #7c3aed;
 }
 </style>

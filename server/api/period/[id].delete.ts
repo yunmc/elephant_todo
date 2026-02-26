@@ -1,6 +1,9 @@
 export default defineEventHandler(async (event) => {
   const userId = requireAuth(event)
   const id = Number(getRouterParam(event, 'id'))
+  if (Number.isNaN(id)) {
+    throw createError({ statusCode: 400, message: 'ID 无效' })
+  }
 
   const deleted = await PeriodModel.delete(id, userId)
   if (!deleted) {

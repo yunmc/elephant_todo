@@ -1,5 +1,7 @@
 export default defineEventHandler(async (event) => {
   const userId = requireAuth(event)
-  const records = await PeriodModel.findByUser(userId)
+  const query = getQuery(event)
+  const personName = query.person_name ? String(query.person_name) : undefined
+  const records = await PeriodModel.findByUser(userId, personName)
   return { success: true, data: records }
 })

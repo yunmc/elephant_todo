@@ -211,17 +211,18 @@ CREATE TABLE important_dates (
 CREATE TABLE period_records (
   id            INT          AUTO_INCREMENT PRIMARY KEY,
   user_id       INT          NOT NULL,
+  person_name   VARCHAR(50)  NOT NULL DEFAULT '我' COMMENT '记录对象名称（支持多人）',
   start_date    DATE         NOT NULL,
   end_date      DATE         DEFAULT NULL,
   cycle_length  INT          DEFAULT NULL COMMENT '本次周期长度（天）',
   period_length INT          DEFAULT NULL COMMENT '经期持续天数',
   flow_level    ENUM('light','moderate','heavy') DEFAULT 'moderate',
   symptoms      JSON         DEFAULT NULL COMMENT '症状记录',
-  mood          VARCHAR(50)  DEFAULT NULL,
   note          TEXT         DEFAULT NULL,
   created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_period_records_user_id (user_id),
   KEY idx_period_records_user_date (user_id, start_date),
+  KEY idx_period_records_user_person (user_id, person_name),
   CONSTRAINT fk_period_records_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

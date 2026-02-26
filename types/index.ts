@@ -187,13 +187,13 @@ export interface ImportantDate {
 // ==================== Period ====================
 export interface PeriodRecord {
   id: number
+  person_name: string
   start_date: string
   end_date: string | null
   cycle_length: number | null
   period_length: number | null
   flow_level: 'light' | 'moderate' | 'heavy'
   symptoms: string[] | null
-  mood: string | null
   note: string | null
   created_at: string
   updated_at: string
