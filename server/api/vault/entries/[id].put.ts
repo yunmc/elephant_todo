@@ -14,7 +14,23 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody<UpdateVaultEntryDTO>(event)
-  await VaultModel.updateEntry(id, userId, body)
+  const updateData: UpdateVaultEntryDTO = {}
+  if (body.name !== undefined) {
+    const name = typeof body.name === 'string' ? body.name.trim() : ''
+    if (!name) throw createError({ statusCode: 400, message: '条目名称不能为空' })
+    if (name.length > 200) throw createError({ statusCode: 400, message: '条目名称不能超过200个字符' })
+    updateData.name = name
+  }
+  if (body.url !== undefined) updateData.url = body.url
+  if (body.group_id !== undefined) updateData.group_id = body.group_id
+  if (body.encrypted_data !== undefined) {
+    if (typeof body.encrypted_data !== 'string' || body.encrypted_data.length > 100000) {
+      throw createError({ statusCode: 400, message: '加密数据无效' })
+    }
+    updateData.encrypted_data = body.encrypted_data
+  }
+
+  await VaultModel.updateEntry(id, userId, updateData)
   const entry = await VaultModel.findEntryById(id, userId)
   return { success: true, data: entry }
 })

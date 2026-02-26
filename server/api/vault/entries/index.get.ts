@@ -6,8 +6,9 @@ export default defineEventHandler(async (event) => {
 
   const params: VaultQueryParams = {
     group_id: query.group_id ? Number(query.group_id) : undefined,
-    page: query.page ? Number(query.page) : 1,
-    limit: query.limit ? Number(query.limit) : 20,
+    search: query.search ? String(query.search).slice(0, 100) : undefined,
+    page: Math.max(1, query.page ? Number(query.page) : 1),
+    limit: Math.min(Math.max(1, query.limit ? Number(query.limit) : 20), 100),
   }
 
   const { entries, total } = await VaultModel.findEntries(userId, params)

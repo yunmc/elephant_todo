@@ -2,15 +2,22 @@ import type { VaultDecryptedData } from '~/types'
 
 /**
  * Composable for client-side E2E encryption of vault entries.
- * Uses AES-256-GCM with PBKDF2-derived key from user's login password.
+ * Uses AES-256-GCM with PBKDF2-derived key from user's master password.
+ * Salt is per-user (random, stored on server) to prevent cross-user key reuse.
  */
 export function useVaultCrypto() {
-  const SALT = 'elephant-vault-salt' // Could be per-user in production
   const ITERATIONS = 100000
   const KEY_LENGTH = 256
 
-  async function deriveKey(password: string): Promise<CryptoKey> {
+  /** Generate a random 16-byte salt for new users, returned as base64 */
+  function generateSalt(): string {
+    const salt = crypto.getRandomValues(new Uint8Array(16))
+    return btoa(String.fromCharCode(...salt))
+  }
+
+  async function deriveKey(password: string, salt: string): Promise<CryptoKey> {
     const enc = new TextEncoder()
+    const saltBytes = Uint8Array.from(atob(salt), (c) => c.charCodeAt(0))
     const keyMaterial = await crypto.subtle.importKey(
       'raw',
       enc.encode(password),
@@ -21,7 +28,7 @@ export function useVaultCrypto() {
     return crypto.subtle.deriveKey(
       {
         name: 'PBKDF2',
-        salt: enc.encode(SALT),
+        salt: saltBytes,
         iterations: ITERATIONS,
         hash: 'SHA-256',
       },
@@ -32,8 +39,8 @@ export function useVaultCrypto() {
     )
   }
 
-  async function encrypt(data: VaultDecryptedData, password: string): Promise<string> {
-    const key = await deriveKey(password)
+  async function encrypt(data: VaultDecryptedData, password: string, salt: string): Promise<string> {
+    const key = await deriveKey(password, salt)
     const enc = new TextEncoder()
     const iv = crypto.getRandomValues(new Uint8Array(12))
     const encoded = enc.encode(JSON.stringify(data))
@@ -52,8 +59,8 @@ export function useVaultCrypto() {
     return btoa(String.fromCharCode(...combined))
   }
 
-  async function decrypt(encryptedData: string, password: string): Promise<VaultDecryptedData> {
-    const key = await deriveKey(password)
+  async function decrypt(encryptedData: string, password: string, salt: string): Promise<VaultDecryptedData> {
+    const key = await deriveKey(password, salt)
     const combined = Uint8Array.from(atob(encryptedData), (c) => c.charCodeAt(0))
 
     const iv = combined.slice(0, 12)
@@ -91,10 +98,24 @@ export function useVaultCrypto() {
     if (symbols) chars += '!@#$%^&*()_+-=[]{}|;:,.<>?'
     if (!chars) chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
 
-    const array = new Uint32Array(length)
+    // Use rejection sampling to avoid modular bias
+    const maxValid = Math.floor(0x100000000 / chars.length) * chars.length
+    const array = new Uint32Array(length * 2) // extra values for rejection
     crypto.getRandomValues(array)
-    return Array.from(array, (x) => chars[x % chars.length]).join('')
+    let result = ''
+    let i = 0
+    while (result.length < length) {
+      if (i >= array.length) {
+        crypto.getRandomValues(array)
+        i = 0
+      }
+      if (array[i] < maxValid) {
+        result += chars[array[i] % chars.length]
+      }
+      i++
+    }
+    return result
   }
 
-  return { encrypt, decrypt, generatePassword }
+  return { encrypt, decrypt, generatePassword, generateSalt }
 }

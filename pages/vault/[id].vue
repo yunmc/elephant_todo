@@ -133,9 +133,11 @@ async function handleUnlock() {
 async function loadEntry() {
   loading.value = true
   try {
+    // Ensure salt is available for decryption
+    await vaultStore.ensureSalt()
     await vaultStore.fetchGroups()
-    await vaultStore.fetchEntries()
-    entry.value = vaultStore.entries.find(e => e.id === entryId) || null
+    // Use single entry endpoint instead of fetching entire list
+    entry.value = await vaultStore.fetchEntry(entryId)
     if (entry.value && masterPassword.value) {
       decryptedData.value = await vaultStore.decryptEntry(entry.value, masterPassword.value)
     }
@@ -207,8 +209,12 @@ async function handleSave() {
 }
 
 async function handleDelete() {
-  await vaultStore.deleteEntry(entryId)
-  navigateTo('/vault')
+  try {
+    await vaultStore.deleteEntry(entryId)
+    navigateTo('/vault')
+  } catch {
+    message.error('删除失败')
+  }
 }
 
 async function copyToClipboard(text: string) {
@@ -225,11 +231,6 @@ function formatDate(dateStr: string) {
   return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
 }
 
-// If vault already unlocked (groups loaded), auto-load
-onMounted(async () => {
-  if (vaultStore.groups.length && vaultStore.entries.length) {
-    // Already unlocked in a previous session - but we still need master password
-    // User must enter master password to view decrypted data
-  }
-})
+// If navigated from already-unlocked vault list, no auto-load needed
+// User must enter master password to view decrypted data
 </script>

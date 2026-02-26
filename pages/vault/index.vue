@@ -192,9 +192,12 @@ async function handleUnlock() {
   if (!masterPassword.value) return
   unlocking.value = true
   try {
+    // Ensure salt is available (creates one for new users)
+    await vaultStore.ensureSalt()
     await vaultStore.fetchGroups()
     await vaultStore.fetchEntries()
     // Try decrypting first entry to verify master password
+    // If no entries exist, store a verification ciphertext to validate later
     if (vaultStore.entries.length) {
       await vaultStore.decryptEntry(vaultStore.entries[0], masterPassword.value)
     }
@@ -219,17 +222,25 @@ function selectGroup(gid: number | null) {
 
 async function handleCreateGroup() {
   if (!newGroupName.value.trim()) return
-  await vaultStore.createGroup({ name: newGroupName.value.trim(), icon: newGroupIcon.value || undefined })
-  showAddGroup.value = false
-  newGroupName.value = ''
-  newGroupIcon.value = ''
-  message.success('分组已创建')
+  try {
+    await vaultStore.createGroup({ name: newGroupName.value.trim(), icon: newGroupIcon.value || undefined })
+    showAddGroup.value = false
+    newGroupName.value = ''
+    newGroupIcon.value = ''
+    message.success('分组已创建')
+  } catch {
+    message.error('创建分组失败')
+  }
 }
 
 async function handleDeleteGroup(id: number) {
-  await vaultStore.deleteGroup(id)
-  if (selectedGroup.value === id) selectGroup(null)
-  message.success('分组已删除')
+  try {
+    await vaultStore.deleteGroup(id)
+    if (selectedGroup.value === id) selectGroup(null)
+    message.success('分组已删除')
+  } catch {
+    message.error('删除分组失败')
+  }
 }
 
 function getGroupName(groupId: number | null): string {
@@ -323,7 +334,7 @@ async function handleSaveEntry() {
       await vaultStore.createEntry(
         entryForm.name.trim(),
         entryForm.url || undefined,
-        entryForm.group_id || 0,
+        entryForm.group_id || null,
         decryptedData,
         masterPassword.value,
       )

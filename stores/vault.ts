@@ -3,13 +3,38 @@ import type { VaultGroup, VaultEntry, VaultDecryptedData, Pagination } from '~/t
 
 export const useVaultStore = defineStore('vault', () => {
   const api = useApi()
-  const { encrypt, decrypt, generatePassword: genPwd } = useVaultCrypto()
+  const { encrypt, decrypt, generatePassword: genPwd, generateSalt } = useVaultCrypto()
 
   const groups = ref<VaultGroup[]>([])
   const entries = ref<VaultEntry[]>([])
   const pagination = ref<Pagination>({ page: 1, limit: 20, total: 0, totalPages: 0 })
   const selectedGroupId = ref<number | null>(null)
   const loading = ref(false)
+  const vaultSalt = ref<string | null>(null)
+
+  // ==================== Salt ====================
+  /** Fetch the user's vault salt from server; null if not set yet */
+  async function fetchVaultSalt(): Promise<string | null> {
+    const res = await api.get<{ salt: string | null }>('/vault/salt')
+    vaultSalt.value = res.data?.salt ?? null
+    return vaultSalt.value
+  }
+
+  /** Initialize vault salt for a new user (first vault usage) */
+  async function initVaultSalt(): Promise<string> {
+    const salt = generateSalt()
+    await api.post('/vault/salt', { salt })
+    vaultSalt.value = salt
+    return salt
+  }
+
+  /** Ensure salt is available; fetch or create if needed */
+  async function ensureSalt(): Promise<string> {
+    if (vaultSalt.value) return vaultSalt.value
+    const salt = await fetchVaultSalt()
+    if (salt) return salt
+    return await initVaultSalt()
+  }
 
   // ==================== Groups ====================
   async function fetchGroups() {
@@ -62,18 +87,25 @@ export const useVaultStore = defineStore('vault', () => {
     }
   }
 
+  /** Fetch a single entry by ID (uses dedicated endpoint) */
+  async function fetchEntry(id: number): Promise<VaultEntry | null> {
+    const res = await api.get<VaultEntry>(`/vault/entries/${id}`)
+    return res.data ?? null
+  }
+
   async function createEntry(
     name: string,
     url: string | undefined,
-    groupId: number,
+    groupId: number | null,
     decryptedData: VaultDecryptedData,
     masterPassword: string,
   ) {
-    const encrypted_data = await encrypt(decryptedData, masterPassword)
+    const salt = await ensureSalt()
+    const encrypted_data = await encrypt(decryptedData, masterPassword, salt)
     const res = await api.post<VaultEntry>('/vault/entries', {
       name,
       url,
-      group_id: groupId,
+      group_id: groupId || undefined,
       encrypted_data,
     })
     if (res.data) entries.value.unshift(res.data)
@@ -88,7 +120,8 @@ export const useVaultStore = defineStore('vault', () => {
   ) {
     const body: Record<string, any> = { ...data }
     if (decryptedData && masterPassword) {
-      body.encrypted_data = await encrypt(decryptedData, masterPassword)
+      const salt = await ensureSalt()
+      body.encrypted_data = await encrypt(decryptedData, masterPassword, salt)
     }
     const res = await api.put<VaultEntry>(`/vault/entries/${id}`, body)
     if (res.data) {
@@ -104,16 +137,28 @@ export const useVaultStore = defineStore('vault', () => {
   }
 
   async function decryptEntry(entry: VaultEntry, masterPassword: string): Promise<VaultDecryptedData> {
-    return await decrypt(entry.encrypted_data, masterPassword)
+    const salt = await ensureSalt()
+    return await decrypt(entry.encrypted_data, masterPassword, salt)
   }
 
-  /** Re-encrypt all entries with new password (used when changing login password) */
+  /** Re-encrypt ALL entries with new password (fetches all pages) */
   async function reEncryptAll(oldPassword: string, newPassword: string) {
-    const allEntries = entries.value
+    const salt = await ensureSalt()
+    // Fetch ALL entries (not just current page)
+    const allEntries: VaultEntry[] = []
+    let page = 1
+    const limit = 100
+    while (true) {
+      const res = await api.get<VaultEntry[]>('/vault/entries', { page, limit })
+      if (res.data) allEntries.push(...res.data)
+      if (!res.pagination || page >= res.pagination.totalPages) break
+      page++
+    }
+
     const batchItems = []
     for (const entry of allEntries) {
-      const decrypted = await decrypt(entry.encrypted_data, oldPassword)
-      const newEncrypted = await encrypt(decrypted, newPassword)
+      const decrypted = await decrypt(entry.encrypted_data, oldPassword, salt)
+      const newEncrypted = await encrypt(decrypted, newPassword, salt)
       batchItems.push({ id: entry.id, encrypted_data: newEncrypted })
     }
     if (batchItems.length > 0) {
@@ -141,11 +186,16 @@ export const useVaultStore = defineStore('vault', () => {
     pagination,
     selectedGroupId,
     loading,
+    vaultSalt,
+    fetchVaultSalt,
+    initVaultSalt,
+    ensureSalt,
     fetchGroups,
     createGroup,
     updateGroup,
     deleteGroup,
     fetchEntries,
+    fetchEntry,
     createEntry,
     updateEntry,
     deleteEntry,

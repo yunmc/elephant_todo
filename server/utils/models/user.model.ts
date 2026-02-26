@@ -41,6 +41,20 @@ export const UserModel = {
     )
   },
 
+  async getVaultSalt(id: number): Promise<string | null> {
+    const [rows] = await getDb().query<UserRow[]>(
+      'SELECT vault_salt FROM users WHERE id = ?', [id]
+    )
+    return (rows[0] as any)?.vault_salt || null
+  },
+
+  async setVaultSalt(id: number, salt: string): Promise<void> {
+    await getDb().query(
+      'UPDATE users SET vault_salt = ? WHERE id = ?',
+      [salt, id]
+    )
+  },
+
   // ---- Password Reset Tokens ----
 
   async createResetToken(userId: number, token: string, expiresAt: Date): Promise<void> {

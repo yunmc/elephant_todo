@@ -63,7 +63,9 @@ export const VaultModel = {
     if (params.group_id) { whereClause += ' AND group_id = ?'; queryParams.push(params.group_id) }
     if (params.search) {
       whereClause += ' AND (name LIKE ? OR url LIKE ?)'
-      const s = `%${params.search}%`
+      // Escape LIKE wildcards to prevent injection of % and _
+      const escaped = params.search.replace(/[%_\\]/g, '\\$&')
+      const s = `%${escaped}%`
       queryParams.push(s, s)
     }
 
