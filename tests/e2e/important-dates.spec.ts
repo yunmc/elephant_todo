@@ -1,5 +1,5 @@
 /**
- * E2E — Important Dates CRUD (D01–D04)
+ * E2E — Important Dates CRUD (D01–D07)
  *
  * Serial tests sharing the same user.
  */
@@ -85,6 +85,83 @@ test.describe.serial('Important Dates Flow', () => {
     // The date we created defaults to repeat_yearly=true
     // Verify "每年" tag
     await expect(page.locator('.date-tag').getByText('每年').first()).toBeVisible({ timeout: 5000 })
+  })
+
+  test('D05: icon picker — select birthday icon', async ({ page }) => {
+    await page.goto(`${BASE}/important-dates`)
+    await waitForHydration(page)
+    await expect(page.getByText(`${TITLE} Edited`)).toBeVisible({ timeout: 8000 })
+
+    // Click card to open edit modal
+    await page.locator('.date-card').filter({ hasText: `${TITLE} Edited` }).click()
+    await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
+
+    // Click 🎂 icon button
+    await page.locator('.icon-btn').filter({ hasText: '🎂' }).click()
+    await page.waitForTimeout(300)
+
+    // Verify the icon button has 'active' class
+    await expect(page.locator('.icon-btn.active')).toContainText('🎂')
+
+    // Save
+    await page.getByRole('button', { name: '保存' }).click()
+    await page.waitForTimeout(2000)
+
+    // Verify the card now shows 🎂 icon
+    const card = page.locator('.date-card').filter({ hasText: `${TITLE} Edited` })
+    await expect(card.locator('.date-icon')).toContainText('🎂', { timeout: 5000 })
+  })
+
+  test('D06: add note to date', async ({ page }) => {
+    await page.goto(`${BASE}/important-dates`)
+    await waitForHydration(page)
+    await expect(page.getByText(`${TITLE} Edited`)).toBeVisible({ timeout: 8000 })
+
+    // Click card to open edit modal
+    await page.locator('.date-card').filter({ hasText: `${TITLE} Edited` }).click()
+    await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
+
+    // Fill note
+    await page.getByPlaceholder('可选备注').fill('E2E测试备注')
+
+    // Save
+    await page.getByRole('button', { name: '保存' }).click()
+    await page.waitForTimeout(2000)
+
+    // Verify the card shows the note
+    const card = page.locator('.date-card').filter({ hasText: `${TITLE} Edited` })
+    await expect(card.locator('.date-note')).toContainText('E2E测试备注', { timeout: 5000 })
+  })
+
+  test('D07: remind days setting persists', async ({ page }) => {
+    await page.goto(`${BASE}/important-dates`)
+    await waitForHydration(page)
+    await expect(page.getByText(`${TITLE} Edited`)).toBeVisible({ timeout: 8000 })
+
+    // Click card to open edit modal
+    await page.locator('.date-card').filter({ hasText: `${TITLE} Edited` }).click()
+    await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
+
+    // Select "提前 7 天" remind option
+    const remindSelect = page.locator('.n-select')
+    await remindSelect.click()
+    await page.waitForTimeout(300)
+    await page.locator('.n-base-select-option__content').filter({ hasText: '提前 7 天' }).click()
+    await page.waitForTimeout(300)
+
+    // Save
+    await page.getByRole('button', { name: '保存' }).click()
+    await page.waitForTimeout(2000)
+
+    // Re-open edit modal to verify persistence
+    await page.locator('.date-card').filter({ hasText: `${TITLE} Edited` }).click()
+    await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
+
+    // The select should show "提前 7 天"
+    await expect(page.locator('.n-base-selection-label')).toContainText('提前 7 天', { timeout: 3000 })
+
+    // Close modal
+    await page.keyboard.press('Escape')
   })
 
   test('D04: delete date', async ({ page }) => {

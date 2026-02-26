@@ -1,5 +1,5 @@
 /**
- * E2E — Todo CRUD + Subtasks + Filters + Priority/Category (T01–T09)
+ * E2E — Todo CRUD + Subtasks + Filters + Priority/Category/Tags/DueDate (T01–T12)
  *
  * Serial tests sharing the same user.
  */
@@ -245,6 +245,118 @@ test.describe.serial('Todo Flow', () => {
     await page.locator('.n-base-select-option__content').filter({ hasText: '低' }).click()
     await page.waitForTimeout(1000)
     await expect(page.getByText(`${TITLE} Updated`)).not.toBeVisible({ timeout: 3000 })
+
+    // Reset filters
+    await page.getByText('重置全部筛选').click()
+    await page.waitForTimeout(1000)
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 5000 })
+  })
+
+  test('T10: set due date in detail view', async ({ page }) => {
+    await page.goto(BASE)
+    await waitForHydration(page)
+    await page.getByPlaceholder('搜索待办...').fill('')
+    await page.waitForTimeout(500)
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 8000 })
+
+    // Navigate to todo detail
+    await page.getByText(`${TITLE} Updated`).click()
+    await expect(page.getByPlaceholder('待办标题')).toBeVisible({ timeout: 5000 })
+
+    // Find the due date row and click the date picker
+    const dueDateRow = page.locator('.info-row').filter({ hasText: '截止日期' })
+    await expect(dueDateRow).toBeVisible()
+
+    // Click the date picker input to open
+    await dueDateRow.locator('.n-date-picker').click()
+    await page.waitForTimeout(500)
+
+    // Set due date to tomorrow by typing directly
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const dateStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`
+    const dateInput = dueDateRow.locator('.n-date-picker input')
+    await dateInput.fill(dateStr)
+    await page.keyboard.press('Enter')
+    await page.waitForTimeout(500)
+
+    // Save
+    await page.locator('.action-btn.save').click()
+    await page.waitForTimeout(1000)
+
+    // Go back and verify date tag shows on list
+    await page.locator('.back-btn').click()
+    await page.waitForTimeout(1000)
+
+    const todoItem = page.locator('.todo-item').filter({ hasText: `${TITLE} Updated` })
+    await expect(todoItem.locator('.meta-tag').nth(1)).toBeVisible({ timeout: 5000 })
+  })
+
+  test('T11: add tags in detail view', async ({ page }) => {
+    await page.goto(BASE)
+    await waitForHydration(page)
+    await page.getByPlaceholder('搜索待办...').fill('')
+    await page.waitForTimeout(500)
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 8000 })
+
+    // Navigate to todo detail
+    await page.getByText(`${TITLE} Updated`).click()
+    await expect(page.getByPlaceholder('待办标题')).toBeVisible({ timeout: 5000 })
+
+    // Find tag row and click select to open dropdown
+    const tagRow = page.locator('.info-row').filter({ hasText: '标签' })
+    await expect(tagRow).toBeVisible()
+    await tagRow.locator('.n-base-selection').click()
+    await page.waitForTimeout(500)
+
+    // Create new tag inline via action slot
+    const tagName = `Tag${Date.now()}`
+    await page.getByPlaceholder('新标签名称').fill(tagName)
+    await page.waitForTimeout(300)
+    await page.locator('.n-base-select-menu__action').locator('button:has-text("添加")').click()
+    await page.waitForTimeout(1000)
+
+    // Close dropdown
+    await page.locator('.page-container').click({ position: { x: 10, y: 10 } })
+    await page.waitForTimeout(500)
+
+    // Save
+    await page.locator('.action-btn.save').click()
+    await page.waitForTimeout(1000)
+
+    // Go back and verify tag shows on list
+    await page.locator('.back-btn').click()
+    await page.waitForTimeout(1000)
+
+    const todoItem = page.locator('.todo-item').filter({ hasText: `${TITLE} Updated` })
+    await expect(todoItem.locator('.tag-chip')).toBeVisible({ timeout: 5000 })
+  })
+
+  test('T12: filter by category', async ({ page }) => {
+    await page.goto(BASE)
+    await waitForHydration(page)
+    await page.getByPlaceholder('搜索待办...').fill('')
+    await page.waitForTimeout(500)
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 8000 })
+
+    // Open filter panel
+    await page.getByRole('button', { name: /筛选/ }).click()
+    await page.waitForTimeout(500)
+
+    // Click the third n-select (category filter) in the grid
+    // Order: priority, date, category, tag
+    const categorySelect = page.locator('.n-select').nth(2)
+    await categorySelect.click()
+    await page.waitForTimeout(300)
+
+    // Select the first available category from dropdown
+    const firstOption = page.locator('.n-base-select-option__content').first()
+    const optionText = await firstOption.textContent()
+    await firstOption.click()
+    await page.waitForTimeout(1000)
+
+    // Our todo has a category (from T08), should be visible
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 5000 })
 
     // Reset filters
     await page.getByText('重置全部筛选').click()

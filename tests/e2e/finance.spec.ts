@@ -1,5 +1,5 @@
 /**
- * E2E — Finance CRUD + Category + Statistics (F01–F06)
+ * E2E — Finance CRUD + Category + Statistics (F01–F09)
  *
  * Serial tests sharing the same user.
  */
@@ -106,6 +106,42 @@ test.describe.serial('Finance Flow', () => {
     await expect(page.getByText('200.00', { exact: true })).toBeVisible({ timeout: 5000 })
   })
 
+  test('F08: statistics show correct balance', async ({ page }) => {
+    await page.goto(`${BASE}/finance`)
+    await waitForHydration(page)
+    await page.waitForTimeout(2000)
+
+    // After F02 (expense 88.50) and F03 (income 200), verify stats
+    const incomeCard = page.locator('.stat-card.income')
+    const expenseCard = page.locator('.stat-card.expense')
+    const balanceCard = page.locator('.stat-card.balance')
+
+    await expect(incomeCard.locator('.stat-value')).toContainText('200.00', { timeout: 5000 })
+    await expect(expenseCard.locator('.stat-value')).toContainText('88.50', { timeout: 5000 })
+    await expect(balanceCard.locator('.stat-value')).toContainText('111.50', { timeout: 5000 })
+  })
+
+  test('F09: add record with note', async ({ page }) => {
+    await page.goto(`${BASE}/finance`)
+    await waitForHydration(page)
+    await page.getByRole('button', { name: '+ 记一笔' }).click()
+    await expect(page.locator('.n-input-number input')).toBeVisible({ timeout: 5000 })
+
+    // Enter amount
+    const amountInput = page.locator('.n-input-number input')
+    await amountInput.fill('15.00')
+
+    // Fill note
+    await page.getByPlaceholder('可选备注').fill('E2E测试备注')
+
+    // Save
+    await page.getByRole('button', { name: '保存' }).click()
+    await page.waitForTimeout(2000)
+
+    // Verify record with note appears
+    await expect(page.getByText('E2E测试备注')).toBeVisible({ timeout: 5000 })
+  })
+
   test('F04: type filter tabs', async ({ page }) => {
     await page.goto(`${BASE}/finance`)
     await waitForHydration(page)
@@ -114,14 +150,14 @@ test.describe.serial('Finance Flow', () => {
     // Click "支出" tab
     await page.locator('.filter-tabs .tab').getByText('支出').click()
     await page.waitForTimeout(1000)
-    // Should show expense records
-    await expect(page.getByText('88.50', { exact: true })).toBeVisible({ timeout: 3000 })
+    // Should show expense records (use record-card scope — stat card total may differ)
+    await expect(page.locator('.record-card').filter({ hasText: '88.50' }).first()).toBeVisible({ timeout: 3000 })
 
     // Click "收入" tab
     await page.locator('.filter-tabs .tab').getByText('收入').click()
     await page.waitForTimeout(1000)
     // Should show income records
-    await expect(page.getByText('200.00', { exact: true })).toBeVisible({ timeout: 3000 })
+    await expect(page.locator('.record-card').filter({ hasText: '200.00' }).first()).toBeVisible({ timeout: 3000 })
 
     // Click "全部"
     await page.locator('.filter-tabs .tab').getByText('全部').click()
@@ -166,5 +202,29 @@ test.describe.serial('Finance Flow', () => {
     // Should have one fewer record
     const recordsAfter = await page.locator('.record-card').count()
     expect(recordsAfter).toBeLessThan(recordsBefore)
+  })
+
+  test('F07: delete category from management modal', async ({ page }) => {
+    await page.goto(`${BASE}/finance`)
+    await waitForHydration(page)
+    await expect(page.locator('.page-title')).toContainText('记账', { timeout: 8000 })
+
+    // Open category management
+    await page.getByText('管理分类').click()
+    await expect(page.getByPlaceholder('新分类名称')).toBeVisible({ timeout: 5000 })
+
+    // Verify E2E category from F01 exists
+    await expect(page.locator('.category-item').filter({ hasText: 'E2E餐饮' })).toBeVisible({ timeout: 3000 })
+
+    // Click delete on the E2E category
+    const categoryItem = page.locator('.category-item').filter({ hasText: 'E2E餐饮' })
+    await categoryItem.getByRole('button', { name: '删除' }).click()
+    await page.waitForTimeout(1500)
+
+    // Verify category is gone from management list
+    await expect(page.locator('.category-item').filter({ hasText: 'E2E餐饮' })).not.toBeVisible({ timeout: 5000 })
+
+    // Close modal
+    await page.keyboard.press('Escape')
   })
 })

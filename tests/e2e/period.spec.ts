@@ -1,5 +1,5 @@
 /**
- * E2E — Period Tracking: CRUD + Multi-Person + Prediction (P01–P07)
+ * E2E — Period Tracking: CRUD + Multi-Person + Prediction + Symptoms/Notes (P01–P09)
  *
  * Period page supports multiple persons. Each person has isolated records
  * and predictions. Uses NaiveUI modal (preset="card") for add/edit.
@@ -97,6 +97,56 @@ test.describe.serial('Period Tracking Flow', () => {
 
     // Verify flow badge updated
     await expect(page.locator('.flow-badge').first()).toContainText('大量')
+  })
+
+  test('P08: select symptoms and verify badges', async ({ page }) => {
+    await page.goto(`${BASE}/period`)
+    await waitForHydration(page)
+    await expect(page.locator('.period-card').first()).toBeVisible({ timeout: 8000 })
+
+    // Click first card to edit
+    await page.locator('.period-card').first().click()
+    await expect(page.getByRole('dialog').getByText('大量')).toBeVisible({ timeout: 5000 })
+
+    // Select symptoms: 痛经 and 头痛
+    await page.locator('.symptom-btn').filter({ hasText: '痛经' }).click()
+    await page.waitForTimeout(200)
+    await page.locator('.symptom-btn').filter({ hasText: '头痛' }).click()
+    await page.waitForTimeout(200)
+
+    // Verify buttons have active class
+    await expect(page.locator('.symptom-btn.active').filter({ hasText: '痛经' })).toBeVisible()
+    await expect(page.locator('.symptom-btn.active').filter({ hasText: '头痛' })).toBeVisible()
+
+    // Save
+    await page.getByRole('button', { name: '保存' }).click()
+    await page.waitForTimeout(2000)
+
+    // Verify symptom badges appear on card
+    const card = page.locator('.period-card').first()
+    await expect(card.locator('.symptom-badge').filter({ hasText: '痛经' })).toBeVisible({ timeout: 5000 })
+    await expect(card.locator('.symptom-badge').filter({ hasText: '头痛' })).toBeVisible()
+  })
+
+  test('P09: add note to period record', async ({ page }) => {
+    await page.goto(`${BASE}/period`)
+    await waitForHydration(page)
+    await expect(page.locator('.period-card').first()).toBeVisible({ timeout: 8000 })
+
+    // Click first card to edit
+    await page.locator('.period-card').first().click()
+    await expect(page.getByRole('dialog').getByText('大量')).toBeVisible({ timeout: 5000 })
+
+    // Fill notes textarea
+    await page.getByPlaceholder('可选备注').fill('E2E经期备注')
+
+    // Save
+    await page.getByRole('button', { name: '保存' }).click()
+    await page.waitForTimeout(2000)
+
+    // Verify note text appears on card
+    const card = page.locator('.period-card').first()
+    await expect(card.locator('.period-note')).toContainText('E2E经期备注', { timeout: 5000 })
   })
 
   test('P04: prediction card after 2+ records', async ({ page }) => {

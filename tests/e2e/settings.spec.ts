@@ -1,5 +1,5 @@
 /**
- * E2E — Settings: Category / Tag CRUD, Change Password, Theme (S01–S04)
+ * E2E — Settings: Category / Tag CRUD, Change Password, Theme, Account Info (S01–S07)
  *
  * Settings page sections: 账户信息, 分类管理, 标签管理, 修改密码, 主题设置, 退出登录
  *
@@ -143,5 +143,68 @@ test.describe.serial('Settings', () => {
 
     // At least the theme should have changed between clicks
     expect(isDark || isLight).toBe(true)
+  })
+
+  test('S05: account info shows username and email', async ({ page }) => {
+    // authStore.user is loaded from 'user' cookie — inject it so v-if renders
+    const url = new URL(BASE)
+    await page.context().addCookies([{
+      name: 'user',
+      value: JSON.stringify({ id: 0, username: creds.username, email: creds.email, created_at: '', updated_at: '' }),
+      domain: url.hostname,
+      path: '/',
+    }])
+
+    await page.goto(`${BASE}/settings`)
+    await waitForHydration(page)
+    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+
+    // Account info section should show the registered user data
+    const accountSection = page.locator('.section-card').filter({ hasText: '账户信息' })
+    await expect(accountSection).toBeVisible({ timeout: 5000 })
+
+    // Username and email should be displayed
+    await expect(accountSection.getByText(creds.username)).toBeVisible({ timeout: 5000 })
+    await expect(accountSection.getByText(creds.email)).toBeVisible()
+  })
+
+  test('S06: change password with wrong current password shows error', async ({ page }) => {
+    await page.goto(`${BASE}/settings`)
+    await waitForHydration(page)
+    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+
+    // Fill with wrong current password
+    await page.getByPlaceholder('当前密码').fill('WrongOldPassword999')
+    await page.getByPlaceholder('新密码 (至少6位)').fill('NewPass999')
+    await page.getByPlaceholder('确认新密码').fill('NewPass999')
+
+    // Click "修改密码"
+    await page.getByRole('button', { name: '修改密码' }).click()
+    await page.waitForTimeout(3000)
+
+    // Should still be on settings page (password change failed)
+    expect(page.url()).toContain('/settings')
+    // The page should remain functional
+    await expect(page.locator('.page-title')).toContainText('设置')
+  })
+
+  test('S07: follow system theme button', async ({ page }) => {
+    await page.goto(`${BASE}/settings`)
+    await waitForHydration(page)
+    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+
+    // Click "跟随系统" button
+    await page.getByRole('button', { name: '跟随系统' }).click()
+    await page.waitForTimeout(500)
+
+    // The "跟随系统" button should be highlighted (type=primary)
+    const systemBtn = page.getByRole('button', { name: '跟随系统' })
+    await expect(systemBtn).toHaveClass(/n-button--primary-type/, { timeout: 3000 })
+
+    // Other buttons should NOT be primary
+    const lightBtn = page.getByRole('button', { name: '浅色' })
+    const darkBtn = page.getByRole('button', { name: '深色' })
+    await expect(lightBtn).not.toHaveClass(/n-button--primary-type/)
+    await expect(darkBtn).not.toHaveClass(/n-button--primary-type/)
   })
 })

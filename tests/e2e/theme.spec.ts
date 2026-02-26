@@ -1,5 +1,5 @@
 /**
- * E2E — Theme Switching & Persistence (TH01–TH05)
+ * E2E — Theme Switching & Persistence (TH01–TH06)
  *
  * Serial tests sharing the same user.
  * Uses registerOnce() pattern instead of env vars.
@@ -182,5 +182,35 @@ test.describe.serial('Theme Switching', () => {
     expect(theme.dataTheme).toBe('dark')
     expect(theme.dataAppTheme).toBe('dark')
     expect(theme.hasDarkClass).toBe(true)
+  })
+
+  test('TH06: dark theme persists after full page reload', async ({ page }) => {
+    await page.goto(`${BASE}/settings`)
+    await waitForHydration(page)
+    await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 10000 })
+
+    // Switch to dark
+    await page.click('button:has-text("深色")')
+    await page.waitForTimeout(500)
+
+    // Verify dark theme is applied
+    let theme = await getHtmlTheme(page)
+    expect(theme.dataTheme).toBe('dark')
+
+    // Full page reload
+    await page.reload()
+    await waitForHydration(page)
+    await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 10000 })
+    await page.waitForTimeout(500)
+
+    // Verify dark theme persists after reload
+    theme = await getHtmlTheme(page)
+    expect(theme.dataTheme).toBe('dark')
+    expect(theme.dataAppTheme).toBe('dark')
+    expect(theme.hasDarkClass).toBe(true)
+
+    // Verify dark button is still highlighted
+    const darkBtn = page.locator('button:has-text("深色")')
+    await expect(darkBtn).toHaveClass(/n-button--primary-type/)
   })
 })
