@@ -1,9 +1,17 @@
 export default defineEventHandler(async (event) => {
   const userId = requireAuth(event)
-  const { name, color } = await readBody(event)
+  const body = await readBody(event)
 
+  const name = typeof body.name === 'string' ? body.name.trim() : ''
   if (!name) {
     throw createError({ statusCode: 400, message: '分类名称为必填项' })
+  }
+  if (name.length > 50) {
+    throw createError({ statusCode: 400, message: '分类名称不能超过50个字符' })
+  }
+  const color = body.color || undefined
+  if (color && !/^#[0-9A-Fa-f]{6}$/.test(color)) {
+    throw createError({ statusCode: 400, message: '颜色格式无效，请使用 #RRGGBB 格式' })
   }
 
   try {

@@ -154,8 +154,6 @@ const tagsStore = useTagsStore()
 const api = useApi()
 const message = useMessage()
 
-const colorSwatches = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#9B59B6', '#E67E22', '#1ABC9C', '#95A5A6']
-
 // Load data
 await useAsyncData('settings-data', async () => {
   await Promise.all([
@@ -171,14 +169,22 @@ const newCategoryColor = ref('#4D96FF')
 
 async function handleAddCategory() {
   if (!newCategoryName.value.trim()) return
-  await categoriesStore.createCategory({ name: newCategoryName.value.trim(), color: newCategoryColor.value })
-  newCategoryName.value = ''
-  message.success('分类已添加')
+  try {
+    await categoriesStore.createCategory({ name: newCategoryName.value.trim(), color: newCategoryColor.value })
+    newCategoryName.value = ''
+    message.success('分类已添加')
+  } catch (e: any) {
+    message.error(e?.data?.message || '添加分类失败')
+  }
 }
 
 async function handleDeleteCategory(id: number) {
-  await categoriesStore.deleteCategory(id)
-  message.success('分类已删除')
+  try {
+    await categoriesStore.deleteCategory(id)
+    message.success('分类已删除')
+  } catch {
+    message.error('删除分类失败')
+  }
 }
 
 // === Tag ===
@@ -186,14 +192,22 @@ const newTagName = ref('')
 
 async function handleAddTag() {
   if (!newTagName.value.trim()) return
-  await tagsStore.createTag({ name: newTagName.value.trim() })
-  newTagName.value = ''
-  message.success('标签已添加')
+  try {
+    await tagsStore.createTag({ name: newTagName.value.trim() })
+    newTagName.value = ''
+    message.success('标签已添加')
+  } catch (e: any) {
+    message.error(e?.data?.message || '添加标签失败')
+  }
 }
 
 async function handleDeleteTag(id: number) {
-  await tagsStore.deleteTag(id)
-  message.success('标签已删除')
+  try {
+    await tagsStore.deleteTag(id)
+    message.success('标签已删除')
+  } catch {
+    message.error('删除标签失败')
+  }
 }
 
 // === Change Password ===
