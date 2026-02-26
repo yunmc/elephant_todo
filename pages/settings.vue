@@ -34,7 +34,7 @@
               <span :style="{ width: '12px', height: '12px', borderRadius: '50%', background: cat.color, display: 'inline-block' }"></span>
               <n-text>{{ cat.name }}</n-text>
             </n-space>
-            <n-popconfirm @positive-click="handleDeleteCategory(cat.id)">
+            <n-popconfirm positive-text="确认" negative-text="取消" @positive-click="handleDeleteCategory(cat.id)">
               <template #trigger>
                 <n-button text type="error" size="small">删除</n-button>
               </template>
@@ -72,7 +72,7 @@
         <n-list-item v-for="tag in tagsStore.tags" :key="tag.id">
           <n-space justify="space-between" align="center" style="width: 100%;">
             <n-text>{{ tag.name }}</n-text>
-            <n-popconfirm @positive-click="handleDeleteTag(tag.id)">
+            <n-popconfirm positive-text="确认" negative-text="取消" @positive-click="handleDeleteTag(tag.id)">
               <template #trigger>
                 <n-button text type="error" size="small">删除</n-button>
               </template>

@@ -74,6 +74,7 @@ export const useIdeasStore = defineStore('ideas', () => {
     if (res.data) {
       const idx = ideas.value.findIndex((i) => i.id === ideaId)
       if (idx !== -1) ideas.value[idx] = res.data
+      if (currentIdea.value?.id === ideaId) currentIdea.value = res.data
     }
     return res.data
   }

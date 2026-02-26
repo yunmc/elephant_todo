@@ -10,7 +10,8 @@
     "generate": "nuxt generate",
     "postinstall": "nuxt prepare",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@bg-dev/nuxt-naiveui": "^2.0.0",

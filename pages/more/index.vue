@@ -3,12 +3,6 @@
     <h1 class="page-title">更多功能</h1>
 
     <div class="feature-grid">
-      <NuxtLink to="/vault" class="feature-card">
-        <span class="feature-icon">🔐</span>
-        <span class="feature-name">密码本</span>
-        <span class="feature-desc">安全管理密码</span>
-      </NuxtLink>
-
       <NuxtLink to="/finance" class="feature-card">
         <span class="feature-icon">💰</span>
         <span class="feature-name">记账</span>

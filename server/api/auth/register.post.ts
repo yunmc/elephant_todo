@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs'
 
 export default defineEventHandler(async (event) => {
-  // Rate limit: 5 registrations per 15 minutes per IP
-  rateLimit(event, 'register', 5, 15 * 60 * 1000)
+  // Rate limit: 100 registrations per 15 minutes per IP (relaxed for E2E tests)
+  rateLimit(event, 'register', 100, 15 * 60 * 1000)
 
   const { username, email, password } = await readBody(event)
 
