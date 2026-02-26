@@ -60,6 +60,38 @@ test.describe('Auth — Public Pages', () => {
     await page.goto(`${BASE}/forgot-password`)
     await expect(page.getByPlaceholder('请输入注册邮箱')).toBeVisible()
   })
+
+  test('A08: login page navigation links work', async ({ page }) => {
+    // Start at login page
+    await page.goto(`${BASE}/login`)
+    await expect(page.getByRole('button', { name: '登录' })).toBeVisible()
+
+    // Click "没有账号？注册" link
+    await page.getByText('没有账号？注册').click()
+    await expect(page).toHaveURL(/\/register/, { timeout: 5000 })
+    await expect(page.getByRole('button', { name: '注册' })).toBeVisible()
+
+    // Click "已有账号？登录" link back
+    await page.getByText('已有账号？登录').click()
+    await expect(page).toHaveURL(/\/login/, { timeout: 5000 })
+    await expect(page.getByRole('button', { name: '登录' })).toBeVisible()
+  })
+
+  test('A09: register with mismatched passwords stays on page', async ({ page }) => {
+    const ts = Date.now()
+    const rand = Math.random().toString(36).slice(2, 6)
+    await page.goto(`${BASE}/register`)
+    await waitForHydration(page)
+    await page.getByPlaceholder('请输入用户名').fill(`mismatch_${rand}`)
+    await page.getByPlaceholder('请输入邮箱').fill(`mismatch_${ts}_${rand}@test.com`)
+    await page.getByPlaceholder('请输入密码（至少6位）').fill('Test123456')
+    await page.getByPlaceholder('请再次输入密码').fill('DifferentPassword789')
+    await page.getByRole('button', { name: '注册' }).click()
+    await page.waitForTimeout(2000)
+
+    // Should stay on register page (passwords don't match)
+    expect(page.url()).toContain('/register')
+  })
 })
 
 authedTest.describe('Auth — Logout', () => {

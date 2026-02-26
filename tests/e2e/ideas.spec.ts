@@ -88,6 +88,27 @@ test.describe.serial('Ideas Flow', () => {
     await expect(page.getByText('转为待办')).toBeVisible({ timeout: 8000 })
   })
 
+  test('I06: search ideas', async ({ page }) => {
+    await page.goto(`${BASE}/ideas`)
+    await waitForHydration(page)
+    await expect(page.getByText(`${CONTENT} Updated`)).toBeVisible({ timeout: 8000 })
+
+    // Search by content
+    await page.getByPlaceholder('搜索随手记...').fill('E2E Idea')
+    await page.waitForTimeout(1000)
+    await expect(page.getByText(`${CONTENT} Updated`)).toBeVisible()
+
+    // Search non-existent
+    await page.getByPlaceholder('搜索随手记...').fill('ZZZZNOTEXIST')
+    await page.waitForTimeout(1000)
+    await expect(page.getByText(`${CONTENT} Updated`)).not.toBeVisible({ timeout: 3000 })
+
+    // Clear search
+    await page.getByPlaceholder('搜索随手记...').fill('')
+    await page.waitForTimeout(1000)
+    await expect(page.getByText(`${CONTENT} Updated`)).toBeVisible()
+  })
+
   test('I05: delete idea', async ({ page }) => {
     await page.goto(`${BASE}/ideas`)
     await waitForHydration(page)

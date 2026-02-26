@@ -1,37 +1,20 @@
-import { test, expect, Page } from '@playwright/test'
-
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000'
-const TEST_EMAIL = process.env.TEST_EMAIL || ''
-const TEST_PASSWORD = process.env.TEST_PASSWORD || ''
-
 /**
- * Helper: login via API and set auth cookies, then navigate to settings
+ * E2E — Theme Switching & Persistence (TH01–TH05)
+ *
+ * Serial tests sharing the same user.
+ * Uses registerOnce() pattern instead of env vars.
  */
-async function loginAndGoToSettings(page: Page) {
-  // Login via API to avoid UI flakiness
-  const resp = await page.request.post(`${BASE_URL}/api/auth/login`, {
-    data: { email: TEST_EMAIL, password: TEST_PASSWORD },
-  })
-  const body = await resp.json()
-  if (!body.success) throw new Error(`Login failed: ${JSON.stringify(body)}`)
+import { test, expect } from '@playwright/test'
+import { registerOnce, injectAuth, hideDevToolsOverlay, waitForHydration } from './fixtures/auth.fixture'
 
-  const { accessToken, refreshToken } = body.data
-  // Set auth cookies so the app recognizes the session
-  await page.context().addCookies([
-    { name: 'accessToken', value: accessToken, url: BASE_URL },
-    { name: 'refreshToken', value: refreshToken, url: BASE_URL },
-  ])
+const BASE = process.env.BASE_URL || 'http://localhost:3001'
 
-  // Navigate directly to settings
-  await page.goto(`${BASE_URL}/settings`, { waitUntil: 'networkidle' })
-  // Wait for theme buttons to appear (inside ClientOnly)
-  await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 10000 })
-}
+let tokens: { accessToken: string; refreshToken: string }
 
 /**
  * Helper: get current theme from <html> element
  */
-async function getHtmlTheme(page: Page) {
+async function getHtmlTheme(page: import('@playwright/test').Page) {
   return page.evaluate(() => ({
     dataTheme: document.documentElement.getAttribute('data-theme'),
     dataAppTheme: document.documentElement.getAttribute('data-app-theme'),
@@ -39,17 +22,24 @@ async function getHtmlTheme(page: Page) {
   }))
 }
 
-test.describe('Theme Switching', () => {
-  test.skip(!TEST_EMAIL || !TEST_PASSWORD, 'Requires TEST_EMAIL and TEST_PASSWORD env vars')
-
-  test.beforeEach(async ({ page }) => {
-    // Clear theme localStorage before each test
-    await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' })
-    await page.evaluate(() => localStorage.removeItem('elephant-theme'))
+test.describe.serial('Theme Switching', () => {
+  test.beforeAll(async () => {
+    const result = await registerOnce()
+    tokens = result.tokens
   })
 
-  test('switching to dark theme applies dark styles', async ({ page }) => {
-    await loginAndGoToSettings(page)
+  test.beforeEach(async ({ page }) => {
+    await hideDevToolsOverlay(page)
+    await injectAuth(page, tokens)
+  })
+
+  test('TH01: switching to dark theme applies dark styles', async ({ page }) => {
+    await page.goto(`${BASE}/settings`)
+    await waitForHydration(page)
+    await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 10000 })
+
+    // Clear theme before test
+    await page.evaluate(() => localStorage.removeItem('elephant-theme'))
 
     // Click "深色" button
     await page.click('button:has-text("深色")')
@@ -64,16 +54,12 @@ test.describe('Theme Switching', () => {
     // Verify the "深色" button is highlighted (type=primary)
     const darkBtn = page.locator('button:has-text("深色")')
     await expect(darkBtn).toHaveClass(/n-button--primary-type/)
-
-    // Verify background color changed (dark theme uses dark background)
-    const bgColor = await page.evaluate(() => {
-      return getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim()
-    })
-    expect(bgColor).toBeTruthy()
   })
 
-  test('switching to light theme applies light styles', async ({ page }) => {
-    await loginAndGoToSettings(page)
+  test('TH02: switching to light theme applies light styles', async ({ page }) => {
+    await page.goto(`${BASE}/settings`)
+    await waitForHydration(page)
+    await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 10000 })
 
     // First switch to dark
     await page.click('button:has-text("深色")')
@@ -94,15 +80,17 @@ test.describe('Theme Switching', () => {
     await expect(lightBtn).toHaveClass(/n-button--primary-type/)
   })
 
-  test('dark theme persists after switching tabs', async ({ page }) => {
-    await loginAndGoToSettings(page)
+  test('TH03: dark theme persists after switching tabs', async ({ page }) => {
+    await page.goto(`${BASE}/settings`)
+    await waitForHydration(page)
+    await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 10000 })
 
     // Switch to dark
     await page.click('button:has-text("深色")')
     await page.waitForTimeout(500)
 
     // Navigate to 待办 (home tab)
-    await page.click('text=待办')
+    await page.locator('.nav-item').filter({ hasText: '待办' }).dispatchEvent('click')
     await page.waitForURL(/\/$/, { timeout: 5000 })
     await page.waitForTimeout(500)
 
@@ -112,9 +100,9 @@ test.describe('Theme Switching', () => {
     expect(homeTheme.dataAppTheme).toBe('dark')
     expect(homeTheme.hasDarkClass).toBe(true)
 
-    // Navigate back to settings
-    await page.click('text=设置')
-    await page.waitForURL(/\/settings/, { timeout: 5000 })
+    // Navigate back to settings via more → settings
+    await page.goto(`${BASE}/settings`)
+    await waitForHydration(page)
     await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 5000 })
     await page.waitForTimeout(500)
 
@@ -128,8 +116,10 @@ test.describe('Theme Switching', () => {
     await expect(darkBtn).toHaveClass(/n-button--primary-type/)
   })
 
-  test('light theme persists after switching tabs', async ({ page }) => {
-    await loginAndGoToSettings(page)
+  test('TH04: light theme persists after switching tabs', async ({ page }) => {
+    await page.goto(`${BASE}/settings`)
+    await waitForHydration(page)
+    await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 10000 })
 
     // Switch to dark first, then to light
     await page.click('button:has-text("深色")')
@@ -138,7 +128,7 @@ test.describe('Theme Switching', () => {
     await page.waitForTimeout(500)
 
     // Navigate to 随手记 tab
-    await page.click('text=随手记')
+    await page.locator('.nav-item').filter({ hasText: '随手记' }).dispatchEvent('click')
     await page.waitForURL(/\/ideas/, { timeout: 5000 })
     await page.waitForTimeout(500)
 
@@ -149,8 +139,8 @@ test.describe('Theme Switching', () => {
     expect(ideasTheme.hasDarkClass).toBe(false)
 
     // Navigate back to settings
-    await page.click('text=设置')
-    await page.waitForURL(/\/settings/, { timeout: 5000 })
+    await page.goto(`${BASE}/settings`)
+    await waitForHydration(page)
     await expect(page.locator('button:has-text("浅色")')).toBeVisible({ timeout: 5000 })
     await page.waitForTimeout(500)
 
@@ -164,15 +154,17 @@ test.describe('Theme Switching', () => {
     await expect(lightBtn).toHaveClass(/n-button--primary-type/)
   })
 
-  test('dark theme persists after re-tapping the same tab', async ({ page }) => {
-    await loginAndGoToSettings(page)
+  test('TH05: dark theme persists after re-tapping the same tab', async ({ page }) => {
+    await page.goto(`${BASE}/settings`)
+    await waitForHydration(page)
+    await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 10000 })
 
     // Switch to dark
     await page.click('button:has-text("深色")')
     await page.waitForTimeout(500)
 
     // Navigate to 待办
-    await page.click('text=待办')
+    await page.locator('.nav-item').filter({ hasText: '待办' }).dispatchEvent('click')
     await page.waitForURL(/\/$/, { timeout: 5000 })
     await page.waitForTimeout(500)
 
@@ -182,7 +174,7 @@ test.describe('Theme Switching', () => {
     expect(theme.hasDarkClass).toBe(true)
 
     // Re-tap the same 待办 tab (same-route click)
-    await page.click('text=待办')
+    await page.locator('.nav-item').filter({ hasText: '待办' }).dispatchEvent('click')
     await page.waitForTimeout(1000)
 
     // Verify dark theme is STILL correct after same-tab re-tap

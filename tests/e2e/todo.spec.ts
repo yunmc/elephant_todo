@@ -1,5 +1,5 @@
 /**
- * E2E — Todo CRUD + Subtasks + Filters (T01–T07)
+ * E2E — Todo CRUD + Subtasks + Filters + Priority/Category (T01–T09)
  *
  * Serial tests sharing the same user.
  */
@@ -8,6 +8,7 @@ import { registerOnce, injectAuth, hideDevToolsOverlay, waitForHydration } from 
 
 const BASE = process.env.BASE_URL || 'http://localhost:3001'
 const TITLE = `E2E Todo ${Date.now()}`
+const CATEGORY_NAME = `E2E Cat ${Date.now()}`
 
 let tokens: { accessToken: string; refreshToken: string }
 
@@ -133,6 +134,122 @@ test.describe.serial('Todo Flow', () => {
     await page.getByPlaceholder('搜索待办...').fill('ZZZZNOTEXIST')
     await page.waitForTimeout(1000)
     await expect(page.getByText(`${TITLE} Updated`)).not.toBeVisible({ timeout: 3000 })
+  })
+
+  test('T06: set priority in detail view', async ({ page }) => {
+    await page.goto(BASE)
+    await waitForHydration(page)
+    // Clear search first
+    await page.getByPlaceholder('搜索待办...').fill('')
+    await page.waitForTimeout(500)
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 8000 })
+
+    // Navigate to todo detail
+    await page.getByText(`${TITLE} Updated`).click()
+    await expect(page.getByPlaceholder('待办标题')).toBeVisible({ timeout: 5000 })
+
+    // Find the priority select (in .info-row next to "优先级" label)
+    const priorityRow = page.locator('.info-row').filter({ hasText: '优先级' })
+    await expect(priorityRow).toBeVisible()
+
+    // Click the select trigger to open dropdown
+    await priorityRow.locator('.n-base-selection').click()
+    await page.waitForTimeout(500)
+
+    // Select "高" priority
+    await page.getByText('高', { exact: true }).click()
+    await page.waitForTimeout(500)
+
+    // Save
+    await page.locator('.action-btn.save').click()
+    await page.waitForTimeout(1000)
+
+    // Go back and verify priority tag shows on list
+    await page.locator('.back-btn').click()
+    await page.waitForTimeout(1000)
+
+    // The todo item should show a "高" priority tag
+    const todoItem = page.locator('.todo-item').filter({ hasText: `${TITLE} Updated` })
+    await expect(todoItem.locator('.priority-high')).toBeVisible({ timeout: 5000 })
+  })
+
+  test('T08: inline create category in detail view', async ({ page }) => {
+    await page.goto(BASE)
+    await waitForHydration(page)
+    await page.getByPlaceholder('搜索待办...').fill('')
+    await page.waitForTimeout(500)
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 8000 })
+
+    // Navigate to todo detail
+    await page.getByText(`${TITLE} Updated`).click()
+    await expect(page.getByPlaceholder('待办标题')).toBeVisible({ timeout: 5000 })
+
+    // Find the category row and click the select to open dropdown
+    const categoryRow = page.locator('.info-row').filter({ hasText: '分类' })
+    await expect(categoryRow).toBeVisible()
+    await categoryRow.locator('.n-base-selection').click()
+    await page.waitForTimeout(500)
+
+    // The #action slot input is now visible in the dropdown
+    const categoryName = `Cat${Date.now()}`
+    await page.getByPlaceholder('新分类名称').fill(categoryName)
+    await page.waitForTimeout(300)
+
+    // Click the "添加" button in the select dropdown action slot
+    // NaiveUI renders the dropdown in a teleported container
+    await page.locator('.n-base-select-menu__action').locator('button:has-text("添加")').click()
+    await page.waitForTimeout(1000)
+
+    // Close dropdown by clicking elsewhere
+    await page.locator('.page-container').click({ position: { x: 10, y: 10 } })
+    await page.waitForTimeout(500)
+
+    // Save
+    await page.locator('.action-btn.save').click()
+    await page.waitForTimeout(1000)
+
+    // Go back and verify category shows on list
+    await page.locator('.back-btn').click()
+    await page.waitForTimeout(1000)
+
+    const todoItem = page.locator('.todo-item').filter({ hasText: `${TITLE} Updated` })
+    await expect(todoItem.locator('.category')).toBeVisible({ timeout: 5000 })
+  })
+
+  test('T09: filter by priority', async ({ page }) => {
+    await page.goto(BASE)
+    await waitForHydration(page)
+    await page.getByPlaceholder('搜索待办...').fill('')
+    await page.waitForTimeout(500)
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 8000 })
+
+    // Open filter panel
+    await page.getByRole('button', { name: /筛选/ }).click()
+    await page.waitForTimeout(500)
+
+    // Click the first n-select (priority filter) in the grid
+    const prioritySelect = page.locator('.n-select').first()
+    await prioritySelect.click()
+    await page.waitForTimeout(300)
+
+    // Select "高" priority from dropdown using NaiveUI option class
+    await page.locator('.n-base-select-option__content').filter({ hasText: '高' }).click()
+    await page.waitForTimeout(1000)
+
+    // Our todo with high priority should be visible
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 5000 })
+
+    // Now filter by "低" priority — our todo should not be visible
+    await prioritySelect.click()
+    await page.waitForTimeout(300)
+    await page.locator('.n-base-select-option__content').filter({ hasText: '低' }).click()
+    await page.waitForTimeout(1000)
+    await expect(page.getByText(`${TITLE} Updated`)).not.toBeVisible({ timeout: 3000 })
+
+    // Reset filters
+    await page.getByText('重置全部筛选').click()
+    await page.waitForTimeout(1000)
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 5000 })
   })
 
   test('T04: delete todo', async ({ page }) => {
