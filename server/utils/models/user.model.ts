@@ -45,7 +45,7 @@ export const UserModel = {
     const [rows] = await getDb().query<UserRow[]>(
       'SELECT vault_salt FROM users WHERE id = ?', [id]
     )
-    return (rows[0] as any)?.vault_salt || null
+    return rows[0]?.vault_salt || null
   },
 
   async setVaultSalt(id: number, salt: string): Promise<void> {

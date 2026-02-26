@@ -6,6 +6,7 @@ export interface UserRow extends RowDataPacket {
   username: string
   email: string
   password: string
+  vault_salt: string | null
   created_at: Date
   updated_at: Date
 }
