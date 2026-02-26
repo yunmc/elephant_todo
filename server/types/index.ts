@@ -218,3 +218,134 @@ export interface PasswordResetTokenRow extends RowDataPacket {
   used: boolean
   created_at: Date
 }
+
+// ==================== Finance ====================
+export interface FinanceCategoryRow extends RowDataPacket {
+  id: number
+  user_id: number
+  name: string
+  icon: string
+  type: 'income' | 'expense'
+  sort_order: number
+  created_at: Date
+}
+
+export interface CreateFinanceCategoryDTO {
+  name: string
+  icon?: string
+  type: 'income' | 'expense'
+  sort_order?: number
+}
+
+export interface UpdateFinanceCategoryDTO {
+  name?: string
+  icon?: string
+  type?: 'income' | 'expense'
+  sort_order?: number
+}
+
+export interface FinanceRecordRow extends RowDataPacket {
+  id: number
+  user_id: number
+  category_id: number | null
+  type: 'income' | 'expense'
+  amount: number
+  note: string | null
+  record_date: Date
+  created_at: Date
+  updated_at: Date
+}
+
+export interface CreateFinanceRecordDTO {
+  category_id?: number
+  type: 'income' | 'expense'
+  amount: number
+  note?: string
+  record_date: string
+}
+
+export interface UpdateFinanceRecordDTO {
+  category_id?: number | null
+  type?: 'income' | 'expense'
+  amount?: number
+  note?: string
+  record_date?: string
+}
+
+export interface FinanceQueryParams {
+  type?: 'income' | 'expense'
+  category_id?: number
+  start_date?: string
+  end_date?: string
+  page?: number
+  limit?: number
+}
+
+// ==================== Important Date ====================
+export interface ImportantDateRow extends RowDataPacket {
+  id: number
+  user_id: number
+  title: string
+  date: Date
+  is_lunar: boolean
+  repeat_yearly: boolean
+  remind_days_before: number
+  icon: string
+  note: string | null
+  created_at: Date
+  updated_at: Date
+}
+
+export interface CreateImportantDateDTO {
+  title: string
+  date: string
+  is_lunar?: boolean
+  repeat_yearly?: boolean
+  remind_days_before?: number
+  icon?: string
+  note?: string
+}
+
+export interface UpdateImportantDateDTO {
+  title?: string
+  date?: string
+  is_lunar?: boolean
+  repeat_yearly?: boolean
+  remind_days_before?: number
+  icon?: string
+  note?: string
+}
+
+// ==================== Period ====================
+export interface PeriodRecordRow extends RowDataPacket {
+  id: number
+  user_id: number
+  start_date: Date
+  end_date: Date | null
+  cycle_length: number | null
+  period_length: number | null
+  flow_level: 'light' | 'moderate' | 'heavy'
+  symptoms: string[] | null
+  mood: string | null
+  note: string | null
+  created_at: Date
+  updated_at: Date
+}
+
+export interface CreatePeriodRecordDTO {
+  start_date: string
+  end_date?: string
+  flow_level?: 'light' | 'moderate' | 'heavy'
+  symptoms?: string[]
+  mood?: string
+  note?: string
+}
+
+export interface UpdatePeriodRecordDTO {
+  start_date?: string
+  end_date?: string | null
+  flow_level?: 'light' | 'moderate' | 'heavy'
+  symptoms?: string[]
+  mood?: string
+  note?: string
+}

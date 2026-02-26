@@ -1,0 +1,102 @@
+import { defineStore } from 'pinia'
+import type { FinanceRecord, FinanceCategory, FinanceFilters, FinanceStatistics, Pagination } from '~/types'
+
+export const useFinanceStore = defineStore('finance', () => {
+  const api = useApi()
+
+  const records = ref<FinanceRecord[]>([])
+  const categories = ref<FinanceCategory[]>([])
+  const statistics = ref<FinanceStatistics | null>(null)
+  const pagination = ref<Pagination>({ page: 1, limit: 50, total: 0, totalPages: 0 })
+  const filters = ref<FinanceFilters>({})
+  const loading = ref(false)
+
+  // ==================== Categories ====================
+  async function fetchCategories() {
+    const res = await api.get<FinanceCategory[]>('/finance/categories')
+    categories.value = res.data || []
+  }
+
+  async function createCategory(data: { name: string; icon?: string; type: 'income' | 'expense'; sort_order?: number }) {
+    const res = await api.post<FinanceCategory>('/finance/categories', data)
+    if (res.data) categories.value.push(res.data)
+    return res.data
+  }
+
+  async function updateCategory(id: number, data: Partial<FinanceCategory>) {
+    const res = await api.put<FinanceCategory>(`/finance/categories/${id}`, data)
+    if (res.data) {
+      const idx = categories.value.findIndex((c) => c.id === id)
+      if (idx !== -1) categories.value[idx] = res.data
+    }
+    return res.data
+  }
+
+  async function deleteCategory(id: number) {
+    await api.delete(`/finance/categories/${id}`)
+    categories.value = categories.value.filter((c) => c.id !== id)
+  }
+
+  // ==================== Records ====================
+  async function fetchRecords() {
+    loading.value = true
+    try {
+      const res = await api.get<FinanceRecord[]>('/finance/records', {
+        ...filters.value,
+        page: pagination.value.page,
+        limit: pagination.value.limit,
+      })
+      records.value = res.data || []
+      if (res.pagination) pagination.value = res.pagination
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function createRecord(data: { category_id?: number; type: 'income' | 'expense'; amount: number; note?: string; record_date: string }) {
+    const res = await api.post<FinanceRecord>('/finance/records', data)
+    if (res.data) records.value.unshift(res.data)
+    return res.data
+  }
+
+  async function updateRecord(id: number, data: Record<string, any>) {
+    const res = await api.put<FinanceRecord>(`/finance/records/${id}`, data)
+    if (res.data) {
+      const idx = records.value.findIndex((r) => r.id === id)
+      if (idx !== -1) records.value[idx] = res.data
+    }
+    return res.data
+  }
+
+  async function deleteRecord(id: number) {
+    await api.delete(`/finance/records/${id}`)
+    records.value = records.value.filter((r) => r.id !== id)
+  }
+
+  // ==================== Statistics ====================
+  async function fetchStatistics(startDate?: string, endDate?: string) {
+    const params: any = {}
+    if (startDate) params.start_date = startDate
+    if (endDate) params.end_date = endDate
+    const res = await api.get<FinanceStatistics>('/finance/statistics', params)
+    statistics.value = res.data || null
+    return statistics.value
+  }
+
+  // ==================== Helpers ====================
+  function setFilters(newFilters: Partial<FinanceFilters>) {
+    filters.value = { ...filters.value, ...newFilters }
+    pagination.value.page = 1
+  }
+
+  function setPage(page: number) {
+    pagination.value.page = page
+  }
+
+  return {
+    records, categories, statistics, pagination, filters, loading,
+    fetchCategories, createCategory, updateCategory, deleteCategory,
+    fetchRecords, createRecord, updateRecord, deleteRecord,
+    fetchStatistics, setFilters, setPage,
+  }
+})

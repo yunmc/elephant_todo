@@ -25,9 +25,9 @@
         <span class="nav-label">密码本</span>
       </NuxtLink>
 
-      <NuxtLink to="/settings" class="nav-item" :class="{ active: route.path === '/settings' }">
-        <span class="nav-icon">⚙️</span>
-        <span class="nav-label">设置</span>
+      <NuxtLink to="/more" class="nav-item" :class="{ active: ['/more', '/finance', '/important-dates', '/period', '/settings'].some(p => route.path === p || route.path.startsWith(p + '/')) }">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">更多</span>
       </NuxtLink>
     </nav>
 

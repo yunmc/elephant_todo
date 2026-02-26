@@ -1,0 +1,423 @@
+<template>
+  <div class="page-container">
+    <h1 class="page-title">经期追踪</h1>
+
+    <!-- Prediction Card -->
+    <div v-if="periodStore.prediction" class="prediction-card">
+      <div class="prediction-header">📊 周期预测</div>
+      <div class="prediction-grid">
+        <div class="pred-item">
+          <div class="pred-label">下次经期</div>
+          <div class="pred-value highlight">{{ formatDateShort(periodStore.prediction.next_period_start) }}</div>
+        </div>
+        <div class="pred-item">
+          <div class="pred-label">持续至</div>
+          <div class="pred-value">{{ formatDateShort(periodStore.prediction.next_period_end) }}</div>
+        </div>
+        <div class="pred-item">
+          <div class="pred-label">平均周期</div>
+          <div class="pred-value">{{ periodStore.prediction.average_cycle_length }} 天</div>
+        </div>
+        <div class="pred-item">
+          <div class="pred-label">平均经期</div>
+          <div class="pred-value">{{ periodStore.prediction.average_period_length }} 天</div>
+        </div>
+      </div>
+      <div class="fertile-window">
+        <span class="fertile-label">🌱 易孕窗口期</span>
+        <span class="fertile-dates">
+          {{ formatDateShort(periodStore.prediction.fertile_window_start) }} ~ {{ formatDateShort(periodStore.prediction.fertile_window_end) }}
+        </span>
+      </div>
+    </div>
+
+    <div v-else class="prediction-empty">
+      <n-text depth="3">记录经期数据后将自动预测下次周期</n-text>
+    </div>
+
+    <!-- Add Record Button -->
+    <div style="margin-bottom: 16px;">
+      <n-button type="primary" block @click="openAddModal">+ 记录经期</n-button>
+    </div>
+
+    <n-spin v-if="periodStore.loading" style="display: flex; justify-content: center; padding: 48px 0;" />
+
+    <n-empty v-else-if="periodStore.records.length === 0" description="暂无经期记录" style="padding: 48px 0;" />
+
+    <!-- Records List -->
+    <div v-else class="records-list">
+      <div v-for="record in periodStore.records" :key="record.id" class="period-card" @click="openEditModal(record)">
+        <div class="period-header">
+          <div class="period-dates">
+            <span class="period-start">{{ formatDateShort(record.start_date) }}</span>
+            <span v-if="record.end_date" class="period-sep">~</span>
+            <span v-if="record.end_date" class="period-end">{{ formatDateShort(record.end_date) }}</span>
+            <span v-else class="period-ongoing">进行中</span>
+          </div>
+          <div class="period-stats">
+            <span v-if="record.period_length" class="stat-badge">{{ record.period_length }}天</span>
+            <span v-if="record.cycle_length" class="stat-badge cycle">周期{{ record.cycle_length }}天</span>
+          </div>
+        </div>
+        <div class="period-details">
+          <span class="flow-badge" :class="record.flow_level">
+            {{ flowLabels[record.flow_level] }}
+          </span>
+          <span v-if="record.mood" class="mood-badge">{{ record.mood }}</span>
+          <span v-for="s in (record.symptoms || [])" :key="s" class="symptom-badge">{{ symptomLabels[s] || s }}</span>
+        </div>
+        <div v-if="record.note" class="period-note">{{ record.note }}</div>
+      </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <ClientOnly>
+      <n-modal v-model:show="showModal" preset="card" :title="editingId ? '编辑经期记录' : '记录经期'" :style="{ maxWidth: '500px', width: '100%' }">
+        <n-form :model="form" label-placement="left" label-width="80">
+          <n-form-item label="开始日期">
+            <n-date-picker v-model:value="form.start_date_ts" type="date" style="width: 100%;" />
+          </n-form-item>
+          <n-form-item label="结束日期">
+            <n-date-picker v-model:value="form.end_date_ts" type="date" clearable style="width: 100%;" />
+          </n-form-item>
+          <n-form-item label="流量">
+            <n-radio-group v-model:value="form.flow_level">
+              <n-radio-button value="light">少量</n-radio-button>
+              <n-radio-button value="moderate">适中</n-radio-button>
+              <n-radio-button value="heavy">大量</n-radio-button>
+            </n-radio-group>
+          </n-form-item>
+          <n-form-item label="症状">
+            <div class="symptom-picker">
+              <button
+                v-for="(label, key) in symptomLabels"
+                :key="key"
+                :class="['symptom-btn', { active: form.symptoms.includes(key) }]"
+                @click="toggleSymptom(key)"
+              >{{ label }}</button>
+            </div>
+          </n-form-item>
+          <n-form-item label="心情">
+            <div class="mood-picker">
+              <button
+                v-for="(label, key) in moodLabels"
+                :key="key"
+                :class="['mood-btn', { active: form.mood === key }]"
+                @click="form.mood = form.mood === key ? '' : key"
+              >{{ label }}</button>
+            </div>
+          </n-form-item>
+          <n-form-item label="备注">
+            <n-input v-model:value="form.note" type="textarea" placeholder="可选备注" :rows="2" />
+          </n-form-item>
+        </n-form>
+        <template #action>
+          <n-space>
+            <n-button v-if="editingId" type="error" ghost @click="handleDelete">删除</n-button>
+            <n-button type="primary" :disabled="!form.start_date_ts" @click="handleSave">
+              {{ editingId ? '保存' : '记录' }}
+            </n-button>
+          </n-space>
+        </template>
+      </n-modal>
+    </ClientOnly>
+  </div>
+</template>
+
+<script setup lang="ts">
+import type { PeriodRecord } from '~/types'
+
+const periodStore = usePeriodStore()
+const message = useMessage()
+
+const showModal = ref(false)
+const editingId = ref<number | null>(null)
+
+const flowLabels: Record<string, string> = {
+  light: '少量',
+  moderate: '适中',
+  heavy: '大量',
+}
+
+const symptomLabels: Record<string, string> = {
+  cramps: '痛经',
+  headache: '头痛',
+  bloating: '腹胀',
+  fatigue: '疲劳',
+  backache: '腰痛',
+  nausea: '恶心',
+  insomnia: '失眠',
+  acne: '痘痘',
+}
+
+const moodLabels: Record<string, string> = {
+  '😊': '开心',
+  '😐': '一般',
+  '😢': '低落',
+  '😤': '烦躁',
+  '😴': '疲惫',
+  '🥰': '甜蜜',
+}
+
+const form = reactive({
+  start_date_ts: Date.now(),
+  end_date_ts: null as number | null,
+  flow_level: 'moderate' as 'light' | 'moderate' | 'heavy',
+  symptoms: [] as string[],
+  mood: '',
+  note: '',
+})
+
+await useAsyncData('period-init', async () => {
+  await Promise.all([
+    periodStore.fetchRecords(),
+    periodStore.fetchPrediction(),
+  ])
+  return true
+})
+
+function openAddModal() {
+  editingId.value = null
+  form.start_date_ts = Date.now()
+  form.end_date_ts = null
+  form.flow_level = 'moderate'
+  form.symptoms = []
+  form.mood = ''
+  form.note = ''
+  showModal.value = true
+}
+
+function openEditModal(record: PeriodRecord) {
+  editingId.value = record.id
+  form.start_date_ts = new Date(record.start_date).getTime()
+  form.end_date_ts = record.end_date ? new Date(record.end_date).getTime() : null
+  form.flow_level = record.flow_level
+  form.symptoms = record.symptoms ? [...record.symptoms] : []
+  form.mood = record.mood || ''
+  form.note = record.note || ''
+  showModal.value = true
+}
+
+function toggleSymptom(key: string) {
+  const idx = form.symptoms.indexOf(key)
+  if (idx >= 0) {
+    form.symptoms.splice(idx, 1)
+  } else {
+    form.symptoms.push(key)
+  }
+}
+
+async function handleSave() {
+  if (!form.start_date_ts) return
+  const fmtDate = (ts: number | null) => ts ? new Date(ts).toISOString().split('T')[0] : undefined
+
+  const data = {
+    start_date: fmtDate(form.start_date_ts)!,
+    end_date: fmtDate(form.end_date_ts),
+    flow_level: form.flow_level,
+    symptoms: form.symptoms.length > 0 ? form.symptoms : undefined,
+    mood: form.mood || undefined,
+    note: form.note || undefined,
+  }
+
+  if (editingId.value) {
+    await periodStore.updateRecord(editingId.value, data)
+    message.success('已更新')
+  } else {
+    await periodStore.createRecord(data)
+    message.success('已记录')
+  }
+  showModal.value = false
+}
+
+async function handleDelete() {
+  if (!editingId.value) return
+  await periodStore.deleteRecord(editingId.value)
+  showModal.value = false
+  message.success('已删除')
+}
+
+function formatDateShort(dateStr: string) {
+  const d = new Date(dateStr)
+  return `${d.getMonth() + 1}月${d.getDate()}日`
+}
+</script>
+
+<style scoped>
+.prediction-card {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(168, 85, 247, 0.08));
+  border: 1px solid rgba(236, 72, 153, 0.15);
+  border-radius: var(--radius-md, 12px);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.prediction-header {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 12px;
+}
+.prediction-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.pred-item {
+  text-align: center;
+}
+.pred-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+.pred-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.pred-value.highlight {
+  color: #ec4899;
+  font-size: 16px;
+}
+
+.fertile-window {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(34, 197, 94, 0.08);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.fertile-label { color: #16a34a; font-weight: 500; }
+.fertile-dates { color: var(--color-text-secondary); }
+
+.prediction-empty {
+  text-align: center;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.records-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.period-card {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md, 12px);
+  padding: 14px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+.period-card:active {
+  background: var(--color-bg-elevated);
+}
+
+.period-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.period-dates {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.period-sep { color: var(--color-text-muted); }
+.period-ongoing {
+  font-size: 12px;
+  color: #ec4899;
+  background: rgba(236, 72, 153, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 4px;
+}
+
+.period-stats {
+  display: flex;
+  gap: 6px;
+}
+.stat-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--color-primary);
+}
+.stat-badge.cycle {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+}
+
+.period-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.flow-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.flow-badge.light { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
+.flow-badge.moderate { background: rgba(245, 158, 11, 0.1); color: #d97706; }
+.flow-badge.heavy { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+.mood-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(168, 85, 247, 0.1);
+  color: #7c3aed;
+}
+.symptom-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+}
+
+.period-note {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+}
+
+.symptom-picker, .mood-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.symptom-btn, .mood-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: transparent;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: auto;
+  min-width: auto;
+}
+.symptom-btn.active {
+  border-color: #ec4899;
+  background: rgba(236, 72, 153, 0.1);
+  color: #ec4899;
+}
+.mood-btn.active {
+  border-color: #a855f7;
+  background: rgba(168, 85, 247, 0.1);
+  color: #7c3aed;
+}
+</style>

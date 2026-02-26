@@ -148,3 +148,79 @@ CREATE TABLE password_reset_tokens (
   KEY idx_reset_tokens_user_id (user_id),
   CONSTRAINT fk_reset_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ==================== 记账模块 ====================
+
+-- 记账分类表
+CREATE TABLE finance_categories (
+  id         INT          AUTO_INCREMENT PRIMARY KEY,
+  user_id    INT          NOT NULL,
+  name       VARCHAR(50)  NOT NULL,
+  icon       VARCHAR(50)  DEFAULT '💰',
+  type       ENUM('income','expense') NOT NULL DEFAULT 'expense',
+  sort_order INT          NOT NULL DEFAULT 0,
+  created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_finance_categories_user_name_type (user_id, name, type),
+  KEY idx_finance_categories_user_id (user_id),
+  CONSTRAINT fk_finance_categories_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 记账记录表
+CREATE TABLE finance_records (
+  id          INT            AUTO_INCREMENT PRIMARY KEY,
+  user_id     INT            NOT NULL,
+  category_id INT            DEFAULT NULL,
+  type        ENUM('income','expense') NOT NULL DEFAULT 'expense',
+  amount      DECIMAL(12,2)  NOT NULL,
+  note        VARCHAR(500)   DEFAULT NULL,
+  record_date DATE           NOT NULL,
+  created_at  DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at  DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_finance_records_user_id (user_id),
+  KEY idx_finance_records_category_id (category_id),
+  KEY idx_finance_records_user_date (user_id, record_date),
+  KEY idx_finance_records_user_type (user_id, type),
+  CONSTRAINT fk_finance_records_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_finance_records_category FOREIGN KEY (category_id) REFERENCES finance_categories(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ==================== 重要日期模块 ====================
+
+-- 重要日期表
+CREATE TABLE important_dates (
+  id                 INT          AUTO_INCREMENT PRIMARY KEY,
+  user_id            INT          NOT NULL,
+  title              VARCHAR(200) NOT NULL,
+  date               DATE         NOT NULL,
+  is_lunar           BOOLEAN      NOT NULL DEFAULT FALSE,
+  repeat_yearly      BOOLEAN      NOT NULL DEFAULT TRUE,
+  remind_days_before INT          NOT NULL DEFAULT 0,
+  icon               VARCHAR(50)  DEFAULT '📅',
+  note               TEXT         DEFAULT NULL,
+  created_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_important_dates_user_id (user_id),
+  KEY idx_important_dates_user_date (user_id, date),
+  CONSTRAINT fk_important_dates_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ==================== 经期追踪模块 ====================
+
+-- 经期记录表
+CREATE TABLE period_records (
+  id            INT          AUTO_INCREMENT PRIMARY KEY,
+  user_id       INT          NOT NULL,
+  start_date    DATE         NOT NULL,
+  end_date      DATE         DEFAULT NULL,
+  cycle_length  INT          DEFAULT NULL COMMENT '本次周期长度（天）',
+  period_length INT          DEFAULT NULL COMMENT '经期持续天数',
+  flow_level    ENUM('light','moderate','heavy') DEFAULT 'moderate',
+  symptoms      JSON         DEFAULT NULL COMMENT '症状记录',
+  mood          VARCHAR(50)  DEFAULT NULL,
+  note          TEXT         DEFAULT NULL,
+  created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_period_records_user_id (user_id),
+  KEY idx_period_records_user_date (user_id, start_date),
+  CONSTRAINT fk_period_records_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -142,6 +142,84 @@ export interface SmartSuggestResult {
   similar_todos: SimilarTodo[]
 }
 
+// ==================== Finance ====================
+export interface FinanceCategory {
+  id: number
+  name: string
+  icon: string
+  type: 'income' | 'expense'
+  sort_order: number
+  created_at: string
+}
+
+export interface FinanceRecord {
+  id: number
+  category_id: number | null
+  type: 'income' | 'expense'
+  amount: number
+  note: string | null
+  record_date: string
+  created_at: string
+  updated_at: string
+  category_name?: string
+  category_icon?: string
+}
+
+export interface FinanceFilters {
+  type?: 'income' | 'expense'
+  category_id?: number
+  start_date?: string
+  end_date?: string
+  page?: number
+  limit?: number
+}
+
+export interface FinanceStatistics {
+  total_income: number
+  total_expense: number
+  balance: number
+  by_category: { category_id: number | null; category_name: string; category_icon: string; type: string; total: number }[]
+}
+
+// ==================== Important Date ====================
+export interface ImportantDate {
+  id: number
+  title: string
+  date: string
+  is_lunar: boolean
+  repeat_yearly: boolean
+  remind_days_before: number
+  icon: string
+  note: string | null
+  created_at: string
+  updated_at: string
+  days_until?: number
+}
+
+// ==================== Period ====================
+export interface PeriodRecord {
+  id: number
+  start_date: string
+  end_date: string | null
+  cycle_length: number | null
+  period_length: number | null
+  flow_level: 'light' | 'moderate' | 'heavy'
+  symptoms: string[] | null
+  mood: string | null
+  note: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PeriodPrediction {
+  next_period_start: string
+  next_period_end: string
+  average_cycle_length: number
+  average_period_length: number
+  fertile_window_start: string
+  fertile_window_end: string
+}
+
 // ==================== API Response ====================
 export interface ApiResponse<T = any> {
   success: boolean
