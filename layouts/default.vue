@@ -76,8 +76,8 @@
 
       <template #action>
         <n-space>
-          <n-button type="primary" @click="saveAsTodo" :disabled="!inputText.trim()">新建待办</n-button>
-          <n-button @click="saveAsIdea" :disabled="!inputText.trim()">保存为随手记</n-button>
+          <n-button type="primary" :loading="saving" :disabled="!inputText.trim() || saving" @click="saveAsTodo">新建待办</n-button>
+          <n-button :loading="saving" :disabled="!inputText.trim() || saving" @click="saveAsIdea">保存为随手记</n-button>
         </n-space>
       </template>
     </n-modal>
@@ -88,6 +88,7 @@
 import type { SimilarTodo } from '~/types'
 
 const route = useRoute()
+const message = useMessage()
 const todosStore = useTodosStore()
 const ideasStore = useIdeasStore()
 
@@ -95,7 +96,11 @@ const showAddModal = ref(false)
 const inputText = ref('')
 const similarTodos = ref<SimilarTodo[]>([])
 const suggestLoading = ref(false)
+const saving = ref(false)
 const voiceInput = useVoiceInput()
+
+// Request counter to ignore stale LLM responses
+let suggestRequestId = 0
 
 // Watch voice transcript to fill input
 watch(() => voiceInput.transcript.value, (val) => {
@@ -117,47 +122,83 @@ watch(inputText, (val) => {
   }
   suggestLoading.value = true
   matchTimer = setTimeout(async () => {
+    const requestId = ++suggestRequestId
     try {
       const result = await ideasStore.smartSuggest(val.trim())
+      // Ignore stale response if user has typed new content
+      if (requestId !== suggestRequestId) return
       similarTodos.value = result.similar_todos || []
     } catch {
+      if (requestId !== suggestRequestId) return
       similarTodos.value = []
     } finally {
-      suggestLoading.value = false
+      if (requestId === suggestRequestId) {
+        suggestLoading.value = false
+      }
     }
   }, 1200)
 })
 
 async function saveAsTodo() {
-  if (!inputText.value.trim()) return
-  await todosStore.createTodo({
-    title: inputText.value.trim(),
-  })
-  resetAndClose()
+  if (!inputText.value.trim() || saving.value) return
+  saving.value = true
+  try {
+    await todosStore.createTodo({
+      title: inputText.value.trim(),
+    })
+    message.success('已创建待办')
+    resetAndClose()
+  } catch {
+    message.error('创建待办失败')
+  } finally {
+    saving.value = false
+  }
 }
 
 async function saveAsIdea() {
-  if (!inputText.value.trim()) return
-  const source = voiceInput.transcript.value ? 'voice' : 'text'
-  await ideasStore.createIdea({ content: inputText.value.trim(), source })
-  resetAndClose()
+  if (!inputText.value.trim() || saving.value) return
+  saving.value = true
+  try {
+    const source = voiceInput.transcript.value ? 'voice' : 'text'
+    await ideasStore.createIdea({ content: inputText.value.trim(), source })
+    message.success('已保存为随手记')
+    resetAndClose()
+  } catch {
+    message.error('保存随手记失败')
+  } finally {
+    saving.value = false
+  }
 }
 
 async function linkToExisting(todoId: number) {
-  if (!inputText.value.trim()) return
-  const source = voiceInput.transcript.value ? 'voice' : 'text'
-  await ideasStore.createIdea({
-    content: inputText.value.trim(),
-    source,
-    todo_id: todoId,
-  })
-  resetAndClose()
+  if (!inputText.value.trim() || saving.value) return
+  saving.value = true
+  try {
+    const source = voiceInput.transcript.value ? 'voice' : 'text'
+    await ideasStore.createIdea({
+      content: inputText.value.trim(),
+      source,
+      todo_id: todoId,
+    })
+    message.success('已关联到待办')
+    resetAndClose()
+  } catch {
+    message.error('关联失败')
+  } finally {
+    saving.value = false
+  }
 }
 
 function resetAndClose() {
   inputText.value = ''
   similarTodos.value = []
   suggestLoading.value = false
+  saving.value = false
+  suggestRequestId++
+  // Stop voice recognition if still running
+  if (voiceInput.isListening.value) {
+    voiceInput.stop()
+  }
   showAddModal.value = false
 }
 </script>
