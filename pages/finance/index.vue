@@ -166,6 +166,19 @@ const form = reactive({
   note: '',
 })
 
+// When opening add modal, default date to selected month if not current month
+watch(showAddModal, (show) => {
+  if (show) {
+    const now = new Date()
+    const isCurrentMonth = currentYear.value === now.getFullYear() && currentMonth.value === now.getMonth() + 1
+    if (isCurrentMonth) {
+      form.record_date_ts = Date.now()
+    } else {
+      form.record_date_ts = new Date(currentYear.value, currentMonth.value - 1, 1).getTime()
+    }
+  }
+})
+
 const categoryOptions = computed(() =>
   financeStore.categories
     .filter((c) => c.type === form.type)
@@ -222,40 +235,57 @@ function changePage(page: number) {
 
 async function handleAdd() {
   if (!form.amount || form.amount <= 0) return
-  const dateStr = new Date(form.record_date_ts).toISOString().split('T')[0]
-  await financeStore.createRecord({
-    type: form.type,
-    amount: form.amount,
-    category_id: form.category_id || undefined,
-    note: form.note || undefined,
-    record_date: dateStr,
-  })
-  message.success('记录成功')
-  showAddModal.value = false
-  form.amount = null
-  form.note = ''
-  form.category_id = null
-  await financeStore.fetchStatistics(startDate.value, endDate.value)
+  try {
+    const dateStr = new Date(form.record_date_ts).toISOString().split('T')[0]
+    await financeStore.createRecord({
+      type: form.type,
+      amount: form.amount,
+      category_id: form.category_id || undefined,
+      note: form.note || undefined,
+      record_date: dateStr,
+    })
+    message.success('记录成功')
+    showAddModal.value = false
+    form.amount = null
+    form.note = ''
+    form.category_id = null
+    await loadData()
+  } catch {
+    message.error('操作失败')
+  }
 }
 
 async function handleDelete(id: number) {
-  await financeStore.deleteRecord(id)
-  await financeStore.fetchStatistics(startDate.value, endDate.value)
+  try {
+    await financeStore.deleteRecord(id)
+    await loadData()
+  } catch {
+    message.error('删除失败')
+  }
 }
 
 async function handleAddCategory() {
   if (!newCategoryName.value.trim()) return
-  await financeStore.createCategory({
-    name: newCategoryName.value.trim(),
-    type: newCategoryType.value,
-  })
-  newCategoryName.value = ''
-  message.success('分类已添加')
+  try {
+    await financeStore.createCategory({
+      name: newCategoryName.value.trim(),
+      type: newCategoryType.value,
+    })
+    newCategoryName.value = ''
+    message.success('分类已添加')
+  } catch (e: any) {
+    message.error(e?.data?.message || '添加分类失败')
+  }
 }
 
 async function handleDeleteCategory(id: number) {
-  await financeStore.deleteCategory(id)
-  message.success('分类已删除')
+  try {
+    await financeStore.deleteCategory(id)
+    await loadData()
+    message.success('分类已删除')
+  } catch {
+    message.error('删除分类失败')
+  }
 }
 
 function formatMoney(val: number) {
@@ -263,8 +293,9 @@ function formatMoney(val: number) {
 }
 
 function formatDate(dateStr: string) {
-  const d = new Date(dateStr)
-  return `${d.getMonth() + 1}月${d.getDate()}日`
+  // Parse YYYY-MM-DD directly to avoid timezone issues
+  const parts = dateStr.split('T')[0].split('-')
+  return `${+parts[1]}月${+parts[2]}日`
 }
 </script>
 

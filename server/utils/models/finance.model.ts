@@ -77,7 +77,7 @@ export const FinanceRecordModel = {
       whereClause += ' AND r.type = ?'
       queryParams.push(params.type)
     }
-    if (params.category_id) {
+    if (params.category_id !== undefined && params.category_id !== null) {
       whereClause += ' AND r.category_id = ?'
       queryParams.push(params.category_id)
     }
@@ -187,7 +187,7 @@ export const FinanceRecordModel = {
        FROM finance_records r
        LEFT JOIN finance_categories c ON r.category_id = c.id
        WHERE r.user_id = ? AND r.record_date >= ? AND r.record_date <= ?
-       GROUP BY r.category_id, r.type
+       GROUP BY r.category_id, c.name, c.icon, r.type
        ORDER BY total DESC`,
       [userId, startDate, endDate],
     )
