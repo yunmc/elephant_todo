@@ -2,26 +2,31 @@ export default defineEventHandler(async (event) => {
   const userId = requireAuth(event)
   const dates = await ImportantDateModel.findByUser(userId)
 
-  // Compute days_until for each date
+  // Compute days_until for each date using UTC to avoid timezone issues
   const now = new Date()
-  now.setHours(0, 0, 0, 0)
+  const todayUTC = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
 
   const enriched = dates.map((d) => {
     const dateObj = new Date(d.date)
-    let nextOccurrence: Date
+    const origMonth = dateObj.getUTCMonth()
+    const origDay = dateObj.getUTCDate()
+    let nextOccurrence: number
 
     if (d.repeat_yearly) {
-      // Find the next occurrence this year or next year
-      nextOccurrence = new Date(now.getFullYear(), dateObj.getMonth(), dateObj.getDate())
-      if (nextOccurrence < now) {
-        nextOccurrence = new Date(now.getFullYear() + 1, dateObj.getMonth(), dateObj.getDate())
+      // Find the next occurrence this year or next year (UTC)
+      const thisYear = new Date(now.getFullYear(), origMonth, origDay)
+      const thisYearUTC = Date.UTC(now.getFullYear(), origMonth, origDay)
+      if (thisYearUTC < todayUTC) {
+        nextOccurrence = Date.UTC(now.getFullYear() + 1, origMonth, origDay)
+      } else {
+        nextOccurrence = thisYearUTC
       }
     } else {
-      nextOccurrence = dateObj
+      nextOccurrence = Date.UTC(dateObj.getUTCFullYear(), origMonth, origDay)
     }
 
-    const diffMs = nextOccurrence.getTime() - now.getTime()
-    const daysUntil = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+    const diffMs = nextOccurrence - todayUTC
+    const daysUntil = Math.round(diffMs / (1000 * 60 * 60 * 24))
 
     return { ...d, days_until: daysUntil }
   })

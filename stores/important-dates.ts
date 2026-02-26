@@ -27,21 +27,14 @@ export const useImportantDatesStore = defineStore('important-dates', () => {
     note?: string
   }) {
     const res = await api.post<ImportantDate>('/important-dates', data)
-    if (res.data) {
-      dates.value.push(res.data)
-      // Re-fetch to get correct days_until and sorting
-      await fetchDates()
-    }
+    // Re-fetch to get correct days_until and sorting
+    await fetchDates()
     return res.data
   }
 
   async function updateDate(id: number, data: Record<string, any>) {
     const res = await api.put<ImportantDate>(`/important-dates/${id}`, data)
-    if (res.data) {
-      const idx = dates.value.findIndex((d) => d.id === id)
-      if (idx !== -1) dates.value[idx] = res.data
-      await fetchDates()
-    }
+    await fetchDates()
     return res.data
   }
 

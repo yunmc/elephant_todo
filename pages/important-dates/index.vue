@@ -157,7 +157,9 @@ function openEditModal(item: ImportantDate) {
 
 async function handleSave() {
   if (!form.title.trim() || !form.date_ts) return
-  const dateStr = new Date(form.date_ts).toISOString().split('T')[0]
+  // Use local time formatting to avoid UTC date shift
+  const d = new Date(form.date_ts)
+  const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   const data = {
     title: form.title.trim(),
     icon: form.icon,
@@ -168,26 +170,35 @@ async function handleSave() {
     note: form.note || undefined,
   }
 
-  if (editingId.value) {
-    await datesStore.updateDate(editingId.value, data)
-    message.success('已更新')
-  } else {
-    await datesStore.createDate(data)
-    message.success('已添加')
+  try {
+    if (editingId.value) {
+      await datesStore.updateDate(editingId.value, data)
+      message.success('已更新')
+    } else {
+      await datesStore.createDate(data)
+      message.success('已添加')
+    }
+    showModal.value = false
+  } catch {
+    message.error('操作失败')
   }
-  showModal.value = false
 }
 
 async function handleDelete() {
   if (!editingId.value) return
-  await datesStore.deleteDate(editingId.value)
-  showModal.value = false
-  message.success('已删除')
+  try {
+    await datesStore.deleteDate(editingId.value)
+    showModal.value = false
+    message.success('已删除')
+  } catch {
+    message.error('删除失败')
+  }
 }
 
 function formatDateDisplay(dateStr: string) {
-  const d = new Date(dateStr)
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
+  // Parse YYYY-MM-DD directly to avoid timezone issues
+  const parts = dateStr.split('T')[0].split('-')
+  return `${+parts[0]}年${+parts[1]}月${+parts[2]}日`
 }
 
 function countdownClass(daysUntil?: number) {
