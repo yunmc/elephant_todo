@@ -1,0 +1,25 @@
+# 本地开发环境 - 仅包含 MySQL
+# 应用使用 npm run dev 直接运行
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: elephant-mysql-dev
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=root123
+      - MYSQL_DATABASE=elephant_todo
+      - MYSQL_USER=elephant
+      - MYSQL_PASSWORD=elephant123
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "3306:3306"
+    command: >
+      --authentication-policy=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+
+volumes:
+  mysql_dev_data:

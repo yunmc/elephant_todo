@@ -1,0 +1,14 @@
+node_modules/
+.nuxt/
+.output/
+dist/
+.env
+*.log
+.DS_Store
+Thumbs.db
+.git/
+tests/
+docs/
+playwright.config.ts
+vitest.config.ts
+README.md

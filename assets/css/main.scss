@@ -1,0 +1,258 @@
+// ============================
+// Elephant Todo — Global Styles
+// Mobile-first design system
+// ============================
+
+// ---------- CSS Variables ----------
+:root {
+  // Brand Colors
+  --color-primary: #6366f1;
+  --color-primary-hover: #4f46e5;
+  --color-primary-light: #eef2ff;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  // Status Colors
+  --color-status-pending: #3b82f6;
+  --color-status-pending-bg: rgba(59, 130, 246, 0.1);
+  --color-status-completed: #22c55e;
+  --color-status-completed-bg: rgba(34, 197, 94, 0.1);
+
+  // Surfaces
+  --color-bg: #f8fafc;
+  --color-bg-card: #ffffff;
+  --color-bg-nav: rgba(255, 255, 255, 0.92);
+  --color-bg-elevated: #ffffff;
+
+  // Text
+  --color-text: #0f172a;
+  --color-text-secondary: #64748b;
+  --color-text-muted: #94a3b8;
+
+  // Border
+  --color-border: #e2e8f0;
+  --color-border-light: #f1f5f9;
+
+  // Spacing
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --nav-height: 56px;
+  --bottom-tab-height: 60px;
+  --page-px: 16px;
+
+  // Shadows
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+  // Radius
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  // Transitions
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
+
+// ---------- Dark Mode ----------
+.dark,
+[data-theme='dark'],
+[data-app-theme='dark'] {
+  --color-bg: #0f0f0f;
+  --color-bg-card: #1c1c1e;
+  --color-bg-nav: rgba(22, 22, 24, 0.92);
+  --color-bg-elevated: #2c2c2e;
+  --color-text: #f5f5f7;
+  --color-text-secondary: #98989d;
+  --color-text-muted: #636366;
+  --color-border: #38383a;
+  --color-border-light: #2c2c2e;
+  --color-primary-light: #312e81;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']):not([data-app-theme='light']) {
+    --color-bg: #0f0f0f;
+    --color-bg-card: #1c1c1e;
+    --color-bg-nav: rgba(22, 22, 24, 0.92);
+    --color-bg-elevated: #2c2c2e;
+    --color-text: #f5f5f7;
+    --color-text-secondary: #98989d;
+    --color-text-muted: #636366;
+    --color-border: #38383a;
+    --color-border-light: #2c2c2e;
+    --color-primary-light: #312e81;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
+  }
+}
+
+// ---------- Reset & Base ----------
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans SC', 'PingFang SC', sans-serif;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+// ---------- Touch Targets ----------
+button,
+[role='button'],
+.touchable {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+// ---------- Scrollbar ----------
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 2px;
+}
+
+// ---------- Layout ----------
+.page-container {
+  padding: var(--page-px);
+  padding-top: calc(var(--page-px) + var(--safe-area-top));
+  padding-bottom: calc(var(--page-px) + var(--bottom-tab-height) + var(--safe-area-bottom));
+  min-height: 100vh;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+// ---------- Page Title ----------
+.page-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 16px;
+  letter-spacing: -0.3px;
+}
+
+// ---------- Detail Page Header ----------
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  min-height: 40px;
+}
+
+// ---------- Section Card ----------
+.section-card {
+  margin-bottom: 12px;
+}
+
+// ---------- Native Color Input ----------
+.color-input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 40px;
+  height: 34px;
+  flex-shrink: 0;
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  padding: 2px;
+  cursor: pointer;
+  background: transparent;
+
+  &::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+  &::-webkit-color-swatch {
+    border: none;
+    border-radius: 6px;
+  }
+  &::-moz-color-swatch {
+    border: none;
+    border-radius: 6px;
+  }
+}
+
+// ---------- Priority Colors ----------
+.priority-high { color: var(--color-danger); }
+.priority-medium { color: var(--color-warning); }
+.priority-low { color: var(--color-text-secondary); }
+
+// ---------- Status ----------
+.status-completed {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.status-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+
+  &.status-pending {
+    color: var(--color-status-pending);
+    background: var(--color-status-pending-bg);
+  }
+  &.status-done {
+    color: var(--color-status-completed);
+    background: var(--color-status-completed-bg);
+  }
+}
+
+// ---------- Loading ----------
+.loading-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+// ---------- Animations ----------
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--transition-normal);
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all var(--transition-normal);
+}
+.slide-up-enter-from,
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
+}
