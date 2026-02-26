@@ -51,7 +51,7 @@
     <!-- Todo List -->
     <div v-else class="todo-list">
       <div v-for="todo in todosStore.todos" :key="todo.id" class="todo-item" @click="navigateTo(`/todo/${todo.id}`)">
-        <div class="todo-check" @click.stop="todosStore.toggleTodo(todo.id)">
+        <div class="todo-check" @click.stop="handleToggle(todo.id)">
           <div class="check-circle" :class="{ checked: todo.status === 'completed' }">
             <span v-if="todo.status === 'completed'">✓</span>
           </div>
@@ -107,6 +107,7 @@
 const todosStore = useTodosStore()
 const categoriesStore = useCategoriesStore()
 const tagsStore = useTagsStore()
+const message = useMessage()
 
 const searchText = ref('')
 const currentTab = ref('pending')
@@ -160,6 +161,10 @@ function debouncedSearch() {
   }, 400)
 }
 
+onUnmounted(() => {
+  if (searchTimer) clearTimeout(searchTimer)
+})
+
 function handleTabChange(tab: string) {
   todosStore.setFilters({ status: tab === 'all' ? undefined : tab as any })
   todosStore.fetchTodos()
@@ -202,7 +207,22 @@ function isOverdue(dateStr: string): boolean {
 }
 
 async function deleteTodo(todoId: number) {
-  await todosStore.deleteTodo(todoId)
+  try {
+    await todosStore.deleteTodo(todoId)
+    message.success('已删除')
+  } catch {
+    message.error('删除失败')
+  }
+}
+
+async function handleToggle(todoId: number) {
+  try {
+    await todosStore.toggleTodo(todoId)
+    // Refetch to respect current tab filter
+    await todosStore.fetchTodos()
+  } catch {
+    message.error('操作失败')
+  }
 }
 </script>
 
@@ -269,6 +289,11 @@ async function deleteTodo(todoId: number) {
   font-weight: 500;
   line-height: 1.4;
   word-break: break-word;
+
+  &.status-completed {
+    text-decoration: line-through;
+    opacity: 0.5;
+  }
 }
 
 .todo-meta {
@@ -276,6 +301,22 @@ async function deleteTodo(todoId: number) {
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 6px;
+}
+
+.status-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+
+  &.status-done {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--color-success, #22c55e);
+  }
+  &.status-pending {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--color-warning, #f59e0b);
+  }
 }
 
 .meta-tag {

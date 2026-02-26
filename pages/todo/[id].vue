@@ -153,7 +153,7 @@
         </div>
         <div v-if="ideas.length === 0" class="empty-hint">暂无关联的随手记</div>
         <div v-else class="ideas-list">
-          <div v-for="idea in ideas" :key="idea.id" class="idea-item">
+          <div v-for="idea in ideas" :key="idea.id" class="idea-item clickable" @click="navigateTo(`/ideas/${idea.id}`)">
             <span class="idea-icon">{{ idea.source === 'voice' ? '🎤' : '📝' }}</span>
             <div class="idea-content">
               <div class="idea-text">{{ idea.content }}</div>
@@ -326,49 +326,59 @@ async function saveSubtaskEdit() {
 }
 
 async function handleSave() {
-  await todosStore.updateTodo(todoId, {
-    title: editForm.title,
-    description: editForm.description || null,
-    priority: editForm.priority,
-    due_date: editForm.due_date || null,
-    category_id: editForm.category_id,
-    tag_ids: editForm.tag_ids,
-  })
-  message.success('已保存')
+  try {
+    await todosStore.updateTodo(todoId, {
+      title: editForm.title,
+      description: editForm.description || null,
+      priority: editForm.priority,
+      due_date: editForm.due_date || null,
+      category_id: editForm.category_id,
+      tag_ids: editForm.tag_ids,
+    })
+    message.success('已保存')
+  } catch {
+    message.error('保存失败')
+  }
 }
 
 async function handleDelete() {
-  await todosStore.deleteTodo(todoId)
-  navigateTo('/')
+  try {
+    await todosStore.deleteTodo(todoId)
+    navigateTo('/')
+  } catch {
+    message.error('删除失败')
+  }
 }
 
 async function handleCreateCategory() {
   const name = newCategoryName.value.trim()
   if (!name) return
-  await categoriesStore.createCategory({ name })
-  newCategoryName.value = ''
-  // auto-select the newly created category
-  const created = categoriesStore.categories.find(c => c.name === name)
-  if (created) editForm.category_id = created.id
+  try {
+    await categoriesStore.createCategory({ name })
+    newCategoryName.value = ''
+    const created = categoriesStore.categories.find(c => c.name === name)
+    if (created) editForm.category_id = created.id
+  } catch {
+    message.error('创建分类失败')
+  }
 }
 
 async function handleCreateTag() {
   const name = newTagName.value.trim()
   if (!name) return
-  await tagsStore.createTag({ name })
-  newTagName.value = ''
-  // auto-select the newly created tag
-  const created = tagsStore.tags.find(t => t.name === name)
-  if (created) editForm.tag_ids = [...editForm.tag_ids, created.id]
+  try {
+    await tagsStore.createTag({ name })
+    newTagName.value = ''
+    const created = tagsStore.tags.find(t => t.name === name)
+    if (created) editForm.tag_ids = [...editForm.tag_ids, created.id]
+  } catch {
+    message.error('创建标签失败')
+  }
 }
 
 function formatFullDate(dateStr: string) {
   const d = new Date(dateStr)
   return `${d.getMonth() + 1}月${d.getDate()}日 ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
-}
-
-function isOverdue(dateStr: string) {
-  return new Date(dateStr) < new Date(new Date().toDateString())
 }
 </script>
 
@@ -727,6 +737,11 @@ function isOverdue(dateStr: string) {
   padding: 10px 12px;
   background: var(--color-bg-elevated, var(--color-bg));
   border-radius: var(--radius-sm, 8px);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.idea-item:active {
+  background: var(--color-bg-card);
 }
 .idea-icon {
   font-size: 16px;

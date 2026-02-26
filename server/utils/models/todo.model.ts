@@ -1,13 +1,17 @@
 import type { ResultSetHeader, RowDataPacket } from 'mysql2'
 import type { TodoRow, CreateTodoDTO, UpdateTodoDTO, TodoQueryParams } from '~~/server/types'
 
+const ALLOWED_SORT_BY = ['created_at', 'due_date', 'priority'] as const
+const ALLOWED_SORT_ORDER = ['asc', 'desc'] as const
+const MAX_LIMIT = 100
+
 export const TodoModel = {
   async findByUser(userId: number, params: TodoQueryParams): Promise<{ todos: TodoRow[]; total: number }> {
-    const page = params.page || 1
-    const limit = params.limit || 20
+    const page = Math.max(1, params.page || 1)
+    const limit = Math.min(Math.max(1, params.limit || 20), MAX_LIMIT)
     const offset = (page - 1) * limit
-    const sortBy = params.sort_by || 'created_at'
-    const sortOrder = params.sort_order || 'desc'
+    const sortBy = ALLOWED_SORT_BY.includes(params.sort_by as any) ? params.sort_by! : 'created_at'
+    const sortOrder = ALLOWED_SORT_ORDER.includes(params.sort_order as any) ? params.sort_order! : 'desc'
 
     let whereClause = 'WHERE t.user_id = ?'
     const queryParams: any[] = [userId]
@@ -28,11 +32,15 @@ export const TodoModel = {
     )
     const total = countResult[0].total as number
 
-    let orderClause = `t.${sortBy} ${sortOrder}`
-    if (sortBy === 'priority') { orderClause = `FIELD(t.priority, 'high', 'medium', 'low') ${sortOrder}` }
+    let orderClause: string
+    if (sortBy === 'priority') {
+      orderClause = `FIELD(t.priority, 'high', 'medium', 'low') ${sortOrder}`
+    } else {
+      orderClause = `t.${sortBy} ${sortOrder}`
+    }
 
     const [todos] = await getDb().query<TodoRow[]>(
-      `SELECT t.* FROM todos t ${whereClause} ORDER BY ${orderClause} LIMIT ? OFFSET ?`,
+      `SELECT t.*, c.name AS category_name, c.color AS category_color FROM todos t LEFT JOIN categories c ON t.category_id = c.id ${whereClause} ORDER BY ${orderClause} LIMIT ? OFFSET ?`,
       [...queryParams, limit, offset]
     )
 
@@ -106,5 +114,38 @@ export const TodoModel = {
       'SELECT COUNT(*) as count FROM ideas WHERE todo_id = ?', [todoId]
     )
     return rows[0].count as number
+  },
+
+  /** Batch get tags for multiple todos (eliminates N+1) */
+  async getTagsBatch(todoIds: number[]): Promise<Map<number, RowDataPacket[]>> {
+    const result = new Map<number, RowDataPacket[]>()
+    if (todoIds.length === 0) return result
+    todoIds.forEach(id => result.set(id, []))
+
+    const [rows] = await getDb().query<RowDataPacket[]>(
+      'SELECT tt.todo_id, t.* FROM tags t JOIN todo_tags tt ON t.id = tt.tag_id WHERE tt.todo_id IN (?)',
+      [todoIds]
+    )
+    for (const row of rows) {
+      const list = result.get(row.todo_id)
+      if (list) list.push(row)
+    }
+    return result
+  },
+
+  /** Batch get ideas count for multiple todos (eliminates N+1) */
+  async getIdeasCountBatch(todoIds: number[]): Promise<Map<number, number>> {
+    const result = new Map<number, number>()
+    if (todoIds.length === 0) return result
+    todoIds.forEach(id => result.set(id, 0))
+
+    const [rows] = await getDb().query<RowDataPacket[]>(
+      'SELECT todo_id, COUNT(*) as count FROM ideas WHERE todo_id IN (?) GROUP BY todo_id',
+      [todoIds]
+    )
+    for (const row of rows) {
+      result.set(row.todo_id, row.count as number)
+    }
+    return result
   },
 }
