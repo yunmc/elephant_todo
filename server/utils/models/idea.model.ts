@@ -1,10 +1,17 @@
 import type { ResultSetHeader, RowDataPacket } from 'mysql2'
 import type { IdeaRow, CreateIdeaDTO, UpdateIdeaDTO, IdeaQueryParams } from '~~/server/types'
 
+const MAX_LIMIT = 100
+
+// Strip FULLTEXT boolean mode special characters to prevent MySQL parse errors
+function sanitizeFulltextSearch(input: string): string {
+  return input.replace(/[+\-~*"()@<>]/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
 export const IdeaModel = {
   async findByUser(userId: number, params: IdeaQueryParams): Promise<{ ideas: IdeaRow[]; total: number }> {
-    const page = params.page || 1
-    const limit = params.limit || 20
+    const page = Math.max(1, params.page || 1)
+    const limit = Math.min(Math.max(1, params.limit || 20), MAX_LIMIT)
     const offset = (page - 1) * limit
 
     let whereClause = 'WHERE i.user_id = ?'
@@ -12,8 +19,11 @@ export const IdeaModel = {
 
     if (params.linked === 'true') { whereClause += ' AND i.todo_id IS NOT NULL' }
     else if (params.linked === 'false') { whereClause += ' AND i.todo_id IS NULL' }
-    if (params.source) { whereClause += ' AND i.source = ?'; queryParams.push(params.source) }
-    if (params.search) { whereClause += ' AND MATCH(i.content) AGAINST(? IN BOOLEAN MODE)'; queryParams.push(params.search) }
+    if (params.source && ['text', 'voice'].includes(params.source)) { whereClause += ' AND i.source = ?'; queryParams.push(params.source) }
+    if (params.search) {
+      const sanitized = sanitizeFulltextSearch(params.search)
+      if (sanitized) { whereClause += ' AND MATCH(i.content) AGAINST(? IN BOOLEAN MODE)'; queryParams.push(sanitized) }
+    }
 
     const [countResult] = await getDb().query<RowDataPacket[]>(
       `SELECT COUNT(*) as total FROM ideas i ${whereClause}`, queryParams
@@ -30,7 +40,7 @@ export const IdeaModel = {
 
   async findById(id: number, userId: number): Promise<IdeaRow | null> {
     const [rows] = await getDb().query<IdeaRow[]>(
-      'SELECT * FROM ideas WHERE id = ? AND user_id = ?', [id, userId]
+      'SELECT i.*, t.title as todo_title FROM ideas i LEFT JOIN todos t ON i.todo_id = t.id WHERE i.id = ? AND i.user_id = ?', [id, userId]
     )
     return rows[0] || null
   },

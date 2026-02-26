@@ -62,6 +62,7 @@
 
 <script setup lang="ts">
 const ideasStore = useIdeasStore()
+const message = useMessage()
 
 const searchText = ref('')
 
@@ -80,6 +81,9 @@ function debouncedSearch() {
   }, 400)
 }
 
+onUnmounted(() => {
+  if (searchTimer) clearTimeout(searchTimer)
+})
 
 function changePage(page: number) {
   ideasStore.setPage(page)
@@ -92,7 +96,12 @@ function formatDate(dateStr: string) {
 }
 
 async function deleteIdea(ideaId: number) {
-  await ideasStore.deleteIdea(ideaId)
+  try {
+    await ideasStore.deleteIdea(ideaId)
+    message.success('已删除')
+  } catch {
+    message.error('删除失败')
+  }
 }
 </script>
 

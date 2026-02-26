@@ -72,6 +72,7 @@ const api = useApi()
 const message = useMessage()
 
 const ideaId = Number(route.params.id)
+if (isNaN(ideaId)) navigateTo('/ideas')
 const idea = computed(() => ideasStore.currentIdea)
 
 const editContent = ref('')
@@ -93,24 +94,40 @@ watch(idea, (i) => {
 
 async function handleSave() {
   if (!editContent.value.trim()) return
-  await ideasStore.updateIdea(ideaId, { content: editContent.value.trim() })
-  message.success('已保存')
+  try {
+    await ideasStore.updateIdea(ideaId, { content: editContent.value.trim() })
+    message.success('已保存')
+  } catch {
+    message.error('保存失败')
+  }
 }
 
 async function handleDelete() {
-  await ideasStore.deleteIdea(ideaId)
-  navigateTo('/ideas')
+  try {
+    await ideasStore.deleteIdea(ideaId)
+    navigateTo('/ideas')
+  } catch {
+    message.error('删除失败')
+  }
 }
 
 async function handleConvert() {
-  await ideasStore.convertToTodo(ideaId)
-  await ideasStore.fetchIdea(ideaId)
-  message.success('已转为待办')
+  try {
+    await ideasStore.convertToTodo(ideaId)
+    await ideasStore.fetchIdea(ideaId)
+    message.success('已转为待办')
+  } catch {
+    message.error('转化失败')
+  }
 }
 
 async function handleUnlink() {
-  await ideasStore.unlinkFromTodo(ideaId)
-  message.success('已取消关联')
+  try {
+    await ideasStore.unlinkFromTodo(ideaId)
+    message.success('已取消关联')
+  } catch {
+    message.error('取消关联失败')
+  }
 }
 
 let todoSearchTimer: ReturnType<typeof setTimeout> | null = null
@@ -118,15 +135,27 @@ function searchTodos() {
   if (todoSearchTimer) clearTimeout(todoSearchTimer)
   if (!todoSearch.value.trim()) { searchTodoResults.value = []; return }
   todoSearchTimer = setTimeout(async () => {
-    const res = await api.get<Todo[]>('/todos', { search: todoSearch.value, status: 'pending', limit: 10 })
-    searchTodoResults.value = res.data || []
+    try {
+      const res = await api.get<Todo[]>('/todos', { search: todoSearch.value, status: 'pending', limit: 10 })
+      searchTodoResults.value = res.data || []
+    } catch {
+      searchTodoResults.value = []
+    }
   }, 300)
 }
 
+onUnmounted(() => {
+  if (todoSearchTimer) clearTimeout(todoSearchTimer)
+})
+
 async function handleLink(todoId: number) {
-  await ideasStore.linkToTodo(ideaId, todoId)
-  showLinkModal.value = false
-  message.success('已关联')
+  try {
+    await ideasStore.linkToTodo(ideaId, todoId)
+    showLinkModal.value = false
+    message.success('已关联')
+  } catch {
+    message.error('关联失败')
+  }
 }
 
 function formatDate(dateStr: string) {

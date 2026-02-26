@@ -106,6 +106,7 @@ export interface IdeaRow extends RowDataPacket {
   todo_id: number | null
   content: string
   source: 'text' | 'voice'
+  todo_title?: string
   created_at: Date
   updated_at: Date
 }

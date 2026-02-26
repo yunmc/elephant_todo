@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { Idea, IdeaFilters, Pagination, SmartSuggestResult } from '~/types'
+import type { Idea, Todo, IdeaFilters, Pagination, SmartSuggestResult } from '~/types'
 
 export const useIdeasStore = defineStore('ideas', () => {
   const api = useApi()
@@ -79,7 +79,7 @@ export const useIdeasStore = defineStore('ideas', () => {
   }
 
   async function convertToTodo(ideaId: number) {
-    const res = await api.post(`/ideas/${ideaId}/convert`)
+    const res = await api.post<Todo>(`/ideas/${ideaId}/convert`)
     return res.data
   }
 
