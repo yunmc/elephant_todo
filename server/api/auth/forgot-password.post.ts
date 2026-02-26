@@ -1,6 +1,9 @@
 import { v4 as uuidv4 } from 'uuid'
 
 export default defineEventHandler(async (event) => {
+  // Rate limit: 3 reset emails per 15 minutes per IP
+  rateLimit(event, 'forgot-password', 3, 15 * 60 * 1000)
+
   const { email } = await readBody(event)
 
   if (!email) {
@@ -14,6 +17,8 @@ export default defineEventHandler(async (event) => {
     const config = useRuntimeConfig()
     const token = uuidv4()
     const expiresAt = new Date(Date.now() + Number(config.resetTokenExpiresIn))
+    // Invalidate old tokens for this user before creating new one
+    await UserModel.invalidateResetTokens(user.id)
     await UserModel.createResetToken(user.id, token, expiresAt)
 
     try {

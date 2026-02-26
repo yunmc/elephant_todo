@@ -6,17 +6,17 @@
           <div style="text-align: center; font-size: 18px; font-weight: 600;">注册</div>
         </template>
 
-        <n-form :model="form" @submit.prevent="handleRegister">
-          <n-form-item label="用户名">
+        <n-form ref="formRef" :model="form" :rules="rules" @submit.prevent="handleRegister">
+          <n-form-item label="用户名" path="username">
             <n-input v-model:value="form.username" placeholder="请输入用户名" autocomplete="username" />
           </n-form-item>
-          <n-form-item label="邮箱">
+          <n-form-item label="邮箱" path="email">
             <n-input v-model:value="form.email" placeholder="请输入邮箱" type="email" autocomplete="email" />
           </n-form-item>
-          <n-form-item label="密码">
+          <n-form-item label="密码" path="password">
             <n-input v-model:value="form.password" type="password" placeholder="请输入密码（至少6位）" show-password-on="click" autocomplete="new-password" />
           </n-form-item>
-          <n-form-item label="确认密码">
+          <n-form-item label="确认密码" path="confirmPassword">
             <n-input v-model:value="form.confirmPassword" type="password" placeholder="请再次输入密码" show-password-on="click" autocomplete="new-password" />
           </n-form-item>
           <n-button type="primary" block :loading="authStore.loading || submitting" attr-type="submit" @click="handleRegister">
@@ -46,25 +46,43 @@ const form = reactive({
   confirmPassword: '',
 })
 
+const formRef = ref<any>(null)
+const rules = {
+  username: { required: true, message: '请输入用户名', trigger: 'blur' },
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' },
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' },
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入密码', trigger: 'blur' },
+    {
+      validator: (_rule: any, value: string) => value === form.password,
+      message: '两次输入的密码不一致',
+      trigger: 'blur',
+    },
+  ],
+}
+
 const submitting = ref(false)
 
 async function handleRegister() {
   if (submitting.value) return
-  if (form.password !== form.confirmPassword) {
-    message.error('两次输入的密码不一致')
-    return
-  }
-  if (form.password.length < 6) {
-    message.error('密码长度不能少于6位')
+  try {
+    await formRef.value?.validate()
+  } catch {
     return
   }
   submitting.value = true
   try {
-    const success = await authStore.register(form.username, form.email, form.password)
-    if (success) {
+    const result = await authStore.register(form.username, form.email, form.password)
+    if (result.success) {
       router.push('/')
     } else {
-      message.error('注册失败，用户名或邮箱已被注册')
+      message.error(result.message || '注册失败')
     }
   } finally {
     submitting.value = false

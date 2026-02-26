@@ -1,6 +1,9 @@
 import bcrypt from 'bcryptjs'
 
 export default defineEventHandler(async (event) => {
+  // Rate limit: 10 attempts per 15 minutes per IP
+  rateLimit(event, 'login', 10, 15 * 60 * 1000)
+
   const { email, password } = await readBody(event)
 
   if (!email || !password) {

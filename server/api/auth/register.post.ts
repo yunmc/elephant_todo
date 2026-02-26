@@ -1,10 +1,17 @@
 import bcrypt from 'bcryptjs'
 
 export default defineEventHandler(async (event) => {
+  // Rate limit: 5 registrations per 15 minutes per IP
+  rateLimit(event, 'register', 5, 15 * 60 * 1000)
+
   const { username, email, password } = await readBody(event)
 
   if (!username || !email || !password) {
     throw createError({ statusCode: 400, message: '用户名、邮箱和密码为必填项' })
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) {
+    throw createError({ statusCode: 400, message: '请输入有效的邮箱地址' })
   }
   if (password.length < 6) {
     throw createError({ statusCode: 400, message: '密码长度至少 6 位' })
@@ -34,5 +41,5 @@ export default defineEventHandler(async (event) => {
 
   const tokens = generateTokens(userId, email)
 
-  return { success: true, data: { userId, username, email, ...tokens }, message: '注册成功' }
+  return { success: true, data: { user: { id: userId, username, email, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }, ...tokens }, message: '注册成功' }
 })

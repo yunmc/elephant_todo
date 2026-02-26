@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs'
 export default defineEventHandler(async (event) => {
   const userId = requireAuth(event)
   const body = await readBody(event)
-  const currentPassword = body.currentPassword || body.oldPassword
+  const currentPassword = body.currentPassword
   const newPassword = body.newPassword
 
   if (!currentPassword || !newPassword) {
@@ -26,5 +26,8 @@ export default defineEventHandler(async (event) => {
   const hashedPassword = await bcrypt.hash(newPassword, 12)
   await UserModel.updatePassword(user.id, hashedPassword)
 
-  return { success: true, message: '密码修改成功' }
+  // Issue new tokens to invalidate old sessions
+  const tokens = generateTokens(user.id, user.email)
+
+  return { success: true, message: '密码修改成功', data: tokens }
 })

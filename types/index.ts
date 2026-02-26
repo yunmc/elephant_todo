@@ -12,18 +12,6 @@ export interface AuthTokens {
   refreshToken: string
 }
 
-export interface LoginForm {
-  email: string
-  password: string
-}
-
-export interface RegisterForm {
-  username: string
-  email: string
-  password: string
-  confirmPassword: string
-}
-
 // ==================== Category ====================
 export interface Category {
   id: number

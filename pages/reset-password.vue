@@ -6,7 +6,13 @@
           <div style="text-align: center; font-size: 18px; font-weight: 600;">重置密码</div>
         </template>
 
-        <n-result v-if="successMsg" status="success" :title="successMsg">
+        <n-result v-if="tokenMissing" status="error" title="无效的重置链接" description="缺少重置令牌，请通过邮件中的链接访问此页面">
+          <template #footer>
+            <NuxtLink to="/forgot-password"><n-button type="primary">重新发送重置邮件</n-button></NuxtLink>
+          </template>
+        </n-result>
+
+        <n-result v-else-if="successMsg" status="success" :title="successMsg">
           <template #footer>
             <NuxtLink to="/login"><n-button type="primary">前往登录</n-button></NuxtLink>
           </template>
@@ -42,6 +48,13 @@ const token = computed(() => route.query.token as string)
 const form = reactive({ password: '', confirmPassword: '' })
 const loading = ref(false)
 const successMsg = ref('')
+const tokenMissing = ref(false)
+
+onMounted(() => {
+  if (!token.value) {
+    tokenMissing.value = true
+  }
+})
 
 async function handleReset() {
   if (!token.value) {

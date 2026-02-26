@@ -35,6 +35,7 @@ const router = useRouter()
 const message = useMessage()
 
 const form = reactive({ email: '', password: '' })
+const formRef = ref<any>(null)
 const rules = {
   email: { required: true, message: '请输入邮箱', trigger: 'blur' },
   password: { required: true, message: '请输入密码', trigger: 'blur' },
@@ -44,13 +45,18 @@ const submitting = ref(false)
 
 async function handleLogin() {
   if (submitting.value) return
+  try {
+    await formRef.value?.validate()
+  } catch {
+    return
+  }
   submitting.value = true
   try {
-    const success = await authStore.login(form.email, form.password)
-    if (success) {
+    const result = await authStore.login(form.email, form.password)
+    if (result.success) {
       router.push('/')
     } else {
-      message.error('邮箱或密码错误')
+      message.error(result.message || '邮箱或密码错误')
     }
   } finally {
     submitting.value = false

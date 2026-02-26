@@ -29,7 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
     userCookie.value = { ...u }
   }
 
-  async function login(email: string, password: string) {
+  async function login(email: string, password: string): Promise<{ success: boolean; message?: string }> {
     loading.value = true
     try {
       const res = await $fetch<any>('/api/auth/login', {
@@ -41,15 +41,16 @@ export const useAuthStore = defineStore('auth', () => {
         refreshToken: res.data.refreshToken,
       })
       saveUser(res.data.user)
-      return true
-    } catch {
-      return false
+      return { success: true }
+    } catch (err: any) {
+      const message = err?.data?.message || '登录失败'
+      return { success: false, message }
     } finally {
       loading.value = false
     }
   }
 
-  async function register(username: string, email: string, password: string) {
+  async function register(username: string, email: string, password: string): Promise<{ success: boolean; message?: string }> {
     loading.value = true
     try {
       const res = await $fetch<any>('/api/auth/register', {
@@ -60,16 +61,11 @@ export const useAuthStore = defineStore('auth', () => {
         accessToken: res.data.accessToken,
         refreshToken: res.data.refreshToken,
       })
-      saveUser({
-        id: res.data.userId,
-        username: res.data.username,
-        email: res.data.email,
-        created_at: '',
-        updated_at: '',
-      })
-      return true
-    } catch {
-      return false
+      saveUser(res.data.user)
+      return { success: true }
+    } catch (err: any) {
+      const message = err?.data?.message || '注册失败'
+      return { success: false, message }
     } finally {
       loading.value = false
     }
@@ -96,12 +92,11 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchMe() {
     if (!accessTokenCookie.value) return
     try {
-      const res = await $fetch<any>('/api/auth/me', {
-        headers: { Authorization: `Bearer ${accessTokenCookie.value}` },
-      })
+      const api = useApi()
+      const res = await api.get('/auth/me')
       saveUser(res.data)
     } catch {
-      // Token invalid
+      // Token invalid — useApi will attempt refresh automatically
     }
   }
 

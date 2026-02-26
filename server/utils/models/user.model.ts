@@ -64,4 +64,17 @@ export const UserModel = {
       [id]
     )
   },
+
+  async invalidateResetTokens(userId: number): Promise<void> {
+    await getDb().query(
+      'UPDATE password_reset_tokens SET used = TRUE WHERE user_id = ? AND used = FALSE',
+      [userId]
+    )
+  },
+
+  async cleanupExpiredResetTokens(): Promise<void> {
+    await getDb().query(
+      'DELETE FROM password_reset_tokens WHERE expires_at < NOW() OR used = TRUE'
+    )
+  },
 }

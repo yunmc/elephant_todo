@@ -223,6 +223,15 @@ async function handleChangePassword() {
     await api.post('/auth/change-password', {
       currentPassword: pwdForm.currentPassword,
       newPassword: pwdForm.newPassword,
+    }).then((res: any) => {
+      // Save new tokens to invalidate old sessions
+      if (res?.data?.accessToken && res?.data?.refreshToken) {
+        const authStore = useAuthStore()
+        const accessTokenCookie = useCookie('accessToken', { maxAge: 60 * 60 * 24 * 7 })
+        const refreshTokenCookie = useCookie('refreshToken', { maxAge: 60 * 60 * 24 * 30 })
+        accessTokenCookie.value = res.data.accessToken
+        refreshTokenCookie.value = res.data.refreshToken
+      }
     })
 
     // Re-encrypt vault entries

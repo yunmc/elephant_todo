@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs'
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const token = body.token
-  const password = body.password || body.newPassword
+  const password = body.password
 
   if (!token || !password) {
     throw createError({ statusCode: 400, message: '令牌和新密码为必填项' })
