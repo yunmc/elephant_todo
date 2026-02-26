@@ -16,6 +16,7 @@ vi.stubGlobal('useRuntimeConfig', () => ({
   jwtExpiresIn: '1h',
   jwtRefreshSecret: 'test-jwt-refresh-secret-key-for-testing',
   jwtRefreshExpiresIn: '7d',
+  resetTokenExpiresIn: '3600000',
 }))
 
 // ---------- H3 request helpers ----------
@@ -46,6 +47,10 @@ vi.stubGlobal('ImportantDateModel', {})
 vi.stubGlobal('PeriodModel', {})
 vi.stubGlobal('CategoryModel', {})
 vi.stubGlobal('TagModel', {})
+vi.stubGlobal('SubtaskModel', {})
+
+// ---------- Utility stubs ----------
+vi.stubGlobal('sendResetPasswordEmail', vi.fn())
 
 // ---------- DB stub (prevents real connections) ----------
 vi.stubGlobal('getDb', () => ({ query: vi.fn() }))
