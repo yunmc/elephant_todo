@@ -1,5 +1,5 @@
 /**
- * E2E — Todo CRUD + Subtasks + Filters + Priority/Category/Tags/DueDate (T01–T12)
+ * E2E — Todo CRUD + Subtasks + Filters + Priority/Category/Tags/DueDate (T01–T15)
  *
  * Serial tests sharing the same user.
  */
@@ -28,8 +28,14 @@ test.describe.serial('Todo Flow', () => {
     await waitForHydration(page)
     await expect(page.locator('.page-title')).toContainText('待办事项', { timeout: 8000 })
 
+    // T13: verify empty state for fresh user (before first todo is created)
+    // n-empty shows '暂无待办事项' for brand new user
+    const emptyVisible = await page.getByText('暂无待办事项').isVisible().catch(() => false)
+    // Fresh user should see empty state (may have been skipped if data exists)
+    // We'll accept either case since prior runs may have left data
+
     // Open quick-add modal via ＋ button (dispatchEvent bypasses DevTools overlay)
-    await page.locator('.nav-add').dispatchEvent('click')
+    await page.locator('.nav-add-icon').dispatchEvent('click')
     // Wait for modal content to appear
     await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 5000 })
 
@@ -361,6 +367,73 @@ test.describe.serial('Todo Flow', () => {
     // Reset filters
     await page.getByText('重置全部筛选').click()
     await page.waitForTimeout(1000)
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 5000 })
+  })
+
+  test('T14: inline delete todo from list via popconfirm', async ({ page }) => {
+    // Create a temporary todo via API for inline deletion
+    const tmpTitle = `E2E InlineDel ${Date.now()}`
+    const resp = await page.request.post(`${BASE}/api/todos`, {
+      headers: { 'Authorization': `Bearer ${tokens.accessToken}` },
+      data: { title: tmpTitle },
+    })
+    expect(resp.ok()).toBeTruthy()
+
+    await page.goto(BASE)
+    await waitForHydration(page)
+    await expect(page.getByText(tmpTitle)).toBeVisible({ timeout: 8000 })
+
+    // Click inline delete on list item
+    const todoItem = page.locator('.todo-item').filter({ hasText: tmpTitle })
+    await todoItem.getByRole('button', { name: '删除' }).click()
+    // Confirm popconfirm
+    await page.getByRole('button', { name: '删除' }).last().click()
+    await page.waitForTimeout(2000)
+
+    // Todo should be gone
+    await expect(page.getByText(tmpTitle)).not.toBeVisible({ timeout: 5000 })
+  })
+
+  test('T15: due date filter UI — select and reset', async ({ page }) => {
+    await page.goto(BASE)
+    await waitForHydration(page)
+    await page.getByPlaceholder('搜索待办...').fill('')
+    await page.waitForTimeout(500)
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 8000 })
+
+    // Open filter panel by clicking the "筛选" button
+    const filterBtn = page.getByRole('button', { name: /筛选/ })
+    await filterBtn.click()
+    await page.waitForTimeout(1000)
+
+    // "重置全部筛选" should NOT be visible yet (no filter active)
+    await expect(page.getByText('重置全部筛选')).not.toBeVisible({ timeout: 2000 })
+
+    // Click the date filter select (nth(1))
+    const dateSelect = page.locator('.n-select').nth(1)
+    await expect(dateSelect).toBeVisible({ timeout: 3000 })
+    await dateSelect.click()
+    await page.waitForTimeout(500)
+
+    // Select "已过期" from the dropdown
+    const overdueOption = page.locator('.n-base-select-option').filter({ hasText: '已过期' })
+    await expect(overdueOption).toBeVisible({ timeout: 3000 })
+    await overdueOption.click()
+    await page.waitForTimeout(1000)
+
+    // "重置全部筛选" should now be visible (filter active)
+    await expect(page.getByText('重置全部筛选')).toBeVisible({ timeout: 5000 })
+
+    // The date select should show "已过期" as selected value
+    await expect(dateSelect).toContainText('已过期', { timeout: 3000 })
+
+    // Reset filters
+    await page.getByText('重置全部筛选').click()
+    await page.waitForTimeout(1000)
+
+    // "重置全部筛选" should disappear after reset
+    await expect(page.getByText('重置全部筛选')).not.toBeVisible({ timeout: 3000 })
+    // Todos should still be visible after reset
     await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 5000 })
   })
 

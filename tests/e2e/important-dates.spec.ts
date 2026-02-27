@@ -1,5 +1,5 @@
 /**
- * E2E — Important Dates CRUD (D01–D07)
+ * E2E — Important Dates CRUD (D01–D09)
  *
  * Serial tests sharing the same user.
  */
@@ -26,6 +26,9 @@ test.describe.serial('Important Dates Flow', () => {
     await page.goto(`${BASE}/important-dates`)
     await waitForHydration(page)
     await expect(page.locator('.page-title')).toContainText('重要日期', { timeout: 8000 })
+
+    // D08: verify empty state for fresh user
+    await expect(page.getByText('暂无重要日期')).toBeVisible({ timeout: 5000 })
 
     // Click add button
     await page.getByRole('button', { name: '+ 添加重要日期' }).click()
@@ -162,6 +165,43 @@ test.describe.serial('Important Dates Flow', () => {
 
     // Close modal
     await page.keyboard.press('Escape')
+  })
+
+  test('D09: toggle repeat yearly off', async ({ page }) => {
+    await page.goto(`${BASE}/important-dates`)
+    await waitForHydration(page)
+    await expect(page.getByText(`${TITLE} Edited`)).toBeVisible({ timeout: 8000 })
+
+    // Currently repeat_yearly = true (D03 verified "每年" tag)
+    // Click card to open edit modal
+    await page.locator('.date-card').filter({ hasText: `${TITLE} Edited` }).click()
+    await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
+
+    // Toggle the repeat yearly switch OFF using evaluate to ensure click registers
+    const switchEl = page.getByRole('switch')
+    await switchEl.scrollIntoViewIfNeeded()
+    await page.waitForTimeout(300)
+    // Use evaluate to directly trigger the native click on the switch element
+    await switchEl.evaluate((el: HTMLElement) => el.click())
+    await page.waitForTimeout(800)
+
+    // Verify switch is now unchecked (aria-checked=false)
+    const ariaVal = await switchEl.getAttribute('aria-checked')
+    // If click didn't toggle, try clicking the switch rail button as fallback
+    if (ariaVal === 'true') {
+      await page.locator('.n-switch__rail').click({ force: true })
+      await page.waitForTimeout(500)
+    }
+    await expect(switchEl).toHaveAttribute('aria-checked', 'false', { timeout: 5000 })
+
+    // Save
+    await page.getByRole('button', { name: '保存' }).click()
+    await page.waitForTimeout(3000)
+
+    // Verify "每年" tag is no longer visible on this card
+    const card = page.locator('.date-card').filter({ hasText: `${TITLE} Edited` })
+    const yearlyTag = card.locator('.date-tag').getByText('每年')
+    await expect(yearlyTag).not.toBeVisible({ timeout: 5000 })
   })
 
   test('D04: delete date', async ({ page }) => {

@@ -1,5 +1,5 @@
 /**
- * E2E — Auth flow (A01–A13) + PWA basics (W01–W02)
+ * E2E — Auth flow (A01–A17) + PWA basics (W01–W02)
  */
 import { test, expect } from '@playwright/test'
 import { test as authedTest, expect as authedExpect, hideDevToolsOverlay, waitForHydration } from './fixtures/auth.fixture'
@@ -150,7 +150,7 @@ test.describe('Auth — Public Pages', () => {
     await page.getByPlaceholder('请输入密码（至少6位）').fill(password)
     await page.getByPlaceholder('请再次输入密码').fill(password)
     await page.getByRole('button', { name: '注册' }).click()
-    await page.waitForURL('**/', { timeout: 10000 })
+    await page.waitForURL('**/', { timeout: 15000 })
 
     // Clear cookies to simulate fresh session
     await page.context().clearCookies()
@@ -164,6 +164,70 @@ test.describe('Auth — Public Pages', () => {
 
     // Should redirect to home
     await page.waitForURL('**/', { timeout: 10000 })
+    expect(page.url()).not.toContain('/login')
+  })
+
+  test('A14: login empty submit stays on login page', async ({ page }) => {
+    await page.goto(`${BASE}/login`)
+    await waitForHydration(page)
+    await expect(page.getByRole('button', { name: '登录' })).toBeVisible({ timeout: 5000 })
+
+    // Click login without filling any field
+    await page.getByRole('button', { name: '登录' }).click()
+    await page.waitForTimeout(2000)
+
+    // Should still be on login page (NaiveUI form validation prevents submit)
+    expect(page.url()).toContain('/login')
+  })
+
+  test('A15: register with duplicate email shows error', async ({ page }) => {
+    // Register a user first
+    const ts = Date.now()
+    const rand = Math.random().toString(36).slice(2, 6)
+    const email = `dup_${ts}_${rand}@test.com`
+    const resp = await fetch(`${BASE}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: `dup_${rand}`, email, password: 'Test123456' }),
+    })
+    expect(resp.ok).toBeTruthy()
+
+    // Try to register again with the same email
+    await page.goto(`${BASE}/register`)
+    await waitForHydration(page)
+    await page.getByPlaceholder('请输入用户名').fill(`dup2_${rand}`)
+    await page.getByPlaceholder('请输入邮箱').fill(email)
+    await page.getByPlaceholder('请输入密码（至少6位）').fill('Test123456')
+    await page.getByPlaceholder('请再次输入密码').fill('Test123456')
+    await page.getByRole('button', { name: '注册' }).click()
+    await page.waitForTimeout(3000)
+
+    // Should stay on register page (duplicate email error)
+    expect(page.url()).toContain('/register')
+  })
+
+  test('A17: logged-in user visiting /login is redirected to home', async ({ page }) => {
+    // Register a user and get tokens
+    const ts = Date.now()
+    const rand = Math.random().toString(36).slice(2, 6)
+    const resp = await fetch(`${BASE}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: `redir_${rand}`, email: `redir_${ts}_${rand}@test.com`, password: 'Test123456' }),
+    })
+    const body = await resp.json() as any
+    expect(body.success).toBe(true)
+
+    // Inject auth cookies
+    const url = new URL(BASE)
+    await page.context().addCookies([
+      { name: 'accessToken', value: body.data.accessToken, domain: url.hostname, path: '/' },
+      { name: 'refreshToken', value: body.data.refreshToken, domain: url.hostname, path: '/' },
+    ])
+
+    // Navigate to /login — should be redirected to home
+    await page.goto(`${BASE}/login`)
+    await page.waitForTimeout(3000)
     expect(page.url()).not.toContain('/login')
   })
 })

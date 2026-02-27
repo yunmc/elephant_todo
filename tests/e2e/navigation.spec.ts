@@ -1,5 +1,5 @@
 /**
- * E2E — Navigation & Quick-Add (N01–N03)
+ * E2E — Navigation & Quick-Add (N01–N05)
  *
  * Bottom nav: 待办(/) | 随手记(/ideas) | ＋(quick-add) | 密码本(/vault) | 更多(/more)
  * More page: 记账(/finance) | 重要日期(/important-dates) | 经期追踪(/period) | 设置(/settings)
@@ -87,5 +87,49 @@ test.describe('Navigation', () => {
     // And both action buttons
     await expect(page.getByRole('button', { name: '新建待办' })).toBeVisible()
     await expect(page.getByRole('button', { name: '保存为随手记' })).toBeVisible()
+  })
+
+  test('N04: active tab is highlighted', async ({ authedPage: page }) => {
+    // Navigate to 随手记
+    await page.goto(`${BASE}/ideas`)
+    await waitForHydration(page)
+    await page.waitForTimeout(1500)
+
+    // The 随手记 nav item should have .active class
+    const ideasNavItem = page.locator('.nav-item').filter({ hasText: '随手记' })
+    await expect(ideasNavItem).toHaveClass(/active/, { timeout: 5000 })
+
+    // Navigate to 待办
+    await page.goto(BASE)
+    await waitForHydration(page)
+    await page.waitForTimeout(1500)
+
+    // The 待办 nav item should have .active class
+    const todoNavItem = page.locator('.nav-item').filter({ hasText: '待办' })
+    await expect(todoNavItem).toHaveClass(/active/, { timeout: 5000 })
+  })
+
+  test('N05: quick-add saves content as idea', async ({ authedPage: page }) => {
+    await page.goto(BASE)
+    await waitForHydration(page)
+    await page.waitForTimeout(2000)
+
+    const ideaText = `E2E QuickIdea ${Date.now()}`
+
+    // Open quick-add modal
+    await page.locator('.nav-add-icon').dispatchEvent('click')
+    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 5000 })
+
+    // Type content
+    await page.getByPlaceholder('输入内容...').fill(ideaText)
+
+    // Click "保存为随手记"
+    await page.getByRole('button', { name: '保存为随手记' }).click()
+    await page.waitForTimeout(2000)
+
+    // Navigate to ideas page to verify
+    await page.goto(`${BASE}/ideas`)
+    await waitForHydration(page)
+    await expect(page.getByText(ideaText)).toBeVisible({ timeout: 8000 })
   })
 })

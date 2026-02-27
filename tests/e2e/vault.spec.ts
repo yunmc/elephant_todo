@@ -1,5 +1,5 @@
 /**
- * E2E — Vault (Password Manager) Full Flow (V01–V13)
+ * E2E — Vault (Password Manager) Full Flow (V01–V18)
  *
  * Serial tests sharing the same user.
  * Vault uses client-side AES-256-GCM encryption — all crypto happens in the
@@ -37,6 +37,20 @@ test.describe.serial('Vault Flow', () => {
     await expect(page.getByText('密码本已锁定')).toBeVisible({ timeout: 8000 })
     await expect(page.getByPlaceholder('主密码')).toBeVisible()
     await expect(page.getByRole('button', { name: '解锁' })).toBeVisible()
+  })
+
+  test('V18: empty vault shows empty state after unlock', async ({ page }) => {
+    await page.goto(`${BASE}/vault`)
+    await waitForHydration(page)
+    await expect(page.getByText('密码本已锁定')).toBeVisible({ timeout: 8000 })
+
+    // Unlock with master password
+    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
+    await page.getByRole('button', { name: '解锁' }).click()
+    await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 15000 })
+
+    // Fresh user with no entries should show empty state
+    await expect(page.getByText('暂无条目')).toBeVisible({ timeout: 5000 })
   })
 
   test('V11: wrong master password shows error', async ({ page }) => {
@@ -318,5 +332,55 @@ test.describe.serial('Vault Flow', () => {
 
     // Close modal (Escape)
     await page.keyboard.press('Escape')
+  })
+
+  test('V14: create entry assigned to group and filter by group', async ({ page }) => {
+    await page.goto(`${BASE}/vault`)
+    await waitForHydration(page)
+    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
+    await page.getByRole('button', { name: '解锁' }).click()
+    await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 15000 })
+
+    // First create a new group for this test
+    const groupName2 = `E2E Grp2 ${TS}`
+    await page.getByRole('button', { name: '+ 分组' }).click()
+    await expect(page.getByPlaceholder('分组名称')).toBeVisible({ timeout: 5000 })
+    await page.getByPlaceholder('分组名称').fill(groupName2)
+    await page.getByRole('button', { name: '创建' }).click()
+    await page.waitForTimeout(1000)
+    await expect(page.getByText(groupName2)).toBeVisible({ timeout: 5000 })
+
+    // Create entry and assign it to the group
+    const entryWithGroup = `E2E Grouped ${TS}`
+    await page.getByRole('button', { name: '+ 条目' }).click()
+    await expect(page.getByPlaceholder('名称 (如: GitHub)')).toBeVisible({ timeout: 5000 })
+    await page.getByPlaceholder('名称 (如: GitHub)').fill(entryWithGroup)
+    await page.getByPlaceholder('用户名').fill('group_user')
+    await page.getByPlaceholder('密码').fill('group_pass')
+
+    // Select the group in the n-select dropdown
+    const groupSelect = page.getByRole('dialog').locator('.n-select')
+    if (await groupSelect.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await groupSelect.click()
+      await page.waitForTimeout(500)
+      await page.locator('.n-base-select-option__content').filter({ hasText: groupName2 }).click()
+      await page.waitForTimeout(500)
+    }
+
+    await page.getByRole('button', { name: '创建' }).click()
+    await page.waitForTimeout(2000)
+
+    // Entry should be visible
+    await expect(page.getByText(entryWithGroup)).toBeVisible({ timeout: 5000 })
+
+    // Filter by created group — click the group chip tag (not the one inside entries)
+    const groupChip = page.locator('.n-tag').filter({ hasText: groupName2 }).first()
+    await groupChip.click()
+    await page.waitForTimeout(1000)
+    await expect(page.getByText(entryWithGroup)).toBeVisible({ timeout: 5000 })
+
+    // Switch back to "全部"
+    await page.getByText('全部').first().click()
+    await page.waitForTimeout(500)
   })
 })

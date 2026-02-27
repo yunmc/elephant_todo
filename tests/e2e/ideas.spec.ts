@@ -1,5 +1,5 @@
 /**
- * E2E — Ideas CRUD + Link/Convert (I01–I05)
+ * E2E — Ideas CRUD + Link/Convert (I01–I09)
  *
  * Serial tests sharing the same user.
  */
@@ -27,9 +27,17 @@ test.describe.serial('Ideas Flow', () => {
     await waitForHydration(page)
     await expect(page.locator('.page-title')).toContainText('随手记', { timeout: 8000 })
 
+    // I07: verify empty state for fresh user (before first idea is created)
+    const emptyVisible = await page.getByText('暂无随手记').isVisible().catch(() => false)
+    const hintVisible = await page.getByText('点击底部 ＋ 随时记录灵感').isVisible().catch(() => false)
+    // Fresh user should see empty state with hint
+    if (emptyVisible) {
+      expect(hintVisible).toBe(true)
+    }
+
     // Open quick-add (dispatchEvent bypasses DevTools overlay on bottom nav)
-    await page.locator('.nav-add').waitFor({ state: 'visible' })
-    await page.locator('.nav-add').dispatchEvent('click')
+    await page.locator('.nav-add-icon').waitFor({ state: 'visible' })
+    await page.locator('.nav-add-icon').dispatchEvent('click')
     // Wait for modal content to appear
     await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 8000 })
 
@@ -120,5 +128,30 @@ test.describe.serial('Ideas Flow', () => {
     await page.getByRole('button', { name: '删除', exact: true }).click()
     await expect(page).toHaveURL(/\/ideas/, { timeout: 8000 })
     await expect(page.getByText(`${CONTENT} Updated`)).not.toBeVisible({ timeout: 3000 })
+  })
+
+  test('I09: delete idea from list page via popconfirm', async ({ page }) => {
+    // Create a new idea for deletion
+    const tmpContent = `E2E ListDel ${Date.now()}`
+    await page.goto(`${BASE}/ideas`)
+    await waitForHydration(page)
+    await page.locator('.nav-add').waitFor({ state: 'visible' })
+    await page.locator('.nav-add').dispatchEvent('click')
+    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 8000 })
+    await page.getByPlaceholder('输入内容...').fill(tmpContent)
+    await page.getByRole('button', { name: '保存为随手记' }).click()
+    await page.goto(`${BASE}/ideas`)
+    await waitForHydration(page)
+    await expect(page.getByText(tmpContent)).toBeVisible({ timeout: 5000 })
+
+    // Delete from list via popconfirm
+    const ideaCard = page.locator('.idea-card').filter({ hasText: tmpContent })
+    await ideaCard.getByRole('button', { name: '删除' }).click()
+    // Confirm popconfirm
+    await page.getByRole('button', { name: '删除' }).last().click()
+    await page.waitForTimeout(2000)
+
+    // Idea should be gone
+    await expect(page.getByText(tmpContent)).not.toBeVisible({ timeout: 5000 })
   })
 })

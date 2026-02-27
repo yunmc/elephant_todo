@@ -1,5 +1,5 @@
 /**
- * E2E — Period Tracking: CRUD + Multi-Person + Prediction + Symptoms/Notes (P01–P09)
+ * E2E — Period Tracking: CRUD + Multi-Person + Prediction + Symptoms/Notes (P01–P13)
  *
  * Period page supports multiple persons. Each person has isolated records
  * and predictions. Uses NaiveUI modal (preset="card") for add/edit.
@@ -186,6 +186,34 @@ test.describe.serial('Period Tracking Flow', () => {
 
     const countAfter = await page.locator('.period-card').count()
     expect(countAfter).toBeLessThan(countBefore)
+  })
+
+  test('P13: ongoing record shows 进行中 tag', async ({ page }) => {
+    // Create a record with no end_date via API (i.e. ongoing)
+    const d = new Date(); d.setDate(d.getDate() - 2)
+    await createRecordViaAPI(page, d.toISOString().split('T')[0], null, 'moderate', '我')
+
+    await page.goto(`${BASE}/period`)
+    await waitForHydration(page)
+    await page.waitForTimeout(2000)
+
+    // Verify at least one card shows "进行中" tag
+    await expect(page.locator('.period-ongoing').first()).toBeVisible({ timeout: 5000 })
+    await expect(page.locator('.period-ongoing').first()).toContainText('进行中')
+  })
+
+  test('P10: period with end date shows duration stat-badge', async ({ page }) => {
+    // Create a record with start and end date (5-day period) via API
+    const start = new Date(); start.setDate(start.getDate() - 20)
+    const end = new Date(start); end.setDate(end.getDate() + 4) // 5 days
+    await createRecordViaAPI(page, start.toISOString().split('T')[0], end.toISOString().split('T')[0], 'heavy', '我')
+
+    await page.goto(`${BASE}/period`)
+    await waitForHydration(page)
+    await page.waitForTimeout(2000)
+
+    // Verify at least one stat-badge with "天" is visible
+    await expect(page.locator('.stat-badge').filter({ hasText: '天' }).first()).toBeVisible({ timeout: 5000 })
   })
 
   /* ──────── Multi-Person (P05–P07) ──────── */

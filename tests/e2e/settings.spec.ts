@@ -1,5 +1,5 @@
 /**
- * E2E — Settings: Category / Tag CRUD, Change Password, Theme, Account Info (S01–S07)
+ * E2E — Settings: Category / Tag CRUD, Change Password, Theme, Account Info (S01–S10)
  *
  * Settings page sections: 账户信息, 分类管理, 标签管理, 修改密码, 主题设置, 退出登录
  *
@@ -206,5 +206,45 @@ test.describe.serial('Settings', () => {
     const darkBtn = page.getByRole('button', { name: '深色' })
     await expect(lightBtn).not.toHaveClass(/n-button--primary-type/)
     await expect(darkBtn).not.toHaveClass(/n-button--primary-type/)
+  })
+
+  test('S09: password mismatch shows validation error', async ({ page }) => {
+    await page.goto(`${BASE}/settings`)
+    await waitForHydration(page)
+    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+
+    // S03 changed password to 'NewPass789' — use that as current password
+    await page.getByPlaceholder('当前密码').fill('NewPass789')
+    await page.getByPlaceholder('新密码 (至少6位)').fill('Abcdef123')
+    await page.getByPlaceholder('确认新密码').fill('Mismatch999')
+
+    // Click "修改密码"
+    await page.getByRole('button', { name: '修改密码' }).click()
+    await page.waitForTimeout(1500)
+
+    // Front-end validation: "两次密码不一致" message should be visible
+    await expect(page.getByText('两次密码不一致')).toBeVisible({ timeout: 3000 })
+    // Should still be on settings page
+    expect(page.url()).toContain('/settings')
+  })
+
+  test('S10: password too short shows validation error', async ({ page }) => {
+    await page.goto(`${BASE}/settings`)
+    await waitForHydration(page)
+    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+
+    // S03 changed password to 'NewPass789'
+    await page.getByPlaceholder('当前密码').fill('NewPass789')
+    await page.getByPlaceholder('新密码 (至少6位)').fill('Ab1')   // too short (3 chars)
+    await page.getByPlaceholder('确认新密码').fill('Ab1')
+
+    // Click "修改密码"
+    await page.getByRole('button', { name: '修改密码' }).click()
+    await page.waitForTimeout(1500)
+
+    // Front-end validation: "新密码至少6位" message should be visible
+    await expect(page.getByText('新密码至少6位')).toBeVisible({ timeout: 3000 })
+    // Should still be on settings page
+    expect(page.url()).toContain('/settings')
   })
 })
