@@ -1,5 +1,5 @@
 /**
- * E2E — Important Dates CRUD (D01–D09)
+ * E2E — Important Dates CRUD (D01–D11)
  *
  * Serial tests sharing the same user.
  */
@@ -202,6 +202,72 @@ test.describe.serial('Important Dates Flow', () => {
     const card = page.locator('.date-card').filter({ hasText: `${TITLE} Edited` })
     const yearlyTag = card.locator('.date-tag').getByText('每年')
     await expect(yearlyTag).not.toBeVisible({ timeout: 5000 })
+  })
+
+  test('D10: today date shows celebration or recent countdown', async ({ page }) => {
+    // Create a date set to today via API — use repeat_yearly=false to avoid next-year calc
+    const today = new Date()
+    const yyyy = today.getFullYear()
+    const mm = String(today.getMonth() + 1).padStart(2, '0')
+    const dd = String(today.getDate()).padStart(2, '0')
+    const dateStr = `${yyyy}-${mm}-${dd}`
+    const todayTitle = `E2E Today ${Date.now()}`
+    const resp = await page.request.post(`${BASE}/api/important-dates`, {
+      headers: { 'Authorization': `Bearer ${tokens.accessToken}` },
+      data: {
+        title: todayTitle,
+        date: dateStr,
+        icon: '🎂',
+        repeat_yearly: false,
+        remind_days: 0,
+        is_lunar: false,
+        note: '',
+      },
+    })
+    expect(resp.ok()).toBeTruthy()
+
+    await page.goto(`${BASE}/important-dates`)
+    await waitForHydration(page)
+    await page.waitForTimeout(2000)
+
+    // The card should be visible with a countdown ("就是今天" or "1天前" due to timezone)
+    const card = page.locator('.date-card').filter({ hasText: todayTitle })
+    await expect(card).toBeVisible({ timeout: 5000 })
+    const countdownText = await card.locator('.countdown').textContent()
+    // Accept "就是今天" or small day count (timezone edge case)
+    const isToday = countdownText?.includes('就是今天')
+    const isRecent = countdownText?.match(/^\d天前$/) || countdownText?.match(/^\d天后$/)
+    expect(isToday || isRecent).toBeTruthy()
+  })
+
+  test('D11: past date shows days ago', async ({ page }) => {
+    // Create a date set to 10 days ago with repeat_yearly=false
+    const pastDate = new Date()
+    pastDate.setDate(pastDate.getDate() - 10)
+    const dateStr = pastDate.toISOString().split('T')[0]
+    const pastTitle = `E2E Past ${Date.now()}`
+    const resp = await page.request.post(`${BASE}/api/important-dates`, {
+      headers: { 'Authorization': `Bearer ${tokens.accessToken}` },
+      data: {
+        title: pastTitle,
+        date: dateStr,
+        icon: '📅',
+        repeat_yearly: false,
+        remind_days: 0,
+        is_lunar: false,
+        note: '',
+      },
+    })
+    expect(resp.ok()).toBeTruthy()
+
+    await page.goto(`${BASE}/important-dates`)
+    await waitForHydration(page)
+    await page.waitForTimeout(2000)
+
+    // The card should show "天前" (days ago)
+    const card = page.locator('.date-card').filter({ hasText: pastTitle })
+    await expect(card).toBeVisible({ timeout: 5000 })
+    await expect(card.locator('.countdown')).toContainText('天前', { timeout: 5000 })
   })
 
   test('D04: delete date', async ({ page }) => {

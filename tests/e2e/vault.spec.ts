@@ -1,5 +1,5 @@
 /**
- * E2E — Vault (Password Manager) Full Flow (V01–V18)
+ * E2E — Vault (Password Manager) Full Flow (V01–V20)
  *
  * Serial tests sharing the same user.
  * Vault uses client-side AES-256-GCM encryption — all crypto happens in the
@@ -37,6 +37,19 @@ test.describe.serial('Vault Flow', () => {
     await expect(page.getByText('密码本已锁定')).toBeVisible({ timeout: 8000 })
     await expect(page.getByPlaceholder('主密码')).toBeVisible()
     await expect(page.getByRole('button', { name: '解锁' })).toBeVisible()
+  })
+
+  test('V15: Enter key unlocks vault', async ({ page }) => {
+    await page.goto(`${BASE}/vault`)
+    await waitForHydration(page)
+    await expect(page.getByText('密码本已锁定')).toBeVisible({ timeout: 8000 })
+
+    // Type master password and press Enter (instead of clicking button)
+    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
+    await page.getByPlaceholder('主密码').press('Enter')
+
+    // Should unlock — action buttons should appear
+    await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 15000 })
   })
 
   test('V18: empty vault shows empty state after unlock', async ({ page }) => {
@@ -331,6 +344,57 @@ test.describe.serial('Vault Flow', () => {
     expect(generatedPwd.length).toBeGreaterThanOrEqual(8)
 
     // Close modal (Escape)
+    await page.keyboard.press('Escape')
+  })
+
+  test('V19: empty name entry validation', async ({ page }) => {
+    await page.goto(`${BASE}/vault`)
+    await waitForHydration(page)
+    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
+    await page.getByRole('button', { name: '解锁' }).click()
+    await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 15000 })
+
+    // Open add entry modal
+    await page.getByRole('button', { name: '+ 条目' }).click()
+    await expect(page.getByPlaceholder('名称 (如: GitHub)')).toBeVisible({ timeout: 5000 })
+
+    // Leave name empty, fill credentials
+    await page.getByPlaceholder('用户名').fill('someuser')
+    await page.getByPlaceholder('密码').fill('somepass')
+
+    // Click create
+    await page.getByRole('button', { name: '创建' }).click()
+    await page.waitForTimeout(1000)
+
+    // Should show warning "请输入名称"
+    await expect(page.getByText('请输入名称')).toBeVisible({ timeout: 5000 })
+
+    // Close modal
+    await page.keyboard.press('Escape')
+  })
+
+  test('V20: empty credentials entry validation', async ({ page }) => {
+    await page.goto(`${BASE}/vault`)
+    await waitForHydration(page)
+    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
+    await page.getByRole('button', { name: '解锁' }).click()
+    await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 15000 })
+
+    // Open add entry modal
+    await page.getByRole('button', { name: '+ 条目' }).click()
+    await expect(page.getByPlaceholder('名称 (如: GitHub)')).toBeVisible({ timeout: 5000 })
+
+    // Fill name but leave username and password empty
+    await page.getByPlaceholder('名称 (如: GitHub)').fill('Test Entry No Creds')
+
+    // Click create
+    await page.getByRole('button', { name: '创建' }).click()
+    await page.waitForTimeout(1000)
+
+    // Should show warning "请输入用户名或密码"
+    await expect(page.getByText('请输入用户名或密码')).toBeVisible({ timeout: 5000 })
+
+    // Close modal
     await page.keyboard.press('Escape')
   })
 

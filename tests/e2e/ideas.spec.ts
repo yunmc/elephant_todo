@@ -1,5 +1,5 @@
 /**
- * E2E — Ideas CRUD + Link/Convert (I01–I09)
+ * E2E — Ideas CRUD + Link/Convert (I01–I11)
  *
  * Serial tests sharing the same user.
  */
@@ -82,6 +82,23 @@ test.describe.serial('Ideas Flow', () => {
     await expect(page.locator('.linked-todo')).toBeVisible({ timeout: 5000 })
   })
 
+  test('I10: linked idea click-through navigates to todo', async ({ page }) => {
+    // After I03, the idea has a linked todo — check list page has .idea-link
+    await page.goto(`${BASE}/ideas`)
+    await waitForHydration(page)
+    await expect(page.getByText(`${CONTENT} Updated`).first()).toBeVisible({ timeout: 8000 })
+
+    // The idea card should show the 🔗 linked todo link
+    const ideaCard = page.locator('.idea-card').filter({ hasText: `${CONTENT} Updated` })
+    const link = ideaCard.locator('.idea-link')
+    await expect(link).toBeVisible({ timeout: 5000 })
+
+    // Click the link — should navigate to /todo/{id}
+    await link.click()
+    await page.waitForURL(/\/todo\/\d+/, { timeout: 8000 })
+    expect(page.url()).toMatch(/\/todo\/\d+/)
+  })
+
   test('I04: unlink idea from todo', async ({ page }) => {
     await page.goto(`${BASE}/ideas`)
     await waitForHydration(page)
@@ -115,6 +132,20 @@ test.describe.serial('Ideas Flow', () => {
     await page.getByPlaceholder('搜索随手记...').fill('')
     await page.waitForTimeout(1000)
     await expect(page.getByText(`${CONTENT} Updated`)).toBeVisible()
+  })
+
+  test('I11: data persistence after reload', async ({ page }) => {
+    await page.goto(`${BASE}/ideas`)
+    await waitForHydration(page)
+    await expect(page.getByText(`${CONTENT} Updated`)).toBeVisible({ timeout: 8000 })
+
+    // Reload the page
+    await page.reload()
+    await waitForHydration(page)
+    await page.waitForTimeout(2000)
+
+    // Idea should still be visible after reload
+    await expect(page.getByText(`${CONTENT} Updated`)).toBeVisible({ timeout: 8000 })
   })
 
   test('I05: delete idea', async ({ page }) => {

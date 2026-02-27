@@ -1,5 +1,5 @@
 /**
- * E2E — Todo CRUD + Subtasks + Filters + Priority/Category/Tags/DueDate (T01–T15)
+ * E2E — Todo CRUD + Subtasks + Filters + Priority/Category/Tags/DueDate (T01–T19)
  *
  * Serial tests sharing the same user.
  */
@@ -435,6 +435,119 @@ test.describe.serial('Todo Flow', () => {
     await expect(page.getByText('重置全部筛选')).not.toBeVisible({ timeout: 3000 })
     // Todos should still be visible after reset
     await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 5000 })
+  })
+
+  test('T16: filter by tag', async ({ page }) => {
+    await page.goto(BASE)
+    await waitForHydration(page)
+    await page.getByPlaceholder('搜索待办...').fill('')
+    await page.waitForTimeout(500)
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 8000 })
+
+    // Open filter panel
+    await page.getByRole('button', { name: /筛选/ }).click()
+    await page.waitForTimeout(500)
+
+    // Click the 4th n-select (tag filter): priority, date, category, tag
+    const tagSelect = page.locator('.n-select').nth(3)
+    await tagSelect.click()
+    await page.waitForTimeout(300)
+
+    // Select the first available tag from dropdown
+    const firstOption = page.locator('.n-base-select-option__content').first()
+    await firstOption.click()
+    await page.waitForTimeout(1000)
+
+    // Our todo with a tag (from T11) should be visible
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 5000 })
+
+    // Reset filters
+    await page.getByText('重置全部筛选').click()
+    await page.waitForTimeout(1000)
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 5000 })
+  })
+
+  test('T17: status toggle from detail page', async ({ page }) => {
+    await page.goto(BASE)
+    await waitForHydration(page)
+    await page.getByPlaceholder('搜索待办...').fill('')
+    await page.waitForTimeout(500)
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 8000 })
+
+    // Navigate to todo detail
+    await page.getByText(`${TITLE} Updated`).click()
+    await expect(page.getByPlaceholder('待办标题')).toBeVisible({ timeout: 5000 })
+
+    // Status pill should show "进行中"
+    await expect(page.locator('.status-pill')).toContainText('进行中', { timeout: 3000 })
+
+    // Click status pill to toggle
+    await page.locator('.status-pill').click()
+    await page.waitForTimeout(1000)
+
+    // Should now show "已完成"
+    await expect(page.locator('.status-pill')).toContainText('已完成', { timeout: 5000 })
+
+    // Toggle back to pending
+    await page.locator('.status-pill').click()
+    await page.waitForTimeout(1000)
+    await expect(page.locator('.status-pill')).toContainText('进行中', { timeout: 5000 })
+
+    // Go back
+    await page.locator('.back-btn').click()
+  })
+
+  test('T18: subtask inline edit', async ({ page }) => {
+    await page.goto(BASE)
+    await waitForHydration(page)
+    await page.getByPlaceholder('搜索待办...').fill('')
+    await page.waitForTimeout(500)
+    await page.getByText(`${TITLE} Updated`).click()
+    await expect(page.getByText('子任务')).toBeVisible({ timeout: 5000 })
+
+    // First add a subtask for editing
+    await page.getByPlaceholder('添加子任务...').fill('Editable subtask')
+    await page.locator('.add-subtask-btn').click()
+    await expect(page.getByText('Editable subtask')).toBeVisible({ timeout: 3000 })
+
+    // Click on subtask title to enter inline edit mode
+    await page.locator('.subtask-title').filter({ hasText: 'Editable subtask' }).click()
+    await page.waitForTimeout(500)
+
+    // Should show an edit input
+    const editInput = page.locator('.subtask-edit-input')
+    await expect(editInput).toBeVisible({ timeout: 3000 })
+
+    // Clear and type new title
+    await editInput.fill('Edited subtask title')
+    await editInput.press('Enter')
+    await page.waitForTimeout(1000)
+
+    // Verify updated title
+    await expect(page.getByText('Edited subtask title')).toBeVisible({ timeout: 5000 })
+
+    // Clean up: delete the subtask
+    await page.locator('.subtask-del').first().click()
+    await page.waitForTimeout(500)
+
+    // Go back
+    await page.locator('.back-btn').click()
+  })
+
+  test('T19: data persistence after reload', async ({ page }) => {
+    await page.goto(BASE)
+    await waitForHydration(page)
+    await page.getByPlaceholder('搜索待办...').fill('')
+    await page.waitForTimeout(500)
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 8000 })
+
+    // Reload the page
+    await page.reload()
+    await waitForHydration(page)
+    await page.waitForTimeout(2000)
+
+    // Todo should still be visible after reload
+    await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 8000 })
   })
 
   test('T04: delete todo', async ({ page }) => {

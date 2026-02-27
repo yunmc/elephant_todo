@@ -1,5 +1,5 @@
 /**
- * E2E — Navigation & Quick-Add (N01–N05)
+ * E2E — Navigation & Quick-Add (N01–N06)
  *
  * Bottom nav: 待办(/) | 随手记(/ideas) | ＋(quick-add) | 密码本(/vault) | 更多(/more)
  * More page: 记账(/finance) | 重要日期(/important-dates) | 经期追踪(/period) | 设置(/settings)
@@ -131,5 +131,36 @@ test.describe('Navigation', () => {
     await page.goto(`${BASE}/ideas`)
     await waitForHydration(page)
     await expect(page.getByText(ideaText)).toBeVisible({ timeout: 8000 })
+  })
+
+  test('N06: quick-add buttons disabled when input empty', async ({ authedPage: page }) => {
+    await page.goto(BASE)
+    await waitForHydration(page)
+    await page.waitForTimeout(2000)
+
+    // Open quick-add modal
+    await page.locator('.nav-add-icon').dispatchEvent('click')
+    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 5000 })
+
+    // With empty input, both buttons should be disabled
+    const todoBtn = page.getByRole('button', { name: '新建待办' })
+    const ideaBtn = page.getByRole('button', { name: '保存为随手记' })
+    await expect(todoBtn).toBeDisabled({ timeout: 3000 })
+    await expect(ideaBtn).toBeDisabled({ timeout: 3000 })
+
+    // Type something — buttons should become enabled
+    await page.getByPlaceholder('输入内容...').fill('test content')
+    await page.waitForTimeout(500)
+    await expect(todoBtn).toBeEnabled({ timeout: 3000 })
+    await expect(ideaBtn).toBeEnabled({ timeout: 3000 })
+
+    // Clear input — buttons should be disabled again
+    await page.getByPlaceholder('输入内容...').fill('')
+    await page.waitForTimeout(500)
+    await expect(todoBtn).toBeDisabled({ timeout: 3000 })
+    await expect(ideaBtn).toBeDisabled({ timeout: 3000 })
+
+    // Close modal
+    await page.keyboard.press('Escape')
   })
 })

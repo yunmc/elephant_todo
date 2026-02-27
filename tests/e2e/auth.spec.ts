@@ -1,5 +1,5 @@
 /**
- * E2E — Auth flow (A01–A17) + PWA basics (W01–W02)
+ * E2E — Auth flow (A01–A20) + PWA basics (W01–W02)
  */
 import { test, expect } from '@playwright/test'
 import { test as authedTest, expect as authedExpect, hideDevToolsOverlay, waitForHydration } from './fixtures/auth.fixture'
@@ -204,6 +204,41 @@ test.describe('Auth — Public Pages', () => {
 
     // Should stay on register page (duplicate email error)
     expect(page.url()).toContain('/register')
+  })
+
+  test('A18: register with short password shows validation', async ({ page }) => {
+    await page.goto(`${BASE}/register`)
+    await waitForHydration(page)
+    await page.getByPlaceholder('请输入密码（至少6位）').fill('Ab1')
+    // Blur to trigger NaiveUI validation
+    await page.getByPlaceholder('请输入用户名').click()
+    await page.waitForTimeout(1000)
+    await expect(page.getByText('密码长度不能少于6位')).toBeVisible({ timeout: 5000 })
+  })
+
+  test('A19: register with invalid email shows validation', async ({ page }) => {
+    await page.goto(`${BASE}/register`)
+    await waitForHydration(page)
+    await page.getByPlaceholder('请输入邮箱').fill('not-an-email')
+    // Blur to trigger validation
+    await page.getByPlaceholder('请输入用户名').click()
+    await page.waitForTimeout(1000)
+    await expect(page.getByText('请输入有效的邮箱地址')).toBeVisible({ timeout: 5000 })
+  })
+
+  test('A20: forgot password with valid email submits', async ({ page }) => {
+    await page.goto(`${BASE}/forgot-password`)
+    await waitForHydration(page)
+    await page.getByPlaceholder('请输入注册邮箱').fill('test@example.com')
+    await page.getByRole('button', { name: '发送重置链接' }).click()
+    // API always returns success (SMTP errors caught silently), but rate limit may fire
+    // Use .first() to avoid strict-mode violation when multiple messages appear
+    await expect(
+      page.getByText('邮件已发送')
+        .or(page.getByText('请求过于频繁'))
+        .or(page.getByText('发送失败'))
+        .first()
+    ).toBeVisible({ timeout: 10000 })
   })
 
   test('A17: logged-in user visiting /login is redirected to home', async ({ page }) => {

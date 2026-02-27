@@ -8,7 +8,7 @@
  * Records: `.period-card` cards, `.flow-badge`, `.symptom-badge`.
  * Prediction: `.prediction-card` / `.prediction-empty`.
  *
- * Serial tests sharing the same user.
+ * Serial tests sharing the same user. (P01–P13, P11 cancel add person)
  */
 import { test, expect } from '@playwright/test'
 import { registerOnce, injectAuth, hideDevToolsOverlay, waitForHydration } from './fixtures/auth.fixture'
@@ -238,6 +238,23 @@ test.describe.serial('Period Tracking Flow', () => {
 
     // Verify new person pill appears in switcher
     await expect(page.locator('.person-btn').filter({ hasText: 'E2E小红' })).toBeVisible({ timeout: 5000 })
+  })
+
+  test('P11: cancel add person hides input row', async ({ page }) => {
+    await page.goto(`${BASE}/period`)
+    await waitForHydration(page)
+    await expect(page.locator('.page-title')).toContainText('经期追踪', { timeout: 8000 })
+
+    // Click "+" add-person button
+    await page.locator('.person-btn.add-btn').click()
+    await expect(page.locator('.add-person-row')).toBeVisible({ timeout: 3000 })
+
+    // Click "取消" to dismiss without adding
+    await page.locator('.add-person-row').getByRole('button', { name: '取消' }).click()
+    await page.waitForTimeout(1000)
+
+    // The add-person-row should disappear
+    await expect(page.locator('.add-person-row')).not.toBeVisible({ timeout: 3000 })
   })
 
   test('P06: record period for new person', async ({ page }) => {

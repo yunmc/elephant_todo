@@ -1,5 +1,5 @@
 /**
- * E2E — Finance CRUD + Category + Statistics (F01–F12)
+ * E2E — Finance CRUD + Category + Statistics (F01–F14)
  *
  * Serial tests sharing the same user.
  */
@@ -188,6 +188,73 @@ test.describe.serial('Finance Flow', () => {
     const hasCategory = await recordCards.locator('.record-category').first().isVisible().catch(() => false)
     // At least one record should have a category
     expect(hasCategory).toBe(true)
+  })
+
+  test('F13: save button disabled when amount is empty', async ({ page }) => {
+    await page.goto(`${BASE}/finance`)
+    await waitForHydration(page)
+    await expect(page.locator('.page-title')).toContainText('记账', { timeout: 8000 })
+
+    // Open "记一笔" modal
+    await page.getByRole('button', { name: '+ 记一笔' }).click()
+    await expect(page.locator('.n-input-number input')).toBeVisible({ timeout: 5000 })
+
+    // Amount is null by default — save button should be disabled
+    const saveBtn = page.getByRole('button', { name: '保存' })
+    await expect(saveBtn).toBeDisabled({ timeout: 3000 })
+
+    // Enter a valid amount — button should become enabled
+    const amountInput = page.locator('.n-input-number input')
+    await amountInput.fill('50')
+    await amountInput.press('Tab')
+    await page.waitForTimeout(500)
+    await expect(saveBtn).toBeEnabled({ timeout: 3000 })
+
+    // Close modal
+    await page.keyboard.press('Escape')
+  })
+
+  test('F14: category options change with type', async ({ page }) => {
+    // Create an income category via API to ensure correct type
+    const incomeCatName = `E2E工资_${Date.now()}`
+    await page.request.post(`${BASE}/api/finance/categories`, {
+      headers: { 'Authorization': `Bearer ${tokens.accessToken}` },
+      data: { name: incomeCatName, type: 'income', icon: '💰' },
+    })
+
+    await page.goto(`${BASE}/finance`)
+    await waitForHydration(page)
+    await expect(page.locator('.page-title')).toContainText('记账', { timeout: 8000 })
+
+    // Open "记一笔" modal — default is expense
+    await page.getByRole('button', { name: '+ 记一笔' }).click()
+    await expect(page.locator('.n-input-number input')).toBeVisible({ timeout: 5000 })
+
+    // Check expense category options — income category should NOT appear
+    const selectTrigger = page.locator('.n-select').first()
+    await expect(selectTrigger).toBeVisible({ timeout: 3000 })
+      await selectTrigger.click()
+      await page.waitForTimeout(500)
+      const incOptionInExpense = await page.locator('.n-base-select-option').filter({ hasText: incomeCatName }).isVisible().catch(() => false)
+      await page.keyboard.press('Escape')
+      await page.waitForTimeout(300)
+
+      // Switch to income type
+      await page.getByRole('dialog').getByText('收入').click()
+      await page.waitForTimeout(500)
+
+      // Re-check — income category should now appear
+      await selectTrigger.click()
+      await page.waitForTimeout(500)
+      const incOptionInIncome = await page.locator('.n-base-select-option').filter({ hasText: incomeCatName }).isVisible().catch(() => false)
+      await page.keyboard.press('Escape')
+
+      // Income category should be hidden in expense mode, visible in income mode
+      expect(incOptionInExpense).toBe(false)
+      expect(incOptionInIncome).toBe(true)
+
+    // Close modal
+    await page.keyboard.press('Escape')
   })
 
   test('F04: type filter tabs', async ({ page }) => {

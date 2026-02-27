@@ -1,5 +1,5 @@
 /**
- * E2E — Settings: Category / Tag CRUD, Change Password, Theme, Account Info (S01–S10)
+ * E2E — Settings: Category / Tag CRUD, Change Password, Theme, Account Info (S01–S12)
  *
  * Settings page sections: 账户信息, 分类管理, 标签管理, 修改密码, 主题设置, 退出登录
  *
@@ -244,6 +244,41 @@ test.describe.serial('Settings', () => {
 
     // Front-end validation: "新密码至少6位" message should be visible
     await expect(page.getByText('新密码至少6位')).toBeVisible({ timeout: 3000 })
+    // Should still be on settings page
+    expect(page.url()).toContain('/settings')
+  })
+
+  test('S11: empty category name does not add', async ({ page }) => {
+    await page.goto(`${BASE}/settings`)
+    await waitForHydration(page)
+    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+
+    const catSection = page.locator('.section-card').filter({ hasText: '分类管理' })
+
+    // Count existing categories
+    const countBefore = await catSection.locator('.n-list-item').count()
+
+    // Leave category name empty and click "添加"
+    await page.getByPlaceholder('新分类名称').fill('')
+    await catSection.getByRole('button', { name: '添加' }).click()
+    await page.waitForTimeout(1000)
+
+    // Count should be unchanged (nothing added)
+    const countAfter = await catSection.locator('.n-list-item').count()
+    expect(countAfter).toBe(countBefore)
+  })
+
+  test('S12: empty password fields submit shows warning', async ({ page }) => {
+    await page.goto(`${BASE}/settings`)
+    await waitForHydration(page)
+    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+
+    // Don't fill any password fields — click "修改密码" directly
+    await page.getByRole('button', { name: '修改密码' }).click()
+    await page.waitForTimeout(1500)
+
+    // Should show warning "请填写所有字段"
+    await expect(page.getByText('请填写所有字段')).toBeVisible({ timeout: 5000 })
     // Should still be on settings page
     expect(page.url()).toContain('/settings')
   })
