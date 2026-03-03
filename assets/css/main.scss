@@ -93,6 +93,17 @@
   }
 }
 
+// ---------- Chrome Autofill Fix ----------
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--color-text) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--color-bg-card) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+  caret-color: var(--color-text);
+}
+
 // ---------- Reset & Base ----------
 *,
 *::before,

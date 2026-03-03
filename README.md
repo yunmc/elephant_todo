@@ -60,13 +60,23 @@ cp .env.example .env
 npm run dev
 ```
 
-访问 http://localhost:3000
+访问 http://localhost:3001
 
 ### 5. 构建生产版本
 
 ```bash
 npm run build
 npm run preview
+```
+
+### 6. Docker 构建与推送
+
+```bash
+# 构建镜像
+docker build -t registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo:latest .
+
+# 推送到阿里云 ACR
+docker push registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo:latest
 ```
 
 ## 项目结构
@@ -136,7 +146,7 @@ elephant_app/
 | `SMTP_FROM` | 发件人地址 | - |
 | `GEMINI_API_KEY` | Gemini LLM API Key | - |
 | `DEEPSEEK_API_KEY` | DeepSeek LLM API Key (备用) | - |
-| `RESET_PASSWORD_URL` | 重置密码页面 URL | http://localhost:3000/reset-password |
+| `RESET_PASSWORD_URL` | 重置密码页面 URL | http://localhost:3001/reset-password |
 
 ## License
 

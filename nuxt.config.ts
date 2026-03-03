@@ -59,7 +59,7 @@ export default defineNuxtConfig({
     deepseekBaseUrl: process.env.DEEPSEEK_BASE_URL || 'https://llmapi.blsc.cn/v1',
     deepseekModel: process.env.DEEPSEEK_MODEL || 'DeepSeek-V3.2',
 
-    resetPasswordUrl: process.env.RESET_PASSWORD_URL || 'http://localhost:3000/reset-password',
+    resetPasswordUrl: process.env.RESET_PASSWORD_URL || 'http://localhost:3001/reset-password',
     resetTokenExpiresIn: process.env.RESET_TOKEN_EXPIRES_IN || '3600000',
 
     // ---- 客户端公开 ----

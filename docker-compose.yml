@@ -1,34 +1,38 @@
 services:
   # Nuxt 应用
   app:
-    image: ${APP_IMAGE:-elephant-todo:latest}
+    image: ${APP_IMAGE:-registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo:latest}
     container_name: elephant-app
     restart: always
     ports:
-      - "3000:3000"
+      - "3001:3001"
     environment:
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_USER=elephant
-      - DB_PASSWORD=${DB_PASSWORD:-elephant123}
-      - DB_NAME=elephant_todo
-      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
-      - JWT_EXPIRES_IN=7d
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-change-me-refresh}
-      - JWT_REFRESH_EXPIRES_IN=30d
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - GEMINI_BASE_URL=${GEMINI_BASE_URL:-https://go.sbgpt.site/v1}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-pro}
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
-      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://llmapi.blsc.cn/v1}
-      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-DeepSeek-V3.2}
-      - SMTP_HOST=${SMTP_HOST:-}
-      - SMTP_PORT=${SMTP_PORT:-465}
-      - SMTP_SECURE=${SMTP_SECURE:-true}
-      - SMTP_USER=${SMTP_USER:-}
-      - SMTP_PASS=${SMTP_PASS:-}
-      - SMTP_FROM=${SMTP_FROM:-}
-      - RESET_PASSWORD_URL=${RESET_PASSWORD_URL:-http://localhost:3000/reset-password}
+      # 数据库
+      - NUXT_DB_HOST=mysql
+      - NUXT_DB_PORT=3306
+      - NUXT_DB_USER=elephant
+      - NUXT_DB_PASSWORD=${DB_PASSWORD:-elephant123}
+      - NUXT_DB_NAME=elephant_todo
+      # JWT
+      - NUXT_JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - NUXT_JWT_EXPIRES_IN=7d
+      - NUXT_JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-change-me-refresh}
+      - NUXT_JWT_REFRESH_EXPIRES_IN=30d
+      # LLM
+      - NUXT_GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - NUXT_GEMINI_BASE_URL=${GEMINI_BASE_URL:-https://go.sbgpt.site/v1}
+      - NUXT_GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-pro}
+      - NUXT_DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - NUXT_DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://llmapi.blsc.cn/v1}
+      - NUXT_DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-DeepSeek-V3.2}
+      # 邮件
+      - NUXT_SMTP_HOST=${SMTP_HOST:-}
+      - NUXT_SMTP_PORT=${SMTP_PORT:-465}
+      - NUXT_SMTP_SECURE=${SMTP_SECURE:-true}
+      - NUXT_SMTP_USER=${SMTP_USER:-}
+      - NUXT_SMTP_PASS=${SMTP_PASS:-}
+      - NUXT_SMTP_FROM=${SMTP_FROM:-}
+      - NUXT_RESET_PASSWORD_URL=${RESET_PASSWORD_URL:-http://localhost:3001/reset-password}
     depends_on:
       mysql:
         condition: service_healthy
