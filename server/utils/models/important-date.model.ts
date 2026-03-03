@@ -24,13 +24,13 @@ export const ImportantDateModel = {
 
   async create(userId: number, data: CreateImportantDateDTO): Promise<number> {
     const [result] = await getDb().query<ResultSetHeader>(
-      'INSERT INTO important_dates (user_id, title, date, is_lunar, repeat_yearly, remind_days_before, icon, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO important_dates (user_id, title, date, is_lunar, repeat_type, remind_days_before, icon, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [
         userId,
         data.title,
         data.date,
         data.is_lunar ?? false,
-        data.repeat_yearly ?? true,
+        data.repeat_type ?? 'none',
         data.remind_days_before ?? 0,
         data.icon || '📅',
         data.note || null,
@@ -45,7 +45,7 @@ export const ImportantDateModel = {
     if (data.title !== undefined) { fields.push('title = ?'); values.push(data.title) }
     if (data.date !== undefined) { fields.push('date = ?'); values.push(data.date) }
     if (data.is_lunar !== undefined) { fields.push('is_lunar = ?'); values.push(data.is_lunar) }
-    if (data.repeat_yearly !== undefined) { fields.push('repeat_yearly = ?'); values.push(data.repeat_yearly) }
+    if (data.repeat_type !== undefined) { fields.push('repeat_type = ?'); values.push(data.repeat_type) }
     if (data.remind_days_before !== undefined) { fields.push('remind_days_before = ?'); values.push(data.remind_days_before) }
     if (data.icon !== undefined) { fields.push('icon = ?'); values.push(data.icon) }
     if (data.note !== undefined) { fields.push('note = ?'); values.push(data.note) }

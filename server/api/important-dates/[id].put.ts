@@ -28,7 +28,13 @@ export default defineEventHandler(async (event) => {
     updateData.date = body.date
   }
   if (body.is_lunar !== undefined) updateData.is_lunar = !!body.is_lunar
-  if (body.repeat_yearly !== undefined) updateData.repeat_yearly = !!body.repeat_yearly
+  if (body.repeat_type !== undefined) {
+    const valid = ['none', 'monthly', 'yearly']
+    if (!valid.includes(body.repeat_type)) {
+      throw createError({ statusCode: 400, message: '重复类型无效' })
+    }
+    updateData.repeat_type = body.repeat_type
+  }
   if (body.remind_days_before !== undefined) {
     const r = Number(body.remind_days_before)
     if (!Number.isInteger(r) || r < 0 || r > 365) {

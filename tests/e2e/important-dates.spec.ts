@@ -85,7 +85,7 @@ test.describe.serial('Important Dates Flow', () => {
   test('D03: yearly repeat tag', async ({ page }) => {
     await page.goto(`${BASE}/important-dates`)
     await waitForHydration(page)
-    // The date we created defaults to repeat_yearly=true
+    // The date we created defaults to repeat_type='yearly'
     // Verify "每年" tag
     await expect(page.locator('.date-tag').getByText('每年').first()).toBeVisible({ timeout: 5000 })
   })
@@ -172,7 +172,7 @@ test.describe.serial('Important Dates Flow', () => {
     await waitForHydration(page)
     await expect(page.getByText(`${TITLE} Edited`)).toBeVisible({ timeout: 8000 })
 
-    // Currently repeat_yearly = true (D03 verified "每年" tag)
+    // Currently repeat_type = 'yearly' (D03 verified "每年" tag)
     // Click card to open edit modal
     await page.locator('.date-card').filter({ hasText: `${TITLE} Edited` }).click()
     await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
@@ -205,7 +205,7 @@ test.describe.serial('Important Dates Flow', () => {
   })
 
   test('D10: today date shows celebration or recent countdown', async ({ page }) => {
-    // Create a date set to today via API — use repeat_yearly=false to avoid next-year calc
+    // Create a date set to today via API — use repeat_type='none' to avoid next-year calc
     const today = new Date()
     const yyyy = today.getFullYear()
     const mm = String(today.getMonth() + 1).padStart(2, '0')
@@ -218,7 +218,7 @@ test.describe.serial('Important Dates Flow', () => {
         title: todayTitle,
         date: dateStr,
         icon: '🎂',
-        repeat_yearly: false,
+        repeat_type: 'none',
         remind_days: 0,
         is_lunar: false,
         note: '',
@@ -241,7 +241,7 @@ test.describe.serial('Important Dates Flow', () => {
   })
 
   test('D11: past date shows days ago', async ({ page }) => {
-    // Create a date set to 10 days ago with repeat_yearly=false
+    // Create a date set to 10 days ago with repeat_type='none'
     const pastDate = new Date()
     pastDate.setDate(pastDate.getDate() - 10)
     const dateStr = pastDate.toISOString().split('T')[0]
@@ -252,7 +252,7 @@ test.describe.serial('Important Dates Flow', () => {
         title: pastTitle,
         date: dateStr,
         icon: '📅',
-        repeat_yearly: false,
+        repeat_type: 'none',
         remind_days: 0,
         is_lunar: false,
         note: '',

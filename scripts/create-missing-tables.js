@@ -46,7 +46,7 @@ async function main() {
     title              VARCHAR(200) NOT NULL,
     date               DATE         NOT NULL,
     is_lunar           BOOLEAN      NOT NULL DEFAULT FALSE,
-    repeat_yearly      BOOLEAN      NOT NULL DEFAULT TRUE,
+    repeat_type        VARCHAR(20)  NOT NULL DEFAULT 'none',
     remind_days_before INT          NOT NULL DEFAULT 0,
     icon               VARCHAR(50)  DEFAULT '📅',
     note               TEXT         DEFAULT NULL,

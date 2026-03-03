@@ -290,7 +290,7 @@ export interface ImportantDateRow extends RowDataPacket {
   title: string
   date: Date
   is_lunar: boolean
-  repeat_yearly: boolean
+  repeat_type: 'none' | 'monthly' | 'yearly'
   remind_days_before: number
   icon: string
   note: string | null
@@ -302,7 +302,7 @@ export interface CreateImportantDateDTO {
   title: string
   date: string
   is_lunar?: boolean
-  repeat_yearly?: boolean
+  repeat_type?: 'none' | 'monthly' | 'yearly'
   remind_days_before?: number
   icon?: string
   note?: string
@@ -312,7 +312,7 @@ export interface UpdateImportantDateDTO {
   title?: string
   date?: string
   is_lunar?: boolean
-  repeat_yearly?: boolean
+  repeat_type?: 'none' | 'monthly' | 'yearly'
   remind_days_before?: number
   icon?: string
   note?: string

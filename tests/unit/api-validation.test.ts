@@ -645,7 +645,7 @@ describe('Important Dates — Create validation', () => {
   })
 
   it('should accept valid data', async () => {
-    mockBody({ title: 'Birthday', date: '2025-06-15', repeat_yearly: true, remind_days_before: 7 })
+    mockBody({ title: 'Birthday', date: '2025-06-15', repeat_type: 'yearly', remind_days_before: 7 })
     const result = await handler(event)
     expect(result.success).toBe(true)
   })

@@ -647,7 +647,7 @@ describe('Important Dates — List with days_until enrichment', () => {
     futureDate.setDate(futureDate.getDate() + 10)
     const dateStr = futureDate.toISOString().split('T')[0]
     vi.mocked(ImportantDateModel.findByUser).mockResolvedValue([
-      { id: 1, title: 'Birthday', date: dateStr, repeat_yearly: false }
+      { id: 1, title: 'Birthday', date: dateStr, repeat_type: 'none' }
     ])
     const result = await handler(event)
     expect(result.success).toBe(true)
@@ -659,8 +659,8 @@ describe('Important Dates — List with days_until enrichment', () => {
     const d1 = new Date(); d1.setDate(d1.getDate() + 30)
     const d2 = new Date(); d2.setDate(d2.getDate() + 5)
     vi.mocked(ImportantDateModel.findByUser).mockResolvedValue([
-      { id: 1, title: 'Far', date: d1.toISOString().split('T')[0], repeat_yearly: false },
-      { id: 2, title: 'Near', date: d2.toISOString().split('T')[0], repeat_yearly: false },
+      { id: 1, title: 'Far', date: d1.toISOString().split('T')[0], repeat_type: 'none' },
+      { id: 2, title: 'Near', date: d2.toISOString().split('T')[0], repeat_type: 'none' },
     ])
     const result = await handler(event)
     expect(result.data[0].title).toBe('Near')

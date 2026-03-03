@@ -24,7 +24,8 @@
             <div class="date-title">{{ item.title }}</div>
             <div class="date-detail">
               {{ formatDateDisplay(item.date) }}
-              <span v-if="item.repeat_yearly" class="date-tag">每年</span>
+              <span v-if="item.repeat_type === 'yearly'" class="date-tag">每年</span>
+              <span v-if="item.repeat_type === 'monthly'" class="date-tag monthly">每月</span>
               <span v-if="item.is_lunar" class="date-tag lunar">农历</span>
             </div>
             <div v-if="item.note" class="date-note">{{ item.note }}</div>
@@ -69,8 +70,12 @@
           <n-form-item label="日期">
             <n-date-picker v-model:value="form.date_ts" type="date" style="width: 100%;" />
           </n-form-item>
-          <n-form-item label="每年重复">
-            <n-switch v-model:value="form.repeat_yearly" />
+          <n-form-item label="重复">
+            <n-select
+              v-model:value="form.repeat_type"
+              :options="repeatOptions"
+              style="width: 100%;"
+            />
           </n-form-item>
           <n-form-item label="提前提醒">
             <n-select
@@ -116,11 +121,17 @@ const remindOptions = [
   { label: '提前 30 天', value: 30 },
 ]
 
+const repeatOptions = [
+  { label: '不重复', value: 'none' },
+  { label: '每月重复', value: 'monthly' },
+  { label: '每年重复', value: 'yearly' },
+]
+
 const form = reactive({
   title: '',
   icon: '📅',
   date_ts: Date.now(),
-  repeat_yearly: true,
+  repeat_type: 'yearly' as 'none' | 'monthly' | 'yearly',
   is_lunar: false,
   remind_days_before: 0,
   note: '',
@@ -136,7 +147,7 @@ function openAddModal() {
   form.title = ''
   form.icon = '📅'
   form.date_ts = Date.now()
-  form.repeat_yearly = true
+  form.repeat_type = 'yearly'
   form.is_lunar = false
   form.remind_days_before = 0
   form.note = ''
@@ -148,7 +159,7 @@ function openEditModal(item: ImportantDate) {
   form.title = item.title
   form.icon = item.icon || '📅'
   form.date_ts = new Date(item.date).getTime()
-  form.repeat_yearly = item.repeat_yearly
+  form.repeat_type = item.repeat_type || 'none'
   form.is_lunar = item.is_lunar
   form.remind_days_before = item.remind_days_before
   form.note = item.note || ''
@@ -164,7 +175,7 @@ async function handleSave() {
     title: form.title.trim(),
     icon: form.icon,
     date: dateStr,
-    repeat_yearly: form.repeat_yearly,
+    repeat_type: form.repeat_type,
     is_lunar: form.is_lunar,
     remind_days_before: form.remind_days_before,
     note: form.note || undefined,
@@ -271,6 +282,10 @@ function countdownClass(daysUntil?: number) {
 .date-tag.lunar {
   background: rgba(234, 179, 8, 0.15);
   color: #ca8a04;
+}
+.date-tag.monthly {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
 }
 .date-note {
   font-size: 12px;

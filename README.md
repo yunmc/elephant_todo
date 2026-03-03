@@ -79,6 +79,16 @@ docker build -t registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo:latest
 docker push registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo:latest
 ```
 
+### 7. 线上部署更新
+
+```bash
+# 拉取最新镜像
+docker pull registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo:latest
+
+# 重启应用容器
+docker compose up -d app
+```
+
 ## 项目结构
 
 ```

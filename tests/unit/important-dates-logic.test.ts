@@ -5,8 +5,9 @@
  * that computes days_until for each important date.
  *
  * Key behaviors:
- *   - repeat_yearly: wraps to next year if date already passed
- *   - non-repeat: always uses original date (can be negative)
+ *   - repeat_type 'yearly': wraps to next year if date already passed
+ *   - repeat_type 'monthly': wraps to next month if day already passed
+ *   - repeat_type 'none': always uses original date (can be negative)
  *   - UTC-based calculation to avoid timezone issues
  *   - Results sorted by days_until ascending
  */
@@ -16,7 +17,7 @@ import { describe, it, expect } from 'vitest'
 interface MockDate {
   id: number
   date: string     // YYYY-MM-DD stored in DB
-  repeat_yearly: boolean
+  repeat_type: 'none' | 'monthly' | 'yearly'
   title: string
 }
 
@@ -34,12 +35,19 @@ function computeDaysUntil(dates: MockDate[], today: Date): EnrichedDate[] {
     const origDay = dateObj.getUTCDate()
     let nextOccurrence: number
 
-    if (d.repeat_yearly) {
+    if (d.repeat_type === 'yearly') {
       const thisYearUTC = Date.UTC(today.getFullYear(), origMonth, origDay)
       if (thisYearUTC < todayUTC) {
         nextOccurrence = Date.UTC(today.getFullYear() + 1, origMonth, origDay)
       } else {
         nextOccurrence = thisYearUTC
+      }
+    } else if (d.repeat_type === 'monthly') {
+      const thisMonthUTC = Date.UTC(today.getFullYear(), today.getMonth(), origDay)
+      if (thisMonthUTC < todayUTC) {
+        nextOccurrence = Date.UTC(today.getFullYear(), today.getMonth() + 1, origDay)
+      } else {
+        nextOccurrence = thisMonthUTC
       }
     } else {
       nextOccurrence = Date.UTC(dateObj.getUTCFullYear(), origMonth, origDay)
@@ -65,15 +73,15 @@ describe('Important Dates — days_until calculation', () => {
 
   it('should compute 0 days for today (non-repeating)', () => {
     const dates: MockDate[] = [
-      { id: 1, date: '2025-06-15', repeat_yearly: false, title: 'Today' },
+      { id: 1, date: '2025-06-15', repeat_type: 'none', title: 'Today' },
     ]
     const result = computeDaysUntil(dates, today)
     expect(result[0].days_until).toBe(0)
   })
 
-  it('should compute 0 days for today (repeat_yearly)', () => {
+  it('should compute 0 days for today (repeat yearly)', () => {
     const dates: MockDate[] = [
-      { id: 1, date: '2000-06-15', repeat_yearly: true, title: 'Birthday today' },
+      { id: 1, date: '2000-06-15', repeat_type: 'yearly', title: 'Birthday today' },
     ]
     const result = computeDaysUntil(dates, today)
     expect(result[0].days_until).toBe(0)
@@ -81,7 +89,7 @@ describe('Important Dates — days_until calculation', () => {
 
   it('should compute positive days for future non-repeating date', () => {
     const dates: MockDate[] = [
-      { id: 1, date: '2025-07-01', repeat_yearly: false, title: 'Event' },
+      { id: 1, date: '2025-07-01', repeat_type: 'none', title: 'Event' },
     ]
     const result = computeDaysUntil(dates, today)
     expect(result[0].days_until).toBe(16) // Jul 1 - Jun 15
@@ -89,15 +97,15 @@ describe('Important Dates — days_until calculation', () => {
 
   it('should compute negative days for past non-repeating date', () => {
     const dates: MockDate[] = [
-      { id: 1, date: '2025-06-10', repeat_yearly: false, title: 'Past event' },
+      { id: 1, date: '2025-06-10', repeat_type: 'none', title: 'Past event' },
     ]
     const result = computeDaysUntil(dates, today)
     expect(result[0].days_until).toBe(-5) // Jun 10 - Jun 15
   })
 
-  it('should wrap to next year for repeat_yearly date that already passed', () => {
+  it('should wrap to next year for yearly repeat date that already passed', () => {
     const dates: MockDate[] = [
-      { id: 1, date: '2000-01-01', repeat_yearly: true, title: 'New Year' },
+      { id: 1, date: '2000-01-01', repeat_type: 'yearly', title: 'New Year' },
     ]
     // Today is June 15, 2025 → Jan 1 already passed → next is Jan 1, 2026
     const result = computeDaysUntil(dates, today)
@@ -108,9 +116,9 @@ describe('Important Dates — days_until calculation', () => {
     expect(result[0].days_until).toBe(expected)
   })
 
-  it('should use this year for repeat_yearly date coming up', () => {
+  it('should use this year for yearly repeat date coming up', () => {
     const dates: MockDate[] = [
-      { id: 1, date: '1990-12-25', repeat_yearly: true, title: 'Christmas' },
+      { id: 1, date: '1990-12-25', repeat_type: 'yearly', title: 'Christmas' },
     ]
     // Today is Jun 15, 2025 → Dec 25 is still ahead this year
     const result = computeDaysUntil(dates, today)
@@ -122,9 +130,9 @@ describe('Important Dates — days_until calculation', () => {
 
   it('should sort by days_until ascending', () => {
     const dates: MockDate[] = [
-      { id: 1, date: '2025-12-25', repeat_yearly: false, title: 'Christmas' },
-      { id: 2, date: '2025-06-20', repeat_yearly: false, title: 'Soon' },
-      { id: 3, date: '2025-06-16', repeat_yearly: false, title: 'Tomorrow' },
+      { id: 1, date: '2025-12-25', repeat_type: 'none', title: 'Christmas' },
+      { id: 2, date: '2025-06-20', repeat_type: 'none', title: 'Soon' },
+      { id: 3, date: '2025-06-16', repeat_type: 'none', title: 'Tomorrow' },
     ]
     const result = computeDaysUntil(dates, today)
     expect(result[0].title).toBe('Tomorrow')
@@ -138,7 +146,7 @@ describe('Important Dates — days_until calculation', () => {
     // Feb 29 birthdate, checked on Jun 15, 2025
     // 2026 is NOT a leap year → Date.UTC(2026, 1, 29) actually becomes Mar 1!
     const dates: MockDate[] = [
-      { id: 1, date: '2000-02-29', repeat_yearly: true, title: 'Leap birthday' },
+      { id: 1, date: '2000-02-29', repeat_type: 'yearly', title: 'Leap birthday' },
     ]
     const result = computeDaysUntil(dates, today)
     // This tests how JS handles Feb 29 in non-leap years (rolls to Mar 1)
@@ -148,16 +156,16 @@ describe('Important Dates — days_until calculation', () => {
 
   it('should handle far future non-repeating date', () => {
     const dates: MockDate[] = [
-      { id: 1, date: '2030-01-01', repeat_yearly: false, title: 'Far future' },
+      { id: 1, date: '2030-01-01', repeat_type: 'none', title: 'Far future' },
     ]
     const result = computeDaysUntil(dates, today)
     expect(result[0].days_until).toBeGreaterThan(1000)
   })
 
-  it('should handle same date repeat_yearly correctly at year boundary', () => {
+  it('should handle same date yearly repeat correctly at year boundary', () => {
     const todayDec31 = new Date('2025-12-31T00:00:00Z')
     const dates: MockDate[] = [
-      { id: 1, date: '2000-01-01', repeat_yearly: true, title: 'New Year' },
+      { id: 1, date: '2000-01-01', repeat_type: 'yearly', title: 'New Year' },
     ]
     const result = computeDaysUntil(dates, todayDec31)
     expect(result[0].days_until).toBe(1) // Tomorrow
@@ -165,9 +173,9 @@ describe('Important Dates — days_until calculation', () => {
 
   it('should handle multiple dates with mixed repeat settings', () => {
     const dates: MockDate[] = [
-      { id: 1, date: '2025-06-16', repeat_yearly: false, title: 'One-time' },
-      { id: 2, date: '2000-06-20', repeat_yearly: true, title: 'Annual' },
-      { id: 3, date: '2020-06-10', repeat_yearly: false, title: 'Past one-time' },
+      { id: 1, date: '2025-06-16', repeat_type: 'none', title: 'One-time' },
+      { id: 2, date: '2000-06-20', repeat_type: 'yearly', title: 'Annual' },
+      { id: 3, date: '2020-06-10', repeat_type: 'none', title: 'Past one-time' },
     ]
     const result = computeDaysUntil(dates, today)
     // Sort is ascending: past dates (negative) come first
@@ -176,5 +184,32 @@ describe('Important Dates — days_until calculation', () => {
     // Annual (Jun 20, +5) is after One-time (Jun 16, +1)
     expect(result[1].title).toBe('One-time')
     expect(result[2].title).toBe('Annual')
+  })
+
+  it('should compute correct days for monthly repeat (day ahead)', () => {
+    // Today is Jun 15, repeat on 20th → this month Jun 20 = 5 days
+    const dates: MockDate[] = [
+      { id: 1, date: '2025-01-20', repeat_type: 'monthly', title: 'Monthly bill' },
+    ]
+    const result = computeDaysUntil(dates, today)
+    expect(result[0].days_until).toBe(5)
+  })
+
+  it('should wrap to next month for monthly repeat (day passed)', () => {
+    // Today is Jun 15, repeat on 10th → Jun 10 passed → next is Jul 10 = 25 days
+    const dates: MockDate[] = [
+      { id: 1, date: '2025-01-10', repeat_type: 'monthly', title: 'Monthly payment' },
+    ]
+    const result = computeDaysUntil(dates, today)
+    expect(result[0].days_until).toBe(25) // Jul 10 - Jun 15
+  })
+
+  it('should compute 0 for monthly repeat on same day', () => {
+    // Today is Jun 15, repeat on 15th → 0 days
+    const dates: MockDate[] = [
+      { id: 1, date: '2025-01-15', repeat_type: 'monthly', title: 'Monthly check' },
+    ]
+    const result = computeDaysUntil(dates, today)
+    expect(result[0].days_until).toBe(0)
   })
 })

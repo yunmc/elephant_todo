@@ -2,7 +2,7 @@ const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
 
 export default defineEventHandler(async (event) => {
   const userId = requireAuth(event)
-  const { title, date, is_lunar, repeat_yearly, remind_days_before, icon, note } = await readBody(event)
+  const { title, date, is_lunar, repeat_type, remind_days_before, icon, note } = await readBody(event)
 
   const trimmedTitle = typeof title === 'string' ? title.trim() : ''
   if (!trimmedTitle || !date) {
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const id = await ImportantDateModel.create(userId, {
-    title: trimmedTitle, date, is_lunar: !!is_lunar, repeat_yearly: !!repeat_yearly,
+    title: trimmedTitle, date, is_lunar: !!is_lunar, repeat_type: repeat_type || 'none',
     remind_days_before: remind_days_before ?? 0, icon, note,
   })
   const created = await ImportantDateModel.findById(id, userId)

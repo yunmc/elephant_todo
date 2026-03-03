@@ -12,14 +12,23 @@ export default defineEventHandler(async (event) => {
     const origDay = dateObj.getUTCDate()
     let nextOccurrence: number
 
-    if (d.repeat_yearly) {
+    if (d.repeat_type === 'yearly') {
       // Find the next occurrence this year or next year (UTC)
-      const thisYear = new Date(now.getFullYear(), origMonth, origDay)
       const thisYearUTC = Date.UTC(now.getFullYear(), origMonth, origDay)
       if (thisYearUTC < todayUTC) {
         nextOccurrence = Date.UTC(now.getFullYear() + 1, origMonth, origDay)
       } else {
         nextOccurrence = thisYearUTC
+      }
+    } else if (d.repeat_type === 'monthly') {
+      // Find the next occurrence this month or next month (UTC)
+      const thisMonthUTC = Date.UTC(now.getFullYear(), now.getMonth(), origDay)
+      if (thisMonthUTC < todayUTC) {
+        // Next month
+        const nextMonth = now.getMonth() + 1
+        nextOccurrence = Date.UTC(now.getFullYear(), nextMonth, origDay)
+      } else {
+        nextOccurrence = thisMonthUTC
       }
     } else {
       nextOccurrence = Date.UTC(dateObj.getUTCFullYear(), origMonth, origDay)

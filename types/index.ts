@@ -175,7 +175,7 @@ export interface ImportantDate {
   title: string
   date: string
   is_lunar: boolean
-  repeat_yearly: boolean
+  repeat_type: 'none' | 'monthly' | 'yearly'
   remind_days_before: number
   icon: string
   note: string | null
