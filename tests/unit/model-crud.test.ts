@@ -546,12 +546,12 @@ describe('ImportantDateModel.update — dynamic field builder', () => {
 
   it('should build SET for all 7 optional fields', async () => {
     await ImportantDateModel.update(1, 1, {
-      title: 'T', date: 'D', is_lunar: true, repeat_yearly: false,
+      title: 'T', date: 'D', is_lunar: true, repeat_type: 'yearly',
       remind_days_before: 3, icon: '🎂', note: 'N'
     })
     const call = queryCalls.find(c => c.sql.includes('UPDATE'))!
     expect(call.sql).toContain('is_lunar = ?')
-    expect(call.sql).toContain('repeat_yearly = ?')
+    expect(call.sql).toContain('repeat_type = ?')
     expect(call.sql).toContain('remind_days_before = ?')
     expect(call.sql).toContain('icon = ?')
     expect(call.sql).toContain('note = ?')
@@ -572,25 +572,25 @@ describe('ImportantDateModel.create — defaults', () => {
     ImportantDateModel = mod.ImportantDateModel
   })
 
-  it('should default is_lunar=false, repeat_yearly=true, remind_days=0, icon=📅', async () => {
+  it('should default is_lunar=false, repeat_type=none, remind_days=0, icon=📅', async () => {
     await ImportantDateModel.create(1, { title: 'Test', date: '2025-01-01' })
     const call = queryCalls.find(c => c.sql.includes('INSERT'))!
-    // Params: [userId, title, date, is_lunar, repeat_yearly, remind_days_before, icon, note]
-    expect(call.params[3]).toBe(false)  // is_lunar
-    expect(call.params[4]).toBe(true)   // repeat_yearly
-    expect(call.params[5]).toBe(0)      // remind_days_before
-    expect(call.params[6]).toBe('📅')   // icon
-    expect(call.params[7]).toBeNull()   // note
+    // Params: [userId, title, date, is_lunar, repeat_type, remind_days_before, icon, note]
+    expect(call.params[3]).toBe(false)    // is_lunar
+    expect(call.params[4]).toBe('none')   // repeat_type
+    expect(call.params[5]).toBe(0)        // remind_days_before
+    expect(call.params[6]).toBe('📅')     // icon
+    expect(call.params[7]).toBeNull()     // note
   })
 
   it('should use provided values over defaults', async () => {
     await ImportantDateModel.create(1, {
-      title: 'T', date: 'D', is_lunar: true, repeat_yearly: false,
+      title: 'T', date: 'D', is_lunar: true, repeat_type: 'yearly',
       remind_days_before: 7, icon: '🎉', note: 'note'
     })
     const call = queryCalls.find(c => c.sql.includes('INSERT'))!
     expect(call.params[3]).toBe(true)
-    expect(call.params[4]).toBe(false)
+    expect(call.params[4]).toBe('yearly')
     expect(call.params[5]).toBe(7)
     expect(call.params[6]).toBe('🎉')
     expect(call.params[7]).toBe('note')

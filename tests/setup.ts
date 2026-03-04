@@ -69,6 +69,9 @@ vi.stubGlobal('UserProductModel', {})
 vi.stubGlobal('UserAppearanceModel', {})
 vi.stubGlobal('purchaseProduct', vi.fn())
 
+// ---------- Budget Model stubs ----------
+vi.stubGlobal('FinanceBudgetModel', {})
+
 // ---------- AI stubs ----------
 vi.stubGlobal('AiReportModel', {})
 vi.stubGlobal('callLLM', vi.fn())

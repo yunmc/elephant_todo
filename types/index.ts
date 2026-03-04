@@ -318,6 +318,38 @@ export interface AiReportResponse {
   generated_at: string
 }
 
+// ==================== Finance Budget ====================
+export interface FinanceBudget {
+  id: number
+  category_id: number | null
+  year_month: string
+  amount: number
+  created_at: string
+  updated_at: string
+  category_name?: string
+  category_icon?: string
+}
+
+export interface BudgetProgress {
+  total_budget: number
+  total_spent: number
+  percentage: number
+  remaining: number
+  days_left: number
+  daily_remaining: number
+  categories: BudgetCategoryProgress[]
+}
+
+export interface BudgetCategoryProgress {
+  category_id: number | null
+  category_name: string
+  category_icon: string
+  budget: number
+  spent: number
+  percentage: number
+  status: 'normal' | 'warning' | 'over'
+}
+
 // ==================== API Response ====================
 export interface ApiResponse<T = any> {
   success: boolean

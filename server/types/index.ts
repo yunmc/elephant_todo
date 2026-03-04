@@ -448,6 +448,29 @@ export interface UserAppearanceRow extends RowDataPacket {
   updated_at: Date
 }
 
+// ==================== Finance Budget ====================
+export interface FinanceBudgetRow extends RowDataPacket {
+  id: number
+  user_id: number
+  category_id: number | null
+  year_month: string
+  amount: number
+  created_at: Date
+  updated_at: Date
+  category_name?: string
+  category_icon?: string
+}
+
+export interface CreateFinanceBudgetDTO {
+  category_id?: number | null
+  year_month: string
+  amount: number
+}
+
+export interface UpdateFinanceBudgetDTO {
+  amount?: number
+}
+
 // ==================== AI Report ====================
 export interface AiReportRow extends RowDataPacket {
   id: number

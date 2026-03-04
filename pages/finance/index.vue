@@ -31,6 +31,14 @@
       <n-button block @click="handleAiQuickEntry">💡 AI 记账</n-button>
     </div>
 
+    <!-- Budget Card -->
+    <BudgetCard
+      :budget-progress="financeStore.budgetProgress"
+      :month-label="currentMonth"
+      :is-premium="isPremium"
+      @edit="handleOpenBudgetModal"
+    />
+
     <!-- Filter Tabs -->
     <div class="filter-tabs">
       <button :class="['tab', { active: filterType === undefined }]" @click="setType(undefined)">全部</button>
@@ -141,19 +149,36 @@
     <ClientOnly>
       <AiQuickEntry v-model:show="showAiEntry" @saved="loadData" />
     </ClientOnly>
+
+    <!-- Budget Setting Modal -->
+    <BudgetModal
+      v-model:show="showBudgetModal"
+      :year-month="yearMonth"
+      :categories="financeStore.categories"
+      :budgets="financeStore.budgets"
+      @saved="loadBudget"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 const financeStore = useFinanceStore()
 const message = useMessage()
-const { guardPremium } = usePremium()
+const { guardPremium, isPremium } = usePremium()
 
 const showAiEntry = ref(false)
+const showBudgetModal = ref(false)
 
 function handleAiQuickEntry() {
   if (!guardPremium()) return
   showAiEntry.value = true
+}
+
+function handleOpenBudgetModal() {
+  if (!guardPremium()) return
+  // Load budgets for current month before opening modal
+  financeStore.fetchBudgets(yearMonth.value)
+  showBudgetModal.value = true
 }
 
 const showAddModal = ref(false)
@@ -170,6 +195,7 @@ const endDate = computed(() => {
   const lastDay = new Date(currentYear.value, currentMonth.value, 0).getDate()
   return `${currentYear.value}-${String(currentMonth.value).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 })
+const yearMonth = computed(() => `${currentYear.value}-${String(currentMonth.value).padStart(2, '0')}`)
 
 // Form
 const form = reactive({
@@ -220,7 +246,18 @@ async function loadData() {
   await Promise.all([
     financeStore.fetchRecords(),
     financeStore.fetchStatistics(startDate.value, endDate.value),
+    loadBudget(),
   ])
+}
+
+async function loadBudget() {
+  if (isPremium.value) {
+    try {
+      await financeStore.fetchBudgetProgress(yearMonth.value)
+    } catch {
+      // Silently fail for budget progress
+    }
+  }
 }
 
 function prevMonth() {

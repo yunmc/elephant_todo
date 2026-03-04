@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { FinanceRecord, FinanceCategory, FinanceFilters, FinanceStatistics, Pagination } from '~/types'
+import type { FinanceRecord, FinanceCategory, FinanceFilters, FinanceStatistics, Pagination, FinanceBudget, BudgetProgress } from '~/types'
 
 export const useFinanceStore = defineStore('finance', () => {
   const api = useApi()
@@ -93,10 +93,39 @@ export const useFinanceStore = defineStore('finance', () => {
     pagination.value.page = page
   }
 
+  // ==================== Budgets ====================
+  const budgets = ref<FinanceBudget[]>([])
+  const budgetProgress = ref<BudgetProgress | null>(null)
+
+  async function fetchBudgets(yearMonth: string) {
+    const res = await api.get<FinanceBudget[]>('/finance/budgets', { year_month: yearMonth })
+    budgets.value = res.data || []
+    return budgets.value
+  }
+
+  async function saveBudget(data: { category_id?: number | null; year_month: string; amount: number }) {
+    const res = await api.post<FinanceBudget[]>('/finance/budgets', data)
+    budgets.value = res.data || []
+    return budgets.value
+  }
+
+  async function deleteBudget(id: number) {
+    await api.delete(`/finance/budgets/${id}`)
+    budgets.value = budgets.value.filter(b => b.id !== id)
+  }
+
+  async function fetchBudgetProgress(yearMonth: string) {
+    const res = await api.get<BudgetProgress>('/finance/budgets/progress', { year_month: yearMonth })
+    budgetProgress.value = res.data || null
+    return budgetProgress.value
+  }
+
   return {
     records, categories, statistics, pagination, filters, loading,
+    budgets, budgetProgress,
     fetchCategories, createCategory, updateCategory, deleteCategory,
     fetchRecords, createRecord, updateRecord, deleteRecord,
     fetchStatistics, setFilters, setPage,
+    fetchBudgets, saveBudget, deleteBudget, fetchBudgetProgress,
   }
 })
