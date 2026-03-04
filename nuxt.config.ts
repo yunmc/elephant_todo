@@ -95,6 +95,8 @@ export default defineNuxtConfig({
   routeRules: {
     '/settings': { ssr: false },
     '/settings/**': { ssr: false },
+    '/admin': { ssr: false },
+    '/admin/**': { ssr: false },
   },
 
   pwa: {

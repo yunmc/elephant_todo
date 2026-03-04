@@ -1,4 +1,7 @@
 export default defineNuxtRouteMiddleware((to) => {
+  // Admin pages have their own auth guard — skip app auth for /admin/*
+  if (to.path.startsWith('/admin')) return
+
   const authStore = useAuthStore()
 
   // Public pages that don't require auth
