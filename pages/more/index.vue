@@ -33,6 +33,12 @@
         <span class="feature-desc">记录与预测周期</span>
       </NuxtLink>
 
+      <NuxtLink to="/ai/report" class="feature-card">
+        <span class="feature-icon">🤖</span>
+        <span class="feature-name">AI 报告</span>
+        <span class="feature-desc">月度·年度智能分析</span>
+      </NuxtLink>
+
       <NuxtLink to="/settings" class="feature-card">
         <span class="feature-icon">⚙️</span>
         <span class="feature-name">设置</span>

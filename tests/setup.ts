@@ -31,6 +31,7 @@ vi.stubGlobal('defineEventHandler', (fn: Function) => fn)
 
 // ---------- App-level auto-imports ----------
 vi.stubGlobal('rateLimit', vi.fn())
+vi.stubGlobal('rateLimitByUser', vi.fn())
 vi.stubGlobal('requireAuth', vi.fn(() => 1))
 vi.stubGlobal('generateTokens', vi.fn(() => ({
   accessToken: 'mock-access-token',
@@ -67,6 +68,13 @@ vi.stubGlobal('WalletModel', {})
 vi.stubGlobal('UserProductModel', {})
 vi.stubGlobal('UserAppearanceModel', {})
 vi.stubGlobal('purchaseProduct', vi.fn())
+
+// ---------- AI stubs ----------
+vi.stubGlobal('AiReportModel', {})
+vi.stubGlobal('callLLM', vi.fn())
+vi.stubGlobal('extractJSON', vi.fn())
+vi.stubGlobal('aggregateMonthlyData', vi.fn())
+vi.stubGlobal('aggregateYearlyData', vi.fn())
 
 // ---------- Utility stubs ----------
 vi.stubGlobal('sendResetPasswordEmail', vi.fn())

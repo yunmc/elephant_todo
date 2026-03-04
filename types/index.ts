@@ -277,6 +277,47 @@ export interface UserAppearance {
   font: ShopProduct | null
 }
 
+// ==================== AI ====================
+// AI 快速记账解析结果
+export interface AiQuickEntryResult {
+  amount: number
+  type: 'income' | 'expense'
+  category_name: string
+  date: string
+  note: string
+  confidence: number
+}
+
+// AI 月度报告
+export interface AiMonthlyReport {
+  finance_insight: string
+  finance_suggestion: string
+  todo_insight: string
+  idea_insight: string
+  date_reminder: string
+  summary: string
+  keywords: string[]
+}
+
+// AI 年度报告
+export interface AiYearlyReport {
+  finance_summary: string
+  finance_monthly_trend: string
+  todo_summary: string
+  idea_summary: string
+  highlights: string
+  summary: string
+  keywords: string[]
+}
+
+// AI 报告响应
+export interface AiReportResponse {
+  cached: boolean
+  report_type: 'monthly' | 'yearly'
+  report: AiMonthlyReport | AiYearlyReport
+  generated_at: string
+}
+
 // ==================== API Response ====================
 export interface ApiResponse<T = any> {
   success: boolean

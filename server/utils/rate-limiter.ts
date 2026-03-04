@@ -46,3 +46,33 @@ export function rateLimit(event: H3Event, key: string, maxRequests: number, wind
     })
   }
 }
+
+/**
+ * User-dimension rate limiter (for AI features).
+ * Same in-memory store as IP-based limiter, but keyed by userId.
+ * @param userId - User ID
+ * @param key - Unique key for the rate limit bucket (e.g., 'ai')
+ * @param maxRequests - Maximum requests allowed in the window
+ * @param windowMs - Time window in milliseconds
+ */
+export function rateLimitByUser(userId: number, key: string, maxRequests: number, windowMs: number): void {
+  const bucketKey = `${key}:user:${userId}`
+  const now = Date.now()
+
+  let entry = store.get(bucketKey)
+
+  if (!entry || now > entry.resetTime) {
+    entry = { count: 0, resetTime: now + windowMs }
+    store.set(bucketKey, entry)
+  }
+
+  entry.count++
+
+  if (entry.count > maxRequests) {
+    const retryAfterSec = Math.ceil((entry.resetTime - now) / 1000)
+    throw createError({
+      statusCode: 429,
+      message: `AI 调用次数已达上限，请 ${retryAfterSec} 秒后重试`,
+    })
+  }
+}

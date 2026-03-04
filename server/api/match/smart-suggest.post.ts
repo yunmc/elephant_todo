@@ -20,6 +20,8 @@ export default defineEventHandler(async (event) => {
   rateLimit(event, 'smart-suggest', 20, 5 * 60 * 1000)
 
   const userId = requireAuth(event)
+  await requirePremium(userId)
+
   const { text } = await readBody<{ text: string }>(event)
 
   if (!text?.trim()) {
@@ -32,18 +34,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, message: '智能建议服务未就绪（提示词文件缺失）' })
   }
 
-  const config = useRuntimeConfig()
-  const apiKey = config.geminiApiKey as string
-  const baseUrl = config.geminiBaseUrl as string
-  const model = config.geminiModel as string
-  const deepseekApiKey = config.deepseekApiKey as string
-  const deepseekBaseUrl = config.deepseekBaseUrl as string
-  const deepseekModel = config.deepseekModel as string
   const similarityThreshold = 0.6
-
-  if (!apiKey && !deepseekApiKey) {
-    throw createError({ statusCode: 500, message: 'Gemini/DeepSeek API Key 未配置' })
-  }
 
   // 获取用户未完成的 todo 列表
   const [todoRows] = await getDb().query<import('mysql2').RowDataPacket[]>(
@@ -65,120 +56,21 @@ export default defineEventHandler(async (event) => {
     .replace('{{text}}', escapedText)
     .replace('{{todos}}', todosText)
 
-  // 确定优先调用的 provider
-  const primaryProvider: 'gemini' | 'deepseek' = apiKey ? 'gemini' : 'deepseek'
-  const hasBackup = apiKey && deepseekApiKey
-
-  async function callLlm(target: 'gemini' | 'deepseek') {
-    const isGemini = target === 'gemini'
-    const url = isGemini ? baseUrl : deepseekBaseUrl
-    const key = isGemini ? apiKey : deepseekApiKey
-    const modelName = isGemini ? model : deepseekModel
-
-    if (!key) {
-      throw new Error(`${target} API Key 未配置`)
-    }
-
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 30000) // 30s timeout
-    const startedAt = Date.now()
-
-    try {
-      const response = await fetch(`${url}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${key}`,
-        },
-        body: JSON.stringify({
-          model: modelName,
-          messages: [
-            { role: 'user', content: mergedPrompt },
-          ],
-          temperature: 0.1,
-          max_tokens: 512,
-        }),
-        signal: controller.signal,
-      })
-      const durationMs = Date.now() - startedAt
-      return { response, durationMs }
-    } finally {
-      clearTimeout(timeout)
-    }
-  }
-
-  // 调用 LLM（优先可用 provider，失败时回退备用 provider）
   try {
-    let provider = primaryProvider
-    let { response, durationMs } = await callLlm(primaryProvider).catch(async (err) => {
-      // Primary failed (timeout, network error, etc.) — try backup
-      if (hasBackup) {
-        const backup = primaryProvider === 'gemini' ? 'deepseek' : 'gemini'
-        console.warn(`[SmartSuggest] ${primaryProvider} 调用失败 (${err.message})，回退 ${backup}`)
-        provider = backup
-        return await callLlm(backup)
-      }
-      throw err
+    // 使用共享 LLM 工具调用（smart-suggest 使用单条 user message）
+    const llmResult = await callLLM({
+      systemPrompt: '',
+      userMessage: mergedPrompt,
+      temperature: 0.1,
+      maxTokens: 512,
     })
 
-    if (!response.ok) {
-      const body = await response.text()
-      // Primary returned error — try backup
-      if (hasBackup && provider === primaryProvider) {
-        const backup = primaryProvider === 'gemini' ? 'deepseek' : 'gemini'
-        console.warn(`[SmartSuggest] ${primaryProvider} API error ${response.status}，回退 ${backup}`)
-        provider = backup
-        const fallback = await callLlm(backup)
-        response = fallback.response
-        durationMs = fallback.durationMs
-
-        if (!response.ok) {
-          const fallbackBody = await response.text()
-          console.error(`[SmartSuggest] ${backup} API error ${response.status}:`, fallbackBody)
-          throw createError({ statusCode: 502, message: 'LLM 服务调用失败' })
-        }
-      } else {
-        console.error(`[SmartSuggest] ${provider} API error ${response.status}:`, body)
-        throw createError({ statusCode: 502, message: 'LLM 服务调用失败' })
-      }
-    }
-
-    const result = await response.json() as any
-    const usage = result?.usage || null
-    if (usage) {
-      console.info(`[SmartSuggest] ${provider} duration=${durationMs}ms tokens=${usage.total_tokens ?? 'n/a'} (prompt=${usage.prompt_tokens ?? 'n/a'}, completion=${usage.completion_tokens ?? 'n/a'})`)
-    } else {
-      console.info(`[SmartSuggest] ${provider} duration=${durationMs}ms tokens=n/a`)
-    }
-    const message = result.choices?.[0]?.message
-    // R1 模型: reasoning_content 存思考过程，content 存最终答案
-    const content = message?.content || ''
-    const reasoning = message?.reasoning_content || ''
-
-    if (!content && !reasoning) {
-      console.error('[SmartSuggest] Empty LLM response, full result:', JSON.stringify(result).slice(0, 500))
-    }
-
-    // 解析 JSON（兼容 markdown 代码块和 think 标签）
+    // 解析 JSON
     let parsed: any
     try {
-      let source = content || reasoning
-      let cleaned = source.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
-      const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/)
-      if (codeBlockMatch) {
-        cleaned = codeBlockMatch[1].trim()
-      }
-      if (!cleaned || cleaned[0] !== '{') {
-        const jsonObjMatch = source.match(/\{[\s\S]*"similar_todos"[\s\S]*\}/)
-        if (jsonObjMatch) {
-          cleaned = jsonObjMatch[0]
-        }
-      }
-      parsed = JSON.parse(cleaned)
+      parsed = extractJSON(llmResult.content)
     } catch {
-      console.error('[SmartSuggest] Failed to parse LLM response.')
-      console.error('[SmartSuggest] content:', content.slice(0, 300))
-      console.error('[SmartSuggest] reasoning:', reasoning.slice(0, 300))
+      console.error('[SmartSuggest] Failed to parse LLM response:', llmResult.content.slice(0, 300))
       return {
         success: true,
         data: { similar_todos: [] },

@@ -447,3 +447,14 @@ export interface UserAppearanceRow extends RowDataPacket {
   font_id: number | null
   updated_at: Date
 }
+
+// ==================== AI Report ====================
+export interface AiReportRow extends RowDataPacket {
+  id: number
+  user_id: number
+  report_type: 'monthly' | 'yearly'
+  year: number
+  month: number  // 月度 1-12，年度 0
+  content: Record<string, any>  // mysql2 对 JSON 列自动解析为对象
+  created_at: string
+}

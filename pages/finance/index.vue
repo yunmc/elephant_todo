@@ -26,8 +26,9 @@
     </div>
 
     <!-- Add Record Button -->
-    <div style="margin-bottom: 12px;">
+    <div style="margin-bottom: 12px; display: flex; gap: 8px;">
       <n-button type="primary" block @click="showAddModal = true">+ 记一笔</n-button>
+      <n-button block @click="handleAiQuickEntry">💡 AI 记账</n-button>
     </div>
 
     <!-- Filter Tabs -->
@@ -135,12 +136,25 @@
         </div>
       </n-modal>
     </ClientOnly>
+
+    <!-- AI Quick Entry -->
+    <ClientOnly>
+      <AiQuickEntry v-model:show="showAiEntry" @saved="loadData" />
+    </ClientOnly>
   </div>
 </template>
 
 <script setup lang="ts">
 const financeStore = useFinanceStore()
 const message = useMessage()
+const { guardPremium } = usePremium()
+
+const showAiEntry = ref(false)
+
+function handleAiQuickEntry() {
+  if (!guardPremium()) return
+  showAiEntry.value = true
+}
 
 const showAddModal = ref(false)
 const showCategoryModal = ref(false)
