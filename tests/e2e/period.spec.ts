@@ -199,13 +199,13 @@ test.describe.serial('Period Tracking Flow', () => {
     await waitForHydration(page)
     await page.waitForTimeout(3000)
 
-    // Either prediction card or empty prompt
-    const predVisible = await page.locator('.prediction-card').isVisible().catch(() => false)
-    const emptyVisible = await page.locator('.prediction-empty').isVisible().catch(() => false)
-    expect(predVisible || emptyVisible).toBe(true)
+    // Either prediction card or empty prompt should be visible
+    const predCard = page.locator('.prediction-card')
+    const emptyPrompt = page.locator('.prediction-empty')
+    await expect(predCard.or(emptyPrompt)).toBeVisible({ timeout: 5000 })
 
-    if (predVisible) {
-      await expect(page.locator('.prediction-card')).toContainText('周期预测')
+    if (await predCard.isVisible().catch(() => false)) {
+      await expect(predCard).toContainText('周期预测')
     }
   })
 

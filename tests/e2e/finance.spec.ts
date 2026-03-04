@@ -369,10 +369,9 @@ test.describe.serial('Finance Flow', () => {
     await page.waitForTimeout(2000)
 
     // Free user should see either the locked state or the "设置月度预算" button
-    const lockVisible = await page.getByText('升级 Premium').isVisible().catch(() => false)
-    const emptyBudgetBtn = await page.getByText('设置月度预算').isVisible().catch(() => false)
-    // Either locked message or empty is fine — depends on premium detection timing
-    expect(lockVisible || emptyBudgetBtn || true).toBe(true)
+    const lockMsg = page.getByText('升级 Premium')
+    const emptyBudgetBtn = page.getByText('设置月度预算')
+    await expect(lockMsg.or(emptyBudgetBtn)).toBeVisible({ timeout: 5000 })
   })
 
   test('F09: budget card renders in finance page', async ({ page }) => {
@@ -409,22 +408,22 @@ test.describe.serial('Finance Flow', () => {
     await waitForHydration(page)
     await page.waitForTimeout(2000)
 
-    // Try clicking "设置月度预算" or "设置预算" button
+    // At least one budget button should be visible for premium user
     const setBudgetBtn = page.getByText('设置月度预算')
     const editBudgetBtn = page.getByText('设置预算')
-    const btnVisible = await setBudgetBtn.isVisible().catch(() => false)
-    const editVisible = await editBudgetBtn.isVisible().catch(() => false)
+    await expect(setBudgetBtn.or(editBudgetBtn)).toBeVisible({ timeout: 5000 })
 
-    if (btnVisible) {
+    // Click whichever budget button is visible
+    if (await setBudgetBtn.isVisible().catch(() => false)) {
       await setBudgetBtn.click()
-      await page.waitForTimeout(1000)
-      // Budget modal should appear
-      const modalTitle = page.getByText('设置预算')
-      const visible = await modalTitle.isVisible().catch(() => false)
-      expect(visible || true).toBe(true) // Soft check
-    } else if (editVisible) {
+    } else {
       await editBudgetBtn.click()
-      await page.waitForTimeout(1000)
     }
+    await page.waitForTimeout(1000)
+
+    // Budget modal/drawer should appear with budget-related content
+    const budgetInput = page.locator('input[type="number"], .n-input-number')
+    const budgetModal = page.locator('.n-modal, .n-drawer, .n-dialog')
+    await expect(budgetInput.or(budgetModal)).toBeVisible({ timeout: 5000 })
   })
 })

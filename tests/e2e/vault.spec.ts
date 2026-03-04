@@ -83,9 +83,9 @@ test.describe.serial('Vault Flow', () => {
 
     // Should either show error or unlock (depending on state)
     // At minimum, the page should not crash
-    const unlocked = await page.getByRole('button', { name: '+ 条目' }).isVisible().catch(() => false)
-    const locked = await page.getByText('密码本已锁定').isVisible().catch(() => false)
-    expect(unlocked || locked).toBe(true)
+    const unlockedBtn = page.getByRole('button', { name: '+ 条目' })
+    const lockedMsg = page.getByText('密码本已锁定')
+    await expect(unlockedBtn.or(lockedMsg)).toBeVisible({ timeout: 5000 })
   })
 
   test('V02: unlock vault with master password', async ({ page }) => {

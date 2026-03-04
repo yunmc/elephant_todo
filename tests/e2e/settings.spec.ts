@@ -127,22 +127,24 @@ test.describe.serial('Settings', () => {
     await page.getByRole('button', { name: '深色' }).click()
     await page.waitForTimeout(1000)
 
-    // Check html attribute for dark theme
+    // After clicking dark, html should reflect dark theme
     const htmlDark = await page.locator('html').getAttribute('data-theme')
-    // NaiveUI typically adds class or data attribute — check body class too
-    const bodyClass = await page.locator('body').getAttribute('class')
-    const isDark = htmlDark === 'dark' || (bodyClass && bodyClass.includes('dark'))
+    const bodyClass = await page.locator('body').getAttribute('class') ?? ''
+    expect(
+      htmlDark === 'dark' || bodyClass.includes('dark'),
+      'Dark theme should be applied after clicking 深色'
+    ).toBe(true)
 
     // Click "浅色"
     await page.getByRole('button', { name: '浅色' }).click()
     await page.waitForTimeout(1000)
 
     const htmlLight = await page.locator('html').getAttribute('data-theme')
-    const bodyClassLight = await page.locator('body').getAttribute('class')
-    const isLight = htmlLight === 'light' || htmlLight === null || (bodyClassLight && !bodyClassLight.includes('dark'))
-
-    // At least the theme should have changed between clicks
-    expect(isDark || isLight).toBe(true)
+    const bodyClassLight = await page.locator('body').getAttribute('class') ?? ''
+    expect(
+      htmlLight !== 'dark' && !bodyClassLight.includes('dark'),
+      'Dark theme should be removed after clicking 浅色'
+    ).toBe(true)
   })
 
   test('S05: account info shows username and email', async ({ page }) => {

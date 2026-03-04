@@ -48,15 +48,10 @@ test.describe.serial('AI Features', () => {
     // Wait a moment for either premium modal or AI modal to appear
     await page.waitForTimeout(1000)
 
-    // Check if premium modal appeared (free user)
+    // Free user should see premium upgrade modal, or AI modal if already premium
     const premiumModal = page.getByText('升级到 Premium')
     const aiModal = page.getByText('AI 快速记账')
-
-    const premiumVisible = await premiumModal.isVisible().catch(() => false)
-    const aiVisible = await aiModal.isVisible().catch(() => false)
-
-    // One of the two should be visible
-    expect(premiumVisible || aiVisible).toBe(true)
+    await expect(premiumModal.or(aiModal)).toBeVisible({ timeout: 5000 })
   })
 
   test('AI03: AI 快速记账弹窗包含输入框和解析按钮', async ({ page }) => {
@@ -97,15 +92,9 @@ test.describe.serial('AI Features', () => {
     const aiInput = page.getByPlaceholder('说一句话')
     const parseBtn = page.getByText('解析')
 
-    // At least one of these should be visible
-    const inputVisible = await aiInput.isVisible().catch(() => false)
-    const parseBtnVisible = await parseBtn.isVisible().catch(() => false)
-
-    // If premium modal blocked, skip this assertion
-    if (inputVisible) {
-      expect(inputVisible).toBe(true)
-      expect(parseBtnVisible).toBe(true)
-    }
+    // Premium status was mocked above — AI modal must appear
+    await expect(aiInput).toBeVisible({ timeout: 5000 })
+    await expect(parseBtn).toBeVisible({ timeout: 5000 })
   })
 
   // ═══════════════════════════════════════════════════════════
