@@ -215,16 +215,34 @@ test.describe.serial('Finance Flow', () => {
   })
 
   test('F14: category options change with type', async ({ page }) => {
-    // Create an income category via API to ensure correct type
+    // Create an income category via UI category management modal
     const incomeCatName = `E2E工资_${Date.now()}`
-    await page.request.post(`${BASE}/api/finance/categories`, {
-      headers: { 'Authorization': `Bearer ${tokens.accessToken}` },
-      data: { name: incomeCatName, type: 'income', icon: '💰' },
-    })
-
     await page.goto(`${BASE}/finance`)
     await waitForHydration(page)
     await expect(page.locator('.page-title')).toContainText('记账', { timeout: 8000 })
+
+    // Open category management modal
+    await page.getByText('管理分类').click()
+    await expect(page.getByPlaceholder('新分类名称')).toBeVisible({ timeout: 5000 })
+
+    // Switch type to "收入" via the n-select in category form
+    const typeSelect = page.locator('.category-form .n-select')
+    await typeSelect.click()
+    await page.waitForTimeout(300)
+    await page.locator('.n-base-select-option').filter({ hasText: '收入' }).click()
+    await page.waitForTimeout(300)
+
+    // Enter category name and add
+    await page.getByPlaceholder('新分类名称').fill(incomeCatName)
+    await page.getByRole('button', { name: '添加' }).click()
+    await page.waitForTimeout(1000)
+
+    // Verify income category appears in list
+    await expect(page.getByText(incomeCatName)).toBeVisible({ timeout: 3000 })
+
+    // Close category management modal
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(500)
 
     // Open "记一笔" modal — default is expense
     await page.getByRole('button', { name: '+ 记一笔' }).click()

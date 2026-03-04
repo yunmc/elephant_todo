@@ -8,7 +8,7 @@
  * The Nuxt app authenticates via cookies: `accessToken` + `refreshToken`
  * (set by `useCookie()` in stores/auth.ts).
  */
-import { test as base, type Page } from '@playwright/test'
+import { test as base, chromium, type Page } from '@playwright/test'
 
 const BASE = process.env.BASE_URL || 'http://localhost:3001'
 
@@ -26,39 +26,35 @@ async function registerAndInjectCookies(page: Page) {
     password: 'Test123456',
   }
 
-  // Register via API
-  const resp = await page.request.post(`${BASE}/api/auth/register`, {
-    data: creds,
-  })
-  const body = await resp.json()
-  if (!body.success) throw new Error(`Register failed: ${JSON.stringify(body)}`)
-
-  const { accessToken, refreshToken } = body.data
-
-  // Parse the URL to get domain
-  const url = new URL(BASE)
-
-  // Inject auth cookies — matches Nuxt useCookie('accessToken') / useCookie('refreshToken')
-  await page.context().addCookies([
-    {
-      name: 'accessToken',
-      value: accessToken,
-      domain: url.hostname,
-      path: '/',
+  // Register via UI
+  await page.goto(`${BASE}/register`)
+  await page.waitForFunction(
+    () => {
+      const el = document.getElementById('__nuxt')
+      return el && (el as any).__vue_app__
     },
-    {
-      name: 'refreshToken',
-      value: refreshToken,
-      domain: url.hostname,
-      path: '/',
-    },
-  ])
+    { timeout: 15000 },
+  )
+  await page.getByPlaceholder('请输入用户名').fill(creds.username)
+  await page.getByPlaceholder('请输入邮箱').fill(creds.email)
+  await page.getByPlaceholder('请输入密码（至少6位）').fill(creds.password)
+  await page.getByPlaceholder('请再次输入密码').fill(creds.password)
+  await page.getByRole('button', { name: '注册' }).click()
+  await page.waitForURL('**/', { timeout: 15000 })
+
+  // Extract tokens from cookies
+  const cookies = await page.context().cookies()
+  const accessToken = cookies.find(c => c.name === 'accessToken')?.value ?? ''
+  const refreshToken = cookies.find(c => c.name === 'refreshToken')?.value ?? ''
+
+  if (!accessToken) throw new Error('Registration succeeded but accessToken cookie not found')
 
   return { creds, accessToken, refreshToken }
 }
 
 /**
  * Register a user once (for serial tests). Call from test.beforeAll().
+ * Uses a temporary browser to perform UI registration.
  * Returns creds + tokens for injection in each test via injectAuth().
  */
 export async function registerOnce(): Promise<{
@@ -73,15 +69,38 @@ export async function registerOnce(): Promise<{
     password: 'Test123456',
   }
 
-  const resp = await fetch(`${BASE}/api/auth/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(creds),
-  })
-  const body = await resp.json() as any
-  if (!body.success) throw new Error(`Register failed: ${JSON.stringify(body)}`)
+  // Launch a temporary browser for UI registration
+  const browser = await chromium.launch()
+  const ctx = await browser.newContext()
+  const page = await ctx.newPage()
 
-  return { creds, tokens: body.data }
+  try {
+    await page.goto(`${BASE}/register`)
+    await page.waitForFunction(
+      () => {
+        const el = document.getElementById('__nuxt')
+        return el && (el as any).__vue_app__
+      },
+      { timeout: 15000 },
+    )
+    await page.getByPlaceholder('请输入用户名').fill(creds.username)
+    await page.getByPlaceholder('请输入邮箱').fill(creds.email)
+    await page.getByPlaceholder('请输入密码（至少6位）').fill(creds.password)
+    await page.getByPlaceholder('请再次输入密码').fill(creds.password)
+    await page.getByRole('button', { name: '注册' }).click()
+    await page.waitForURL('**/', { timeout: 15000 })
+
+    // Extract tokens from cookies
+    const cookies = await ctx.cookies()
+    const accessToken = cookies.find(c => c.name === 'accessToken')?.value ?? ''
+    const refreshToken = cookies.find(c => c.name === 'refreshToken')?.value ?? ''
+
+    if (!accessToken) throw new Error('Registration succeeded but accessToken cookie not found')
+
+    return { creds, tokens: { accessToken, refreshToken } }
+  } finally {
+    await browser.close()
+  }
 }
 
 /**

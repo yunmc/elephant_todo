@@ -15,26 +15,61 @@ import { registerOnce, injectAuth, hideDevToolsOverlay, waitForHydration } from 
 
 const BASE = process.env.BASE_URL || 'http://localhost:3001'
 
-/** Helper: create a period record via API (uses Authorization header) */
-async function createRecordViaAPI(
+/** Helper: create a period record via UI modal */
+async function createRecordViaUI(
   page: import('@playwright/test').Page,
   startDate: string,
   endDate: string | null,
   flowLevel: 'light' | 'moderate' | 'heavy' = 'moderate',
   personName = '我',
 ) {
-  const resp = await page.request.post(`${BASE}/api/period`, {
-    headers: { 'Authorization': `Bearer ${tokens.accessToken}` },
-    data: {
-      start_date: startDate,
-      end_date: endDate,
-      flow_level: flowLevel,
-      symptoms: [],
-      note: '',
-      person_name: personName,
-    },
-  })
-  return resp.json()
+  const flowMap = { light: '少量', moderate: '适中', heavy: '大量' }
+
+  // Navigate if not already on period page
+  if (!page.url().includes('/period')) {
+    await page.goto(`${BASE}/period`)
+    await waitForHydration(page)
+    await expect(page.locator('.page-title')).toContainText('经期追踪', { timeout: 8000 })
+  }
+
+  // Select person if not default
+  if (personName !== '我') {
+    const personBtn = page.locator('.person-btn').filter({ hasText: personName })
+    if (await personBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await personBtn.click()
+      await page.waitForTimeout(1000)
+    }
+  }
+
+  // Click "+ 记录经期" button
+  await page.getByRole('button', { name: '+ 记录经期' }).click()
+  await expect(page.getByText('少量', { exact: true })).toBeVisible({ timeout: 5000 })
+
+  // Set start date
+  const startDateRow = page.locator('.n-form-item').filter({ hasText: '开始日期' })
+  await startDateRow.locator('.n-date-picker').click()
+  await page.waitForTimeout(300)
+  await startDateRow.locator('.n-date-picker input').fill(startDate)
+  await page.keyboard.press('Enter')
+  await page.waitForTimeout(300)
+
+  // Set end date if provided
+  if (endDate) {
+    const endDateRow = page.locator('.n-form-item').filter({ hasText: '结束日期' })
+    await endDateRow.locator('.n-date-picker').click()
+    await page.waitForTimeout(300)
+    await endDateRow.locator('.n-date-picker input').fill(endDate)
+    await page.keyboard.press('Enter')
+    await page.waitForTimeout(300)
+  }
+
+  // Select flow level
+  await page.getByRole('dialog').getByText(flowMap[flowLevel], { exact: true }).click()
+  await page.waitForTimeout(200)
+
+  // Click "记录" to save
+  await page.getByRole('button', { name: '记录', exact: true }).click()
+  await page.waitForTimeout(2000)
 }
 
 let tokens: { accessToken: string; refreshToken: string }
@@ -150,11 +185,15 @@ test.describe.serial('Period Tracking Flow', () => {
   })
 
   test('P04: prediction card after 2+ records', async ({ page }) => {
-    // Add a second record (35 days ago → 30 days ago) via API
+    // Add a second record (35 days ago → 30 days ago) via UI
     const d1 = new Date(); d1.setDate(d1.getDate() - 35)
     const d2 = new Date(); d2.setDate(d2.getDate() - 30)
 
-    await createRecordViaAPI(page, d1.toISOString().split('T')[0], d2.toISOString().split('T')[0], 'moderate', '我')
+    await page.goto(`${BASE}/period`)
+    await waitForHydration(page)
+    await page.waitForTimeout(1000)
+
+    await createRecordViaUI(page, d1.toISOString().split('T')[0], d2.toISOString().split('T')[0], 'moderate', '我')
 
     await page.goto(`${BASE}/period`)
     await waitForHydration(page)
@@ -189,9 +228,14 @@ test.describe.serial('Period Tracking Flow', () => {
   })
 
   test('P13: ongoing record shows 进行中 tag', async ({ page }) => {
-    // Create a record with no end_date via API (i.e. ongoing)
+    // Create a record with no end_date via UI (i.e. ongoing)
     const d = new Date(); d.setDate(d.getDate() - 2)
-    await createRecordViaAPI(page, d.toISOString().split('T')[0], null, 'moderate', '我')
+
+    await page.goto(`${BASE}/period`)
+    await waitForHydration(page)
+    await page.waitForTimeout(1000)
+
+    await createRecordViaUI(page, d.toISOString().split('T')[0], null, 'moderate', '我')
 
     await page.goto(`${BASE}/period`)
     await waitForHydration(page)
@@ -203,10 +247,15 @@ test.describe.serial('Period Tracking Flow', () => {
   })
 
   test('P10: period with end date shows duration stat-badge', async ({ page }) => {
-    // Create a record with start and end date (5-day period) via API
+    // Create a record with start and end date (5-day period) via UI
     const start = new Date(); start.setDate(start.getDate() - 20)
     const end = new Date(start); end.setDate(end.getDate() + 4) // 5 days
-    await createRecordViaAPI(page, start.toISOString().split('T')[0], end.toISOString().split('T')[0], 'heavy', '我')
+
+    await page.goto(`${BASE}/period`)
+    await waitForHydration(page)
+    await page.waitForTimeout(1000)
+
+    await createRecordViaUI(page, start.toISOString().split('T')[0], end.toISOString().split('T')[0], 'heavy', '我')
 
     await page.goto(`${BASE}/period`)
     await waitForHydration(page)
@@ -258,17 +307,23 @@ test.describe.serial('Period Tracking Flow', () => {
   })
 
   test('P06: record period for new person', async ({ page }) => {
-    // Create records via Node.js fetch with Authorization header
+    // Create 2 records for E2E小红 via UI
     const d1 = new Date(); d1.setDate(d1.getDate() - 10)
     const d2 = new Date(); d2.setDate(d2.getDate() - 5)
-    for (const [sd, fl] of [[d1.toISOString().split('T')[0], 'light'], [d2.toISOString().split('T')[0], 'heavy']]) {
-      const resp = await fetch(`${BASE}/api/period`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tokens.accessToken}` },
-        body: JSON.stringify({ start_date: sd, end_date: null, flow_level: fl, symptoms: [], note: '', person_name: 'E2E小红' }),
-      })
-      expect(resp.ok).toBeTruthy()
-    }
+
+    await page.goto(`${BASE}/period`)
+    await waitForHydration(page)
+    await page.waitForTimeout(1000)
+
+    // Create first record for E2E小红
+    await createRecordViaUI(page, d1.toISOString().split('T')[0], null, 'light', 'E2E小红')
+
+    // Navigate back and create second record
+    await page.goto(`${BASE}/period`)
+    await waitForHydration(page)
+    await page.waitForTimeout(1000)
+
+    await createRecordViaUI(page, d2.toISOString().split('T')[0], null, 'heavy', 'E2E小红')
 
     // Navigate and wait for page to load with new person data
     await page.goto(`${BASE}/period`)

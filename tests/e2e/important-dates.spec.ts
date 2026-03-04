@@ -205,32 +205,52 @@ test.describe.serial('Important Dates Flow', () => {
   })
 
   test('D10: today date shows celebration or recent countdown', async ({ page }) => {
-    // Create a date set to today via API — use repeat_type='none' to avoid next-year calc
+    // Create a date set to today via UI modal — use repeat_type='不重复'
     const today = new Date()
     const yyyy = today.getFullYear()
     const mm = String(today.getMonth() + 1).padStart(2, '0')
     const dd = String(today.getDate()).padStart(2, '0')
     const dateStr = `${yyyy}-${mm}-${dd}`
     const todayTitle = `E2E Today ${Date.now()}`
-    const resp = await page.request.post(`${BASE}/api/important-dates`, {
-      headers: { 'Authorization': `Bearer ${tokens.accessToken}` },
-      data: {
-        title: todayTitle,
-        date: dateStr,
-        icon: '🎂',
-        repeat_type: 'none',
-        remind_days: 0,
-        is_lunar: false,
-        note: '',
-      },
-    })
-    expect(resp.ok()).toBeTruthy()
 
     await page.goto(`${BASE}/important-dates`)
     await waitForHydration(page)
+    await page.waitForTimeout(1000)
+
+    // Click add button
+    await page.getByRole('button', { name: '+ 添加重要日期' }).click()
+    await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
+
+    // Fill title
+    await page.getByPlaceholder('如：妈妈的生日').fill(todayTitle)
+
+    // Set date to today
+    const datePicker = page.locator('.n-date-picker')
+    await datePicker.click()
+    await page.waitForTimeout(300)
+    const dateInput = datePicker.locator('input')
+    await dateInput.fill(dateStr)
+    await page.keyboard.press('Enter')
+    await page.waitForTimeout(300)
+
+    // Set repeat_type to "不重复"
+    const repeatSelect = page.locator('.n-form-item').filter({ hasText: '重复' }).locator('.n-select')
+    if (await repeatSelect.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await repeatSelect.click()
+      await page.waitForTimeout(300)
+      await page.locator('.n-base-select-option').filter({ hasText: '不重复' }).click()
+      await page.waitForTimeout(300)
+    }
+
+    // Select birthday icon
+    await page.locator('.icon-btn').filter({ hasText: '🎂' }).click()
+    await page.waitForTimeout(200)
+
+    // Click "添加"
+    await page.getByRole('button', { name: '添加', exact: true }).click()
     await page.waitForTimeout(2000)
 
-    // The card should be visible with a countdown ("就是今天" or "1天前" due to timezone)
+    // The card should be visible with a countdown ("就是今天" or small day count)
     const card = page.locator('.date-card').filter({ hasText: todayTitle })
     await expect(card).toBeVisible({ timeout: 5000 })
     const countdownText = await card.locator('.countdown').textContent()
@@ -241,27 +261,47 @@ test.describe.serial('Important Dates Flow', () => {
   })
 
   test('D11: past date shows days ago', async ({ page }) => {
-    // Create a date set to 10 days ago with repeat_type='none'
+    // Create a date set to 10 days ago via UI modal with repeat_type='不重复'
     const pastDate = new Date()
     pastDate.setDate(pastDate.getDate() - 10)
     const dateStr = pastDate.toISOString().split('T')[0]
     const pastTitle = `E2E Past ${Date.now()}`
-    const resp = await page.request.post(`${BASE}/api/important-dates`, {
-      headers: { 'Authorization': `Bearer ${tokens.accessToken}` },
-      data: {
-        title: pastTitle,
-        date: dateStr,
-        icon: '📅',
-        repeat_type: 'none',
-        remind_days: 0,
-        is_lunar: false,
-        note: '',
-      },
-    })
-    expect(resp.ok()).toBeTruthy()
 
     await page.goto(`${BASE}/important-dates`)
     await waitForHydration(page)
+    await page.waitForTimeout(1000)
+
+    // Click add button
+    await page.getByRole('button', { name: '+ 添加重要日期' }).click()
+    await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
+
+    // Fill title
+    await page.getByPlaceholder('如：妈妈的生日').fill(pastTitle)
+
+    // Set date to 10 days ago
+    const datePicker = page.locator('.n-date-picker')
+    await datePicker.click()
+    await page.waitForTimeout(300)
+    const dateInput = datePicker.locator('input')
+    await dateInput.fill(dateStr)
+    await page.keyboard.press('Enter')
+    await page.waitForTimeout(300)
+
+    // Select icon
+    await page.locator('.icon-btn').filter({ hasText: '📅' }).click()
+    await page.waitForTimeout(200)
+
+    // Set repeat_type to "不重复"
+    const repeatSelect = page.locator('.n-form-item').filter({ hasText: '重复' }).locator('.n-select')
+    if (await repeatSelect.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await repeatSelect.click()
+      await page.waitForTimeout(300)
+      await page.locator('.n-base-select-option').filter({ hasText: '不重复' }).click()
+      await page.waitForTimeout(300)
+    }
+
+    // Click "添加"
+    await page.getByRole('button', { name: '添加', exact: true }).click()
     await page.waitForTimeout(2000)
 
     // The card should show "天前" (days ago)

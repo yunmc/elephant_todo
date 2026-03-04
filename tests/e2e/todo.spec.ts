@@ -371,17 +371,19 @@ test.describe.serial('Todo Flow', () => {
   })
 
   test('T14: inline delete todo from list via popconfirm', async ({ page }) => {
-    // Create a temporary todo via API for inline deletion
+    // Create a temporary todo via UI quick-add for inline deletion
     const tmpTitle = `E2E InlineDel ${Date.now()}`
-    const resp = await page.request.post(`${BASE}/api/todos`, {
-      headers: { 'Authorization': `Bearer ${tokens.accessToken}` },
-      data: { title: tmpTitle },
-    })
-    expect(resp.ok()).toBeTruthy()
-
     await page.goto(BASE)
     await waitForHydration(page)
-    await expect(page.getByText(tmpTitle)).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('.page-title')).toContainText('待办事项', { timeout: 8000 })
+
+    // Open quick-add modal via ＋ button
+    await page.locator('.nav-add-icon').dispatchEvent('click')
+    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 5000 })
+    await page.getByPlaceholder('输入内容...').fill(tmpTitle)
+    await page.getByRole('button', { name: '新建待办' }).click()
+    await expect(page).toHaveURL(/\/$/, { timeout: 8000 })
+    await expect(page.getByText(tmpTitle)).toBeVisible({ timeout: 5000 })
 
     // Click inline delete on list item
     const todoItem = page.locator('.todo-item').filter({ hasText: tmpTitle })

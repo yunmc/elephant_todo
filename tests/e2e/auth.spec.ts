@@ -181,16 +181,22 @@ test.describe('Auth — Public Pages', () => {
   })
 
   test('A15: register with duplicate email shows error', async ({ page }) => {
-    // Register a user first
+    // Register a user first via UI
     const ts = Date.now()
     const rand = Math.random().toString(36).slice(2, 6)
     const email = `dup_${ts}_${rand}@test.com`
-    const resp = await fetch(`${BASE}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: `dup_${rand}`, email, password: 'Test123456' }),
-    })
-    expect(resp.ok).toBeTruthy()
+    await page.goto(`${BASE}/register`)
+    await waitForHydration(page)
+    await page.getByPlaceholder('请输入用户名').fill(`dup_${rand}`)
+    await page.getByPlaceholder('请输入邮箱').fill(email)
+    await page.getByPlaceholder('请输入密码（至少6位）').fill('Test123456')
+    await page.getByPlaceholder('请再次输入密码').fill('Test123456')
+    await page.getByRole('button', { name: '注册' }).click()
+    // Wait for successful registration (redirect to home)
+    await page.waitForURL('**/', { timeout: 15000 })
+
+    // Clear cookies to simulate fresh session
+    await page.context().clearCookies()
 
     // Try to register again with the same email
     await page.goto(`${BASE}/register`)
@@ -242,23 +248,18 @@ test.describe('Auth — Public Pages', () => {
   })
 
   test('A17: logged-in user visiting /login is redirected to home', async ({ page }) => {
-    // Register a user and get tokens
+    // Register a user via UI and stay logged in
     const ts = Date.now()
     const rand = Math.random().toString(36).slice(2, 6)
-    const resp = await fetch(`${BASE}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: `redir_${rand}`, email: `redir_${ts}_${rand}@test.com`, password: 'Test123456' }),
-    })
-    const body = await resp.json() as any
-    expect(body.success).toBe(true)
-
-    // Inject auth cookies
-    const url = new URL(BASE)
-    await page.context().addCookies([
-      { name: 'accessToken', value: body.data.accessToken, domain: url.hostname, path: '/' },
-      { name: 'refreshToken', value: body.data.refreshToken, domain: url.hostname, path: '/' },
-    ])
+    await page.goto(`${BASE}/register`)
+    await waitForHydration(page)
+    await page.getByPlaceholder('请输入用户名').fill(`redir_${rand}`)
+    await page.getByPlaceholder('请输入邮箱').fill(`redir_${ts}_${rand}@test.com`)
+    await page.getByPlaceholder('请输入密码（至少6位）').fill('Test123456')
+    await page.getByPlaceholder('请再次输入密码').fill('Test123456')
+    await page.getByRole('button', { name: '注册' }).click()
+    // Wait for successful registration (redirect to home — user is now logged in)
+    await page.waitForURL('**/', { timeout: 15000 })
 
     // Navigate to /login — should be redirected to home
     await page.goto(`${BASE}/login`)
