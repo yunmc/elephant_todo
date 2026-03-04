@@ -72,6 +72,17 @@ vi.stubGlobal('purchaseProduct', vi.fn())
 // ---------- Budget Model stubs ----------
 vi.stubGlobal('FinanceBudgetModel', {})
 
+// ---------- Admin stubs ----------
+vi.stubGlobal('requireAdminAuth', vi.fn(() => ({ adminId: 1, role: 'super_admin' })))
+vi.stubGlobal('requireSuperAdminAuth', vi.fn(() => ({ adminId: 1, role: 'super_admin' })))
+vi.stubGlobal('generateAdminToken', vi.fn(() => 'mock-admin-token'))
+vi.stubGlobal('AdminUserModel', {})
+vi.stubGlobal('AdminStatsModel', {})
+vi.stubGlobal('AdminUserMgmtModel', {})
+vi.stubGlobal('AdminProductModel', {})
+vi.stubGlobal('AdminOrderModel', {})
+vi.stubGlobal('AdminActivityModel', {})
+
 // ---------- AI stubs ----------
 vi.stubGlobal('AiReportModel', {})
 vi.stubGlobal('callLLM', vi.fn())

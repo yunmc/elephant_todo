@@ -1,6 +1,4 @@
 import bcrypt from 'bcryptjs'
-import { AdminUserModel } from '~~/server/utils/models/admin.model'
-import { generateAdminToken } from '~~/server/utils/admin-auth'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)

@@ -1,5 +1,4 @@
-import { AdminUserMgmtModel } from '~~/server/utils/models/admin.model'
-
+﻿
 export default defineEventHandler(async (event) => {
   const { adminId } = requireAdminAuth(event)
 

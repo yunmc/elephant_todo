@@ -1,5 +1,4 @@
-import { AdminActivityModel } from '~~/server/utils/models/admin.model'
-
+﻿
 export default defineEventHandler(async (event) => {
   requireAdminAuth(event)
 
