@@ -3,6 +3,20 @@ export interface User {
   id: number
   username: string
   email: string
+  plan: 'free' | 'premium'
+  plan_expires_at: string | null
+  auto_renew: boolean
+  created_at: string
+  updated_at: string
+}
+
+// ==================== Admin User ====================
+export interface AdminUser {
+  id: number
+  username: string
+  email: string
+  role: 'operator' | 'super_admin'
+  last_login_at: string | null
   created_at: string
   updated_at: string
 }
@@ -206,6 +220,61 @@ export interface PeriodPrediction {
   average_period_length: number
   fertile_window_start: string
   fertile_window_end: string
+}
+
+// ==================== Shop ====================
+export interface ShopProduct {
+  id: number
+  type: 'skin' | 'sticker_pack' | 'font' | 'pet_skin' | 'bundle'
+  name: string
+  description: string | null
+  price: number
+  preview_url: string | null
+  asset_key: string
+  is_free: boolean
+  is_limited: boolean
+  limited_start: string | null
+  limited_end: string | null
+  sort_order: number
+  status: 'active' | 'hidden'
+  // 前端附加字段（API 返回时拼装）
+  owned?: boolean
+  bundle_items?: ShopProduct[]
+}
+
+export interface UserWallet {
+  balance: number
+  total_earned: number
+  total_spent: number
+}
+
+export interface WalletTransaction {
+  id: number
+  type: 'recharge' | 'purchase' | 'reward' | 'refund'
+  amount: number
+  balance_after: number
+  reference_type: string | null
+  reference_id: number | null
+  description: string | null
+  created_at: string
+}
+
+export interface UserProduct {
+  id: number
+  product_id: number
+  product: ShopProduct
+  purchased_at: string
+  source: 'purchase' | 'bundle' | 'gift' | 'reward'
+}
+
+export interface UserAppearance {
+  skin_id: number | null
+  sticker_pack_id: number | null
+  font_id: number | null
+  // 前端附加：关联的商品信息
+  skin: ShopProduct | null
+  sticker_pack: ShopProduct | null
+  font: ShopProduct | null
 }
 
 // ==================== API Response ====================

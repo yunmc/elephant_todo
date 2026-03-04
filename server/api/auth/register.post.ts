@@ -41,5 +41,9 @@ export default defineEventHandler(async (event) => {
 
   const tokens = generateTokens(userId, email)
 
-  return { success: true, data: { user: { id: userId, username, email, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }, ...tokens }, message: '注册成功' }
+  // 初始化象币钱包 + 赠送 10 象币
+  await WalletModel.getOrCreate(userId)
+  await WalletModel.addCoins(userId, 10, 'reward', '新用户注册奖励', 'register', userId)
+
+  return { success: true, data: { user: { id: userId, username, email, plan: 'free' as const, plan_expires_at: null, auto_renew: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }, ...tokens }, message: '注册成功' }
 })

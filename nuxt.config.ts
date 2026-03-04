@@ -83,6 +83,11 @@ export default defineNuxtConfig({
           innerHTML: `(function(){try{var t=localStorage.getItem('elephant-theme');if(!t)return;var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme:dark)').matches);if(d){document.documentElement.classList.add('dark');document.documentElement.setAttribute('data-theme','dark');document.documentElement.setAttribute('data-app-theme','dark')}else{document.documentElement.classList.remove('dark');document.documentElement.setAttribute('data-theme','light');document.documentElement.setAttribute('data-app-theme','light')}}catch(e){}})()`,
           tagPosition: 'head',
         },
+        {
+          // Apply saved skin BEFORE first paint to prevent FOUC.
+          innerHTML: `(function(){try{var s=localStorage.getItem('elephant-skin');if(s&&s!=='default')document.documentElement.setAttribute('data-skin',s)}catch(e){}})()`,
+          tagPosition: 'head',
+        },
       ],
     },
   },

@@ -6,6 +6,9 @@ export interface UserRow extends RowDataPacket {
   username: string
   email: string
   password: string
+  plan: 'free' | 'premium'
+  plan_expires_at: Date | null
+  auto_renew: boolean
   vault_salt: string | null
   created_at: Date
   updated_at: Date
@@ -15,6 +18,38 @@ export interface CreateUserDTO {
   username: string
   email: string
   password: string
+}
+
+// ==================== Admin User ====================
+export interface AdminUserRow extends RowDataPacket {
+  id: number
+  username: string
+  email: string
+  password: string
+  role: 'operator' | 'super_admin'
+  last_login_at: Date | null
+  created_at: Date
+  updated_at: Date
+}
+
+// ==================== Premium Order ====================
+export interface PremiumOrderRow extends RowDataPacket {
+  id: number
+  user_id: number
+  order_no: string
+  plan_type: 'monthly' | 'yearly'
+  amount: number
+  status: 'pending' | 'paid' | 'expired' | 'refunded'
+  payment_method: string | null
+  apple_transaction_id: string | null
+  apple_original_transaction_id: string | null
+  apple_product_id: string | null
+  is_auto_renew: boolean
+  paid_at: Date | null
+  starts_at: Date | null
+  expires_at: Date
+  created_at: Date
+  updated_at: Date
 }
 
 // ==================== Category ====================
@@ -350,4 +385,65 @@ export interface UpdatePeriodRecordDTO {
   flow_level?: 'light' | 'moderate' | 'heavy'
   symptoms?: string[]
   note?: string
+}
+
+// ==================== Shop ====================
+export interface ShopProductRow extends RowDataPacket {
+  id: number
+  type: 'skin' | 'sticker_pack' | 'font' | 'pet_skin' | 'bundle'
+  name: string
+  description: string | null
+  price: number
+  preview_url: string | null
+  asset_key: string
+  is_free: boolean
+  is_limited: boolean
+  limited_start: Date | null
+  limited_end: Date | null
+  sort_order: number
+  status: 'active' | 'hidden'
+  created_at: Date
+  updated_at: Date
+}
+
+export interface ShopBundleItemRow extends RowDataPacket {
+  id: number
+  bundle_id: number
+  product_id: number
+}
+
+export interface UserWalletRow extends RowDataPacket {
+  user_id: number
+  balance: number
+  total_earned: number
+  total_spent: number
+  updated_at: Date
+}
+
+export interface WalletTransactionRow extends RowDataPacket {
+  id: number
+  user_id: number
+  type: 'recharge' | 'purchase' | 'reward' | 'refund'
+  amount: number
+  balance_after: number
+  reference_type: string | null
+  reference_id: number | null
+  description: string | null
+  created_at: Date
+}
+
+export interface UserProductRow extends RowDataPacket {
+  id: number
+  user_id: number
+  product_id: number
+  purchased_at: Date
+  source: 'purchase' | 'bundle' | 'gift' | 'reward'
+}
+
+export interface UserAppearanceRow extends RowDataPacket {
+  user_id: number
+  skin_id: number | null
+  sticker_pack_id: number | null
+  font_id: number | null
+  updated_at: Date
 }

@@ -5,9 +5,10 @@
 import { vi } from 'vitest'
 
 // ---------- Core Nitro helpers ----------
-vi.stubGlobal('createError', (opts: { statusCode: number; message: string }) => {
+vi.stubGlobal('createError', (opts: { statusCode: number; message: string; data?: any }) => {
   const err = new Error(opts.message) as any
   err.statusCode = opts.statusCode
+  if (opts.data !== undefined) err.data = opts.data
   return err
 })
 
@@ -36,6 +37,17 @@ vi.stubGlobal('generateTokens', vi.fn(() => ({
   refreshToken: 'mock-refresh-token',
 })))
 
+// ---------- Premium utils ----------
+vi.stubGlobal('getPremiumStatus', vi.fn(async () => ({
+  isPremium: false,
+  plan: 'free',
+  expiresAt: null,
+  autoRenew: false,
+  expired: false,
+})))
+vi.stubGlobal('requirePremium', vi.fn())
+vi.stubGlobal('requireAdmin', vi.fn())
+
 // ---------- Model stubs (overridden per-test as needed) ----------
 vi.stubGlobal('UserModel', {})
 vi.stubGlobal('TodoModel', {})
@@ -48,6 +60,13 @@ vi.stubGlobal('PeriodModel', {})
 vi.stubGlobal('CategoryModel', {})
 vi.stubGlobal('TagModel', {})
 vi.stubGlobal('SubtaskModel', {})
+
+// ---------- Shop Model stubs ----------
+vi.stubGlobal('ShopProductModel', {})
+vi.stubGlobal('WalletModel', {})
+vi.stubGlobal('UserProductModel', {})
+vi.stubGlobal('UserAppearanceModel', {})
+vi.stubGlobal('purchaseProduct', vi.fn())
 
 // ---------- Utility stubs ----------
 vi.stubGlobal('sendResetPasswordEmail', vi.fn())

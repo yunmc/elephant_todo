@@ -3,6 +3,9 @@
 // Mobile-first design system
 // ============================
 
+// ---------- Skin Variables ----------
+@import 'skins/variables';
+
 // ---------- CSS Variables ----------
 :root {
   // Brand Colors
@@ -124,6 +127,9 @@ body {
     'Noto Sans SC', 'PingFang SC', sans-serif;
   color: var(--color-text);
   background-color: var(--color-bg);
+  background-image: var(--skin-bg-image, none);
+  background-size: cover;
+  background-attachment: fixed;
   line-height: 1.6;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;

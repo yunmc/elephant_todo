@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   return {
     success: true,
     data: {
-      user: { id: user.id, username: user.username, email: user.email },
+      user: { id: user.id, username: user.username, email: user.email, plan: user.plan, plan_expires_at: user.plan_expires_at, auto_renew: !!user.auto_renew },
       ...tokens,
     },
     message: '登录成功',

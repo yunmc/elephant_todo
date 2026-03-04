@@ -91,4 +91,38 @@ export const UserModel = {
       'DELETE FROM password_reset_tokens WHERE expires_at < NOW() OR used = TRUE'
     )
   },
+
+  // ---- Premium ----
+
+  /** 获取用于前端返回的安全用户信息（不含密码和 vault_salt） */
+  async getSafeUser(id: number): Promise<Omit<UserRow, 'password' | 'vault_salt'> | null> {
+    const [rows] = await getDb().query<UserRow[]>(
+      'SELECT id, username, email, plan, plan_expires_at, auto_renew, created_at, updated_at FROM users WHERE id = ?',
+      [id]
+    )
+    return rows[0] || null
+  },
+
+  /** 更新用户 plan（供支付回调或管理员手动调用） */
+  async updatePlan(id: number, plan: 'free' | 'premium', expiresAt: Date | null, autoRenew?: boolean): Promise<void> {
+    if (autoRenew !== undefined) {
+      await getDb().query(
+        'UPDATE users SET plan = ?, plan_expires_at = ?, auto_renew = ? WHERE id = ?',
+        [plan, expiresAt, autoRenew ? 1 : 0, id]
+      )
+    } else {
+      // 降级为 free 时自动清除 auto_renew
+      if (plan === 'free') {
+        await getDb().query(
+          'UPDATE users SET plan = ?, plan_expires_at = ?, auto_renew = 0 WHERE id = ?',
+          [plan, expiresAt, id]
+        )
+      } else {
+        await getDb().query(
+          'UPDATE users SET plan = ?, plan_expires_at = ? WHERE id = ?',
+          [plan, expiresAt, id]
+        )
+      }
+    }
+  },
 }

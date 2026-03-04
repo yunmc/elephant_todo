@@ -4,6 +4,9 @@
       <slot />
     </main>
 
+    <!-- Premium Upgrade Modal (global) -->
+    <PremiumModal />
+
     <!-- Bottom Tab Navigation -->
     <nav class="bottom-nav">
       <NuxtLink to="/" class="nav-item" :class="{ active: route.path === '/' }">
@@ -20,12 +23,12 @@
         <span class="nav-add-icon">＋</span>
       </button>
 
-      <NuxtLink to="/vault" class="nav-item" :class="{ active: route.path.startsWith('/vault') }">
-        <span class="nav-icon">🔐</span>
-        <span class="nav-label">密码本</span>
+      <NuxtLink to="/finance" class="nav-item" :class="{ active: route.path.startsWith('/finance') }">
+        <span class="nav-icon">💰</span>
+        <span class="nav-label">记账</span>
       </NuxtLink>
 
-      <NuxtLink to="/more" class="nav-item" :class="{ active: ['/more', '/finance', '/important-dates', '/period', '/settings'].some(p => route.path === p || route.path.startsWith(p + '/')) }">
+      <NuxtLink to="/more" class="nav-item" :class="{ active: ['/more', '/vault', '/important-dates', '/period', '/settings'].some(p => route.path === p || route.path.startsWith(p + '/')) }">
         <span class="nav-icon">📦</span>
         <span class="nav-label">更多</span>
       </NuxtLink>

@@ -76,6 +76,10 @@ describe('Auth — Register (happy & error paths)', () => {
       findByUsername: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockResolvedValue(1),
     })
+    vi.stubGlobal('WalletModel', {
+      getOrCreate: vi.fn().mockResolvedValue({ user_id: 1, balance: 0, total_earned: 0, total_spent: 0 }),
+      addCoins: vi.fn().mockResolvedValue(10),
+    })
     handler = (await import('../../server/api/auth/register.post')).default
   })
 
@@ -107,6 +111,13 @@ describe('Auth — Register (happy & error paths)', () => {
     expect(result.data.user.username).toBe('alice')
     expect(result.data.accessToken).toBeDefined()
     expect(result.message).toContain('注册成功')
+  })
+
+  it('should init wallet and grant 10 coins on registration', async () => {
+    mockBody({ username: 'bob', email: 'bob@b.com', password: '123456' })
+    await handler(event)
+    expect(WalletModel.getOrCreate).toHaveBeenCalledWith(1)
+    expect(WalletModel.addCoins).toHaveBeenCalledWith(1, 10, 'reward', '新用户注册奖励', 'register', 1)
   })
 })
 

@@ -57,6 +57,18 @@ export function useApi() {
           throw error
         }
       }
+
+      // If 403 PREMIUM_REQUIRED, show upgrade modal
+      if (error?.response?.status === 403) {
+        const data = error?.response?._data || error?.data
+        if (data?.message === 'PREMIUM_REQUIRED') {
+          const { showUpgradeModal, upgradeModalExpired } = usePremium()
+          upgradeModalExpired.value = data?.data?.expired || false
+          showUpgradeModal.value = true
+          throw error
+        }
+      }
+
       throw error
     }
   }

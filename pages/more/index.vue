@@ -3,10 +3,22 @@
     <h1 class="page-title">更多功能</h1>
 
     <div class="feature-grid">
-      <NuxtLink to="/finance" class="feature-card">
-        <span class="feature-icon">💰</span>
-        <span class="feature-name">记账</span>
-        <span class="feature-desc">收支记录与统计</span>
+      <NuxtLink to="/shop" class="feature-card">
+        <span class="feature-icon">🏪</span>
+        <span class="feature-name">手帐商店</span>
+        <span class="feature-desc">皮肤·贴纸·字体</span>
+      </NuxtLink>
+
+      <NuxtLink to="/shop/inventory" class="feature-card">
+        <span class="feature-icon">🎒</span>
+        <span class="feature-name">我的仓库</span>
+        <span class="feature-desc">已购商品·装扮搭配</span>
+      </NuxtLink>
+
+      <NuxtLink to="/vault" class="feature-card">
+        <span class="feature-icon">🔐</span>
+        <span class="feature-name">密码本</span>
+        <span class="feature-desc">安全存储密码</span>
       </NuxtLink>
 
       <NuxtLink to="/important-dates" class="feature-card">

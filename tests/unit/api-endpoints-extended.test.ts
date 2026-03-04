@@ -167,19 +167,19 @@ describe('Auth — Me (current user)', () => {
 
   beforeEach(async () => {
     vi.stubGlobal('UserModel', {
-      findById: vi.fn().mockResolvedValue(null),
+      getSafeUser: vi.fn().mockResolvedValue(null),
     })
     handler = (await import('../../server/api/auth/me.get')).default
   })
 
   it('should return 404 if user not found', async () => {
-    vi.mocked(UserModel.findById).mockResolvedValue(null)
+    vi.mocked(UserModel.getSafeUser).mockResolvedValue(null)
     await expectError(handler, 404, '用户不存在')
   })
 
   it('should return user data on success', async () => {
-    const user = { id: 1, username: 'alice', email: 'a@b.com', created_at: new Date(), updated_at: new Date() }
-    vi.mocked(UserModel.findById).mockResolvedValue(user)
+    const user = { id: 1, username: 'alice', email: 'a@b.com', plan: 'free', plan_expires_at: null, auto_renew: false, created_at: new Date(), updated_at: new Date() }
+    vi.mocked(UserModel.getSafeUser).mockResolvedValue(user)
     const result = await handler(event)
     expect(result.success).toBe(true)
     expect(result.data.username).toBe('alice')
