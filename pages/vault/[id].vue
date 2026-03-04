@@ -97,9 +97,30 @@
         <n-select v-model:value="editForm.group_id" :options="groupOptions" placeholder="分组" clearable />
         <n-divider style="margin: 4px 0;">加密内容</n-divider>
         <n-input v-model:value="editForm.username" placeholder="用户名" />
-        <n-input v-model:value="editForm.password" type="password" show-password-on="click" placeholder="密码" />
+        <n-space align="center">
+          <n-input v-model:value="editForm.password" type="password" show-password-on="click" placeholder="密码" style="flex: 1;" />
+          <n-button size="small" @click="handleGeneratePassword">🎲 生成</n-button>
+        </n-space>
         <n-input v-model:value="editForm.notes" type="textarea" placeholder="备注" :rows="3" />
       </n-space>
+
+      <!-- Password Generator Options -->
+      <n-card v-if="showPwdGen" size="small" style="margin-top: 12px;">
+        <n-space vertical :size="8">
+          <n-space align="center">
+            <n-text depth="3" style="font-size: 13px;">长度:</n-text>
+            <n-slider v-model:value="pwdGenOptions.length" :min="8" :max="64" :step="1" style="width: 160px;" />
+            <n-text style="font-size: 13px; min-width: 24px;">{{ pwdGenOptions.length }}</n-text>
+          </n-space>
+          <n-space>
+            <n-checkbox v-model:checked="pwdGenOptions.uppercase">大写</n-checkbox>
+            <n-checkbox v-model:checked="pwdGenOptions.lowercase">小写</n-checkbox>
+            <n-checkbox v-model:checked="pwdGenOptions.numbers">数字</n-checkbox>
+            <n-checkbox v-model:checked="pwdGenOptions.symbols">符号</n-checkbox>
+          </n-space>
+        </n-space>
+      </n-card>
+
       <template #action>
         <n-button type="primary" block :loading="saving" @click="handleSave">保存</n-button>
       </template>
@@ -229,6 +250,23 @@ async function copyToClipboard(text: string) {
 function formatDate(dateStr: string) {
   const d = new Date(dateStr)
   return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+}
+
+// === Password Generator ===
+const showPwdGen = ref(false)
+const pwdGenOptions = reactive({
+  length: 16,
+  uppercase: true,
+  lowercase: true,
+  numbers: true,
+  symbols: true,
+})
+
+function handleGeneratePassword() {
+  showPwdGen.value = !showPwdGen.value
+  if (showPwdGen.value) {
+    editForm.password = vaultStore.generatePassword(pwdGenOptions)
+  }
 }
 
 // If navigated from already-unlocked vault list, no auto-load needed

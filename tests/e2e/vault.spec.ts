@@ -447,4 +447,88 @@ test.describe.serial('Vault Flow', () => {
     await page.getByText('全部').first().click()
     await page.waitForTimeout(500)
   })
+
+  test('V16: password generator options panel toggles', async ({ page }) => {
+    await page.goto(`${BASE}/vault`)
+    await waitForHydration(page)
+    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
+    await page.getByRole('button', { name: '解锁' }).click()
+    await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 15000 })
+
+    // Open add entry modal
+    await page.getByRole('button', { name: '+ 条目' }).click()
+    await expect(page.getByPlaceholder('名称 (如: GitHub)')).toBeVisible({ timeout: 5000 })
+
+    // Generator options should be hidden initially
+    await expect(page.getByText('长度:')).not.toBeVisible()
+
+    // Click 🎲 to show generator options
+    await page.getByRole('button', { name: '🎲 生成' }).click()
+    await page.waitForTimeout(500)
+
+    // Generator options panel should appear with checkboxes
+    await expect(page.getByText('长度:')).toBeVisible({ timeout: 3000 })
+    await expect(page.getByLabel('大写')).toBeVisible()
+    await expect(page.getByLabel('小写')).toBeVisible()
+    await expect(page.getByLabel('数字')).toBeVisible()
+    await expect(page.getByLabel('符号')).toBeVisible()
+
+    // Password should have been generated
+    const pwdValue = await page.getByPlaceholder('密码').inputValue()
+    expect(pwdValue.length).toBeGreaterThanOrEqual(8)
+
+    // Click 🎲 again to toggle off the options panel
+    await page.getByRole('button', { name: '🎲 生成' }).click()
+    await page.waitForTimeout(300)
+    await expect(page.getByText('长度:')).not.toBeVisible()
+
+    // Close modal
+    await page.keyboard.press('Escape')
+  })
+
+  test('V17: password generator in edit modal on detail page', async ({ page }) => {
+    // First create an entry to edit
+    await page.goto(`${BASE}/vault`)
+    await waitForHydration(page)
+    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
+    await page.getByRole('button', { name: '解锁' }).click()
+    await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 15000 })
+
+    // Create a temp entry
+    const tempEntry = `E2E GenEdit ${TS}`
+    await page.getByRole('button', { name: '+ 条目' }).click()
+    await expect(page.getByPlaceholder('名称 (如: GitHub)')).toBeVisible({ timeout: 5000 })
+    await page.getByPlaceholder('名称 (如: GitHub)').fill(tempEntry)
+    await page.getByPlaceholder('用户名').fill('gen_user')
+    await page.getByPlaceholder('密码').fill('original_pass')
+    await page.getByRole('button', { name: '创建' }).click()
+    await page.waitForTimeout(2000)
+    await expect(page.getByText(tempEntry)).toBeVisible({ timeout: 5000 })
+
+    // Navigate to detail page
+    await page.getByText(tempEntry).click()
+    await page.waitForURL(/\/vault\/\d+/, { timeout: 5000 })
+    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
+    await page.getByRole('button', { name: '解锁' }).click()
+    await expect(page.getByText(tempEntry)).toBeVisible({ timeout: 15000 })
+
+    // Click edit button
+    await page.getByRole('button', { name: '编辑' }).click()
+    await expect(page.getByPlaceholder('名称')).toBeVisible({ timeout: 5000 })
+
+    // Click 🎲 生成 button in edit modal
+    await page.getByRole('button', { name: '🎲 生成' }).click()
+    await page.waitForTimeout(500)
+
+    // Generator options should appear
+    await expect(page.getByText('长度:')).toBeVisible({ timeout: 3000 })
+
+    // Password field should be updated with generated password
+    const genPwd = await page.getByPlaceholder('密码').inputValue()
+    expect(genPwd.length).toBeGreaterThanOrEqual(8)
+    expect(genPwd).not.toBe('original_pass')
+
+    // Close modal without saving
+    await page.keyboard.press('Escape')
+  })
 })
