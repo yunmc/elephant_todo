@@ -881,7 +881,7 @@ describe('Health Check', () => {
   let handler: Function
 
   beforeEach(async () => {
-    vi.stubGlobal('getDb', () => ({ query: vi.fn().mockResolvedValue([[]]) }))
+    vi.stubGlobal('getDb', () => ({ query: vi.fn().mockResolvedValue([[]]), execute: vi.fn().mockResolvedValue([[]]) }))
     handler = (await import('../../server/api/health.get')).default
   })
 
@@ -893,7 +893,7 @@ describe('Health Check', () => {
   })
 
   it('should return 503 when DB is unreachable', async () => {
-    vi.stubGlobal('getDb', () => ({ query: vi.fn().mockRejectedValue(new Error('Connection refused')) }))
+    vi.stubGlobal('getDb', () => ({ query: vi.fn().mockRejectedValue(new Error('Connection refused')), execute: vi.fn().mockRejectedValue(new Error('Connection refused')) }))
     // No re-import needed — handler reads getDb global at runtime
     await expectError(handler, 503, 'Database connection failed')
   })

@@ -17,5 +17,8 @@ playwright-report/
 # Dev server artifacts
 0.0.0.0/
 
+# Test output
+test-output.txt
+
 # 部署文档（含敏感凭据）
 docs/阿里云ECS部署指南.md

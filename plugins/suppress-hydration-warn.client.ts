@@ -10,7 +10,7 @@ export default defineNuxtPlugin({
       // Set warnHandler before hydration starts
       nuxtApp.vueApp.config.warnHandler = (msg, _instance, _trace) => {
         if (msg.includes('Hydration')) return
-        console.warn(`[Vue warn]: ${msg}`)
+        if (import.meta.dev) console.warn(`[Vue warn]: ${msg}`)
       }
     }
   },

@@ -606,9 +606,9 @@ describe('PeriodModel.update — dynamic field builder', () => {
     expect(setCalls[0]).toEqual({ start_date: '2025-02-01', end_date: '2025-02-05' })
   })
 
-  it('should JSON.stringify symptoms', async () => {
+  it('should pass symptoms to Drizzle', async () => {
     await PeriodModel.update(1, 1, { symptoms: ['cramps', 'headache'] })
-    expect(setCalls[0].symptoms).toBe('["cramps","headache"]')
+    expect(setCalls[0].symptoms).toEqual(['cramps', 'headache'])
   })
 
   it('should return false when no fields', async () => {
@@ -644,9 +644,9 @@ describe('PeriodModel.create — defaults + recalculate', () => {
     expect(insertValuesCalls[0].person_name).toBe('Alice')
   })
 
-  it('should JSON.stringify symptoms in create', async () => {
+  it('should pass symptoms to Drizzle in create', async () => {
     await PeriodModel.create(1, { start_date: '2025-01-01', symptoms: ['fatigue'] })
-    expect(insertValuesCalls[0].symptoms).toBe('["fatigue"]')
+    expect(insertValuesCalls[0].symptoms).toEqual(['fatigue'])
   })
 
   it('should default flow_level to moderate', async () => {

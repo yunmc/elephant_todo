@@ -657,6 +657,18 @@ describe('Ideas — Convert to Todo', () => {
     vi.stubGlobal('getDb', () => ({
       query: vi.fn(),
       getConnection: vi.fn().mockResolvedValue(mockConn),
+      transaction: vi.fn(async (fn: Function) => {
+        return fn({
+          insert: vi.fn(() => ({
+            values: vi.fn().mockResolvedValue([{ insertId: 99 }]),
+          })),
+          update: vi.fn(() => ({
+            set: vi.fn(() => ({
+              where: vi.fn().mockResolvedValue([{ affectedRows: 1 }]),
+            })),
+          })),
+        })
+      }),
     }))
     vi.stubGlobal('IdeaModel', {
       findById: vi.fn().mockResolvedValue({ id: 1, content: 'My idea content', todo_id: null }),
@@ -693,16 +705,33 @@ describe('Ideas — Convert to Todo', () => {
     mockParam('1')
     const longContent = 'x'.repeat(250)
     vi.mocked(IdeaModel.findById).mockResolvedValue({ id: 1, content: longContent, todo_id: null })
+
+    // Capture the values passed to insert().values() inside the transaction
+    let capturedTitle = ''
+    vi.stubGlobal('getDb', () => ({
+      query: vi.fn(),
+      getConnection: vi.fn(),
+      transaction: vi.fn(async (fn: Function) => {
+        return fn({
+          insert: vi.fn(() => ({
+            values: vi.fn((vals: any) => {
+              capturedTitle = vals.title
+              return [{ insertId: 99 }]
+            }),
+          })),
+          update: vi.fn(() => ({
+            set: vi.fn(() => ({
+              where: vi.fn().mockResolvedValue([{ affectedRows: 1 }]),
+            })),
+          })),
+        })
+      }),
+    }))
+
     const result = await handler(event)
     expect(result.success).toBe(true)
-    // Verify the conn.query was called with truncated title
-    const mockConn = await getDb().getConnection()
-    const insertCall = vi.mocked(mockConn.query).mock.calls[0]
-    if (insertCall) {
-      const title = insertCall[1]?.[1]
-      expect(title).toHaveLength(203) // 200 + '...'
-      expect(title).toMatch(/\.{3}$/)
-    }
+    expect(capturedTitle).toHaveLength(203) // 200 + '...'
+    expect(capturedTitle).toMatch(/\.{3}$/)
   })
 
   it('should convert idea to todo successfully', async () => {

@@ -20,7 +20,6 @@ export default defineEventHandler(async (event) => {
   rateLimit(event, 'smart-suggest', 20, 5 * 60 * 1000)
 
   const userId = requireAuth(event)
-  await requirePremium(userId)
 
   const { text } = await readBody<{ text: string }>(event)
 
@@ -37,7 +36,7 @@ export default defineEventHandler(async (event) => {
   const similarityThreshold = 0.6
 
   // 获取用户未完成的 todo 列表
-  const [todoRows] = await getDb().query<import('mysql2').RowDataPacket[]>(
+  const [todoRows] = await getPool().query<import('mysql2').RowDataPacket[]>(
     'SELECT id, title, description FROM todos WHERE user_id = ? AND status = \'pending\' ORDER BY created_at DESC LIMIT 50',
     [userId],
   )

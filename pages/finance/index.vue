@@ -28,14 +28,13 @@
     <!-- Add Record Button -->
     <div style="margin-bottom: 12px; display: flex; gap: 8px;">
       <n-button type="primary" block @click="showAddModal = true">+ 记一笔</n-button>
-      <n-button block @click="handleAiQuickEntry">💡 AI 记账</n-button>
+      <n-button block @click="handleAiQuickEntry">💡 AI 记账 <n-tag size="tiny" type="info" style="margin-left: 4px;">敬请期待</n-tag></n-button>
     </div>
 
     <!-- Budget Card -->
     <BudgetCard
       :budget-progress="financeStore.budgetProgress"
       :month-label="currentMonth"
-      :is-premium="isPremium"
       @edit="handleOpenBudgetModal"
     />
 
@@ -146,39 +145,22 @@
     </ClientOnly>
 
     <!-- AI Quick Entry -->
-    <ClientOnly>
-      <AiQuickEntry v-model:show="showAiEntry" @saved="loadData" />
-    </ClientOnly>
-
-    <!-- Budget Setting Modal -->
-    <BudgetModal
-      v-model:show="showBudgetModal"
-      :year-month="yearMonth"
-      :categories="financeStore.categories"
-      :budgets="financeStore.budgets"
-      @saved="loadBudget"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
 const financeStore = useFinanceStore()
 const message = useMessage()
-const { guardPremium, isPremium } = usePremium()
 
 const showAiEntry = ref(false)
 const showBudgetModal = ref(false)
 
 function handleAiQuickEntry() {
-  if (!guardPremium()) return
-  showAiEntry.value = true
+  message.info('该功能正在开发中，敬请期待 🐘')
 }
 
 function handleOpenBudgetModal() {
-  if (!guardPremium()) return
-  // Load budgets for current month before opening modal
-  financeStore.fetchBudgets(yearMonth.value)
-  showBudgetModal.value = true
+  message.info('该功能正在开发中，敬请期待 🐘')
 }
 
 const showAddModal = ref(false)
@@ -251,13 +233,7 @@ async function loadData() {
 }
 
 async function loadBudget() {
-  if (isPremium.value) {
-    try {
-      await financeStore.fetchBudgetProgress(yearMonth.value)
-    } catch {
-      // Silently fail for budget progress
-    }
-  }
+  // 预算管理功能暂未开放
 }
 
 function prevMonth() {

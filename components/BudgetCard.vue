@@ -62,13 +62,9 @@
     </div>
 
     <!-- No Budget Set -->
-    <div v-else-if="!isPremium" class="budget-locked">
-      <div class="lock-icon">🔒</div>
-      <div class="lock-text">升级 Premium 使用预算管理</div>
-      <n-button size="small" type="primary" @click="guardPremium()">了解详情</n-button>
-    </div>
-    <div v-else class="budget-empty">
-      <n-button size="small" dashed block @click="emit('edit')">📊 设置月度预算</n-button>
+    <div v-else class="budget-locked">
+      <div class="lock-icon">📊</div>
+      <div class="lock-text">预算管理功能即将上线，敬请期待</div>
     </div>
   </div>
 </template>
@@ -79,14 +75,11 @@ import type { BudgetProgress } from '~/types'
 const props = defineProps<{
   budgetProgress: BudgetProgress | null
   monthLabel: number
-  isPremium: boolean
 }>()
 
 const emit = defineEmits<{
   edit: []
 }>()
-
-const { guardPremium } = usePremium()
 
 function formatBudget(val: number) {
   return val < 0 ? `-${Math.abs(val).toFixed(2)}` : val.toFixed(2)

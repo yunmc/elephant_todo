@@ -12,46 +12,15 @@
     </n-card>
     </div>
 
-    <!-- Premium Status Card -->
+    <!-- Premium (Coming Soon) -->
     <div class="section-card">
-      <!-- 已过期 -->
-      <n-card v-if="isExpired" size="small" class="premium-card premium-card--expired">
-        <div class="premium-card-content">
+      <n-card size="small" class="premium-card premium-card--free">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 0;">
           <div>
-            <div class="premium-card-title">🐘 会员已过期</div>
-            <div class="premium-card-desc">续费后恢复全部高级功能</div>
+            <div style="font-weight: 600; font-size: 15px; line-height: 1.6;">🐘 高级功能</div>
+            <div style="font-size: 13px; color: var(--color-text-muted); line-height: 1.6; margin-top: 4px;">更多高级功能正在开发中，敬请期待</div>
           </div>
-          <n-button size="small" type="primary" @click="showUpgradeModal = true">续费</n-button>
-        </div>
-      </n-card>
-      <!-- Premium 自动续费中 -->
-      <n-card v-else-if="isPremium && isAutoRenew" size="small" class="premium-card premium-card--active">
-        <div class="premium-card-content">
-          <div>
-            <div class="premium-card-title">🐘 Premium 会员</div>
-            <div class="premium-card-desc">自动续费 · 下次续费 {{ formatDate(authStore.user?.plan_expires_at) }}</div>
-          </div>
-          <n-button size="small" @click="handleManageSubscription">管理订阅</n-button>
-        </div>
-      </n-card>
-      <!-- Premium 非自动续费 -->
-      <n-card v-else-if="isPremium" size="small" class="premium-card premium-card--active">
-        <div class="premium-card-content">
-          <div>
-            <div class="premium-card-title">🐘 Premium 会员</div>
-            <div class="premium-card-desc">有效期至 {{ formatDate(authStore.user?.plan_expires_at) }}</div>
-          </div>
-          <n-button size="small" type="primary" @click="showUpgradeModal = true">续费</n-button>
-        </div>
-      </n-card>
-      <!-- 免费用户 -->
-      <n-card v-else size="small" class="premium-card premium-card--free" hoverable @click="showUpgradeModal = true">
-        <div class="premium-card-content">
-          <div>
-            <div class="premium-card-title">🐘 升级 Premium</div>
-            <div class="premium-card-desc">解锁多账本、AI 助手等高级功能</div>
-          </div>
-          <n-button text type="primary" size="small">了解更多 →</n-button>
+          <n-tag type="info" size="small" style="flex-shrink: 0; margin-left: 12px;">敬请期待</n-tag>
         </div>
       </n-card>
     </div>
@@ -197,16 +166,6 @@ const categoriesStore = useCategoriesStore()
 const tagsStore = useTagsStore()
 const api = useApi()
 const message = useMessage()
-const { isPremium, isExpired, isAutoRenew, showUpgradeModal } = usePremium()
-
-function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('zh-CN')
-}
-
-function handleManageSubscription() {
-  message.info('请在 App Store 中管理订阅')
-}
 
 // Load data
 await useAsyncData('settings-data', async () => {

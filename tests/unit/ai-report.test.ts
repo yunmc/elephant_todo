@@ -309,7 +309,7 @@ describe('Smart Suggest — refactored with callLLM', () => {
     vi.mocked(requirePremium).mockResolvedValue(undefined as any)
     vi.mocked(rateLimit).mockReturnValue(undefined as any)
 
-    vi.stubGlobal('getDb', () => ({
+    vi.stubGlobal('getPool', () => ({
       query: vi.fn().mockResolvedValue([[
         { id: 1, title: '买菜', description: '' },
         { id: 2, title: '做饭', description: '准备晚餐' },
@@ -329,10 +329,11 @@ describe('Smart Suggest — refactored with callLLM', () => {
     handler = (await import('../../server/api/match/smart-suggest.post')).default
   })
 
-  it('should require premium', async () => {
+  it('should call smart-suggest without premium check', async () => {
+    vi.mocked(requirePremium).mockClear()
     mockBody({ text: '买菜' })
     await handler(event)
-    expect(requirePremium).toHaveBeenCalledWith(1)
+    expect(requirePremium).not.toHaveBeenCalled()
   })
 
   it('should reject empty text', async () => {
