@@ -61,7 +61,7 @@ function setupMocks(overrides: {
     release: vi.fn(),
   }
 
-  vi.stubGlobal('getDb', () => ({
+  vi.stubGlobal('getPool', () => ({
     query: vi.fn(),
     getConnection: vi.fn().mockResolvedValue(mockConn),
   }))
@@ -162,7 +162,7 @@ describe('purchaseProduct', () => {
       rollback: vi.fn(),
       release: vi.fn(),
     }
-    vi.stubGlobal('getDb', () => ({
+    vi.stubGlobal('getPool', () => ({
       query: vi.fn(),
       getConnection: vi.fn().mockResolvedValue(mockConn),
     }))

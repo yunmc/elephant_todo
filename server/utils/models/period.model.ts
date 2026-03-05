@@ -1,37 +1,33 @@
-import type { ResultSetHeader, RowDataPacket } from 'mysql2'
+import { eq, and, desc } from 'drizzle-orm'
+import type { RowDataPacket } from 'mysql2'
 import type {
   PeriodRecordRow,
   CreatePeriodRecordDTO,
   UpdatePeriodRecordDTO,
 } from '~~/server/types'
+import { periodRecords } from '../../database/schema'
 
 export const PeriodModel = {
   async findByUser(userId: number, personName?: string): Promise<PeriodRecordRow[]> {
-    if (personName) {
-      const [rows] = await getDb().query<PeriodRecordRow[]>(
-        'SELECT * FROM period_records WHERE user_id = ? AND person_name = ? ORDER BY start_date DESC',
-        [userId, personName],
-      )
-      return rows
-    }
-    const [rows] = await getDb().query<PeriodRecordRow[]>(
-      'SELECT * FROM period_records WHERE user_id = ? ORDER BY start_date DESC',
-      [userId],
-    )
-    return rows
+    const conditions: any[] = [eq(periodRecords.user_id, userId)]
+    if (personName) conditions.push(eq(periodRecords.person_name, personName))
+
+    const rows = await getDb().select().from(periodRecords)
+      .where(and(...conditions))
+      .orderBy(desc(periodRecords.start_date))
+    return rows as unknown as PeriodRecordRow[]
   },
 
   async findById(id: number, userId: number): Promise<PeriodRecordRow | null> {
-    const [rows] = await getDb().query<PeriodRecordRow[]>(
-      'SELECT * FROM period_records WHERE id = ? AND user_id = ?',
-      [id, userId],
-    )
-    return rows[0] || null
+    const rows = await getDb().select().from(periodRecords)
+      .where(and(eq(periodRecords.id, id), eq(periodRecords.user_id, userId)))
+    return (rows[0] as unknown as PeriodRecordRow) || null
   },
 
   /** Get distinct person names for a user */
   async getPersonNames(userId: number): Promise<string[]> {
-    const [rows] = await getDb().query<RowDataPacket[]>(
+    const pool = getPool()
+    const [rows] = await pool.query<RowDataPacket[]>(
       'SELECT DISTINCT person_name FROM period_records WHERE user_id = ? ORDER BY person_name',
       [userId],
     )
@@ -40,65 +36,55 @@ export const PeriodModel = {
 
   async create(userId: number, data: CreatePeriodRecordDTO): Promise<number> {
     const personName = data.person_name || '我'
-    const [result] = await getDb().query<ResultSetHeader>(
-      'INSERT INTO period_records (user_id, person_name, start_date, end_date, flow_level, symptoms, note) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [
-        userId,
-        personName,
-        data.start_date,
-        data.end_date || null,
-        data.flow_level || 'moderate',
-        data.symptoms ? JSON.stringify(data.symptoms) : null,
-        data.note || null,
-      ],
-    )
+    const result = await getDb().insert(periodRecords).values({
+      user_id: userId,
+      person_name: personName,
+      start_date: data.start_date,
+      end_date: data.end_date || null,
+      flow_level: data.flow_level || 'moderate',
+      symptoms: data.symptoms ? JSON.stringify(data.symptoms) : null,
+      note: data.note || null,
+    })
 
     // Auto-calculate cycle_length and period_length
     await this.recalculateCycleLengths(userId, personName)
 
-    return result.insertId
+    return result[0].insertId
   },
 
   async update(id: number, userId: number, data: UpdatePeriodRecordDTO): Promise<boolean> {
-    const fields: string[] = []
-    const values: any[] = []
-    if (data.person_name !== undefined) { fields.push('person_name = ?'); values.push(data.person_name) }
-    if (data.start_date !== undefined) { fields.push('start_date = ?'); values.push(data.start_date) }
-    if (data.end_date !== undefined) { fields.push('end_date = ?'); values.push(data.end_date) }
-    if (data.flow_level !== undefined) { fields.push('flow_level = ?'); values.push(data.flow_level) }
-    if (data.symptoms !== undefined) { fields.push('symptoms = ?'); values.push(JSON.stringify(data.symptoms)) }
-    if (data.note !== undefined) { fields.push('note = ?'); values.push(data.note) }
-    if (fields.length === 0) return false
+    const setObj: Record<string, any> = {}
+    if (data.person_name !== undefined) setObj.person_name = data.person_name
+    if (data.start_date !== undefined) setObj.start_date = data.start_date
+    if (data.end_date !== undefined) setObj.end_date = data.end_date
+    if (data.flow_level !== undefined) setObj.flow_level = data.flow_level
+    if (data.symptoms !== undefined) setObj.symptoms = JSON.stringify(data.symptoms)
+    if (data.note !== undefined) setObj.note = data.note
+    if (Object.keys(setObj).length === 0) return false
 
-    const [result] = await getDb().query<ResultSetHeader>(
-      `UPDATE period_records SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`,
-      [...values, id, userId],
-    )
+    const result = await getDb().update(periodRecords).set(setObj)
+      .where(and(eq(periodRecords.id, id), eq(periodRecords.user_id, userId)))
 
-    if (result.affectedRows > 0) {
-      // Recalculate for the person this record belongs to
+    if (result[0].affectedRows > 0) {
       const updated = await this.findById(id, userId)
       if (updated) {
         await this.recalculateCycleLengths(userId, updated.person_name)
       }
     }
 
-    return result.affectedRows > 0
+    return result[0].affectedRows > 0
   },
 
   async delete(id: number, userId: number): Promise<boolean> {
-    // Get record first to know the person_name for recalculation
     const record = await this.findById(id, userId)
     if (!record) return false
 
-    const [result] = await getDb().query<ResultSetHeader>(
-      'DELETE FROM period_records WHERE id = ? AND user_id = ?',
-      [id, userId],
-    )
-    if (result.affectedRows > 0) {
+    const result = await getDb().delete(periodRecords)
+      .where(and(eq(periodRecords.id, id), eq(periodRecords.user_id, userId)))
+    if (result[0].affectedRows > 0) {
       await this.recalculateCycleLengths(userId, record.person_name)
     }
-    return result.affectedRows > 0
+    return result[0].affectedRows > 0
   },
 
   /**
@@ -106,14 +92,10 @@ export const PeriodModel = {
    * Uses batch UPDATE via CASE to avoid N+1 queries.
    */
   async recalculateCycleLengths(userId: number, personName: string): Promise<void> {
-    const [records] = await getDb().query<PeriodRecordRow[]>(
-      'SELECT * FROM period_records WHERE user_id = ? AND person_name = ? ORDER BY start_date DESC',
-      [userId, personName],
-    )
-
+    const records = await this.findByUser(userId, personName)
     if (records.length === 0) return
 
-    // Build batch update
+    // Build batch update via raw SQL (CASE/WHEN)
     const ids: number[] = []
     const cycleCases: string[] = []
     const periodCases: string[] = []
@@ -145,7 +127,7 @@ export const PeriodModel = {
     const idPlaceholders = ids.map(() => '?').join(',')
     params.push(...ids)
 
-    await getDb().query(
+    await getPool().query(
       `UPDATE period_records SET
         cycle_length = CASE ${cycleCases.join(' ')} END,
         period_length = CASE ${periodCases.join(' ')} END
@@ -195,7 +177,6 @@ export const PeriodModel = {
     const fertileEnd = new Date(ovulationDay)
     fertileEnd.setDate(fertileEnd.getDate() + 2)
 
-    // Use local date formatting to avoid timezone shift
     const fmt = (d: Date) => {
       const y = d.getFullYear()
       const m = String(d.getMonth() + 1).padStart(2, '0')

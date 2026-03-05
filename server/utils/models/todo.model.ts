@@ -1,5 +1,7 @@
-import type { ResultSetHeader, RowDataPacket } from 'mysql2'
+import { eq, and, sql, desc, asc, count, inArray } from 'drizzle-orm'
+import type { RowDataPacket } from 'mysql2'
 import type { TodoRow, CreateTodoDTO, UpdateTodoDTO, TodoQueryParams } from '~~/server/types'
+import { todos, categories, todoTags, tags, ideas } from '../../database/schema'
 
 const ALLOWED_SORT_BY = ['created_at', 'due_date', 'priority'] as const
 const ALLOWED_SORT_ORDER = ['asc', 'desc'] as const
@@ -13,6 +15,7 @@ export const TodoModel = {
     const sortBy = ALLOWED_SORT_BY.includes(params.sort_by as any) ? params.sort_by! : 'created_at'
     const sortOrder = ALLOWED_SORT_ORDER.includes(params.sort_order as any) ? params.sort_order! : 'desc'
 
+    // Build dynamic WHERE — raw SQL for complex features like FULLTEXT and FIELD()
     let whereClause = 'WHERE t.user_id = ?'
     const queryParams: any[] = [userId]
 
@@ -27,7 +30,9 @@ export const TodoModel = {
     if (params.due_date_end) { whereClause += ' AND t.due_date <= ?'; queryParams.push(params.due_date_end) }
     if (params.tag_id) { whereClause += ' AND EXISTS (SELECT 1 FROM todo_tags tt WHERE tt.todo_id = t.id AND tt.tag_id = ?)'; queryParams.push(params.tag_id) }
 
-    const [countResult] = await getDb().query<RowDataPacket[]>(
+    const pool = getPool()
+
+    const [countResult] = await pool.query<RowDataPacket[]>(
       `SELECT COUNT(*) as total FROM todos t ${whereClause}`, queryParams
     )
     const total = countResult[0].total as number
@@ -39,112 +44,125 @@ export const TodoModel = {
       orderClause = `t.${sortBy} ${sortOrder}`
     }
 
-    const [todos] = await getDb().query<TodoRow[]>(
+    const [rows] = await pool.query<RowDataPacket[]>(
       `SELECT t.*, c.name AS category_name, c.color AS category_color FROM todos t LEFT JOIN categories c ON t.category_id = c.id ${whereClause} ORDER BY ${orderClause} LIMIT ? OFFSET ?`,
       [...queryParams, limit, offset]
     )
 
-    return { todos, total }
+    return { todos: rows as unknown as TodoRow[], total }
   },
 
   async findById(id: number, userId: number): Promise<TodoRow | null> {
-    const [rows] = await getDb().query<TodoRow[]>(
-      'SELECT * FROM todos WHERE id = ? AND user_id = ?', [id, userId]
-    )
-    return rows[0] || null
+    const rows = await getDb().select().from(todos)
+      .where(and(eq(todos.id, id), eq(todos.user_id, userId)))
+    return (rows[0] as unknown as TodoRow) || null
   },
 
   async create(userId: number, data: CreateTodoDTO): Promise<number> {
-    const [result] = await getDb().query<ResultSetHeader>(
-      'INSERT INTO todos (user_id, title, description, priority, category_id, due_date) VALUES (?, ?, ?, ?, ?, ?)',
-      [userId, data.title, data.description || null, data.priority || 'medium', data.category_id || null, data.due_date || null]
-    )
-    return result.insertId
+    const result = await getDb().insert(todos).values({
+      user_id: userId,
+      title: data.title,
+      description: data.description || null,
+      priority: data.priority || 'medium',
+      category_id: data.category_id || null,
+      due_date: data.due_date || null,
+    })
+    return result[0].insertId
   },
 
   async update(id: number, userId: number, data: UpdateTodoDTO): Promise<boolean> {
-    const fields: string[] = []
-    const values: any[] = []
-    if (data.title !== undefined) { fields.push('title = ?'); values.push(data.title) }
-    if (data.description !== undefined) { fields.push('description = ?'); values.push(data.description) }
-    if (data.priority !== undefined) { fields.push('priority = ?'); values.push(data.priority) }
-    if (data.category_id !== undefined) { fields.push('category_id = ?'); values.push(data.category_id) }
-    if (data.due_date !== undefined) { fields.push('due_date = ?'); values.push(data.due_date) }
-    if (fields.length === 0) return false
+    const setObj: Record<string, any> = {}
+    if (data.title !== undefined) setObj.title = data.title
+    if (data.description !== undefined) setObj.description = data.description
+    if (data.priority !== undefined) setObj.priority = data.priority
+    if (data.category_id !== undefined) setObj.category_id = data.category_id
+    if (data.due_date !== undefined) setObj.due_date = data.due_date
+    if (Object.keys(setObj).length === 0) return false
 
-    const [result] = await getDb().query<ResultSetHeader>(
-      `UPDATE todos SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`,
-      [...values, id, userId]
-    )
-    return result.affectedRows > 0
+    const result = await getDb().update(todos).set(setObj)
+      .where(and(eq(todos.id, id), eq(todos.user_id, userId)))
+    return result[0].affectedRows > 0
   },
 
   async delete(id: number, userId: number): Promise<boolean> {
-    const [result] = await getDb().query<ResultSetHeader>(
-      'DELETE FROM todos WHERE id = ? AND user_id = ?', [id, userId]
-    )
-    return result.affectedRows > 0
+    const result = await getDb().delete(todos)
+      .where(and(eq(todos.id, id), eq(todos.user_id, userId)))
+    return result[0].affectedRows > 0
   },
 
   async toggleStatus(id: number, userId: number): Promise<TodoRow | null> {
-    await getDb().query(
-      `UPDATE todos SET status = IF(status = 'pending', 'completed', 'pending'), completed_at = IF(status = 'pending', NOW(), NULL) WHERE id = ? AND user_id = ?`,
-      [id, userId]
-    )
+    await getDb().update(todos)
+      .set({
+        status: sql`IF(${todos.status} = 'pending', 'completed', 'pending')`,
+        completed_at: sql`IF(${todos.status} = 'pending', NOW(), NULL)`,
+      })
+      .where(and(eq(todos.id, id), eq(todos.user_id, userId)))
     return this.findById(id, userId)
   },
 
   async updateTags(todoId: number, tagIds: number[]): Promise<void> {
-    await getDb().query('DELETE FROM todo_tags WHERE todo_id = ?', [todoId])
+    await getDb().delete(todoTags).where(eq(todoTags.todo_id, todoId))
     if (tagIds.length > 0) {
-      const values = tagIds.map((tagId) => [todoId, tagId])
-      await getDb().query('INSERT INTO todo_tags (todo_id, tag_id) VALUES ?', [values])
+      await getDb().insert(todoTags).values(
+        tagIds.map(tagId => ({ todo_id: todoId, tag_id: tagId }))
+      )
     }
   },
 
   async getTags(todoId: number): Promise<RowDataPacket[]> {
-    const [rows] = await getDb().query<RowDataPacket[]>(
-      'SELECT t.* FROM tags t JOIN todo_tags tt ON t.id = tt.tag_id WHERE tt.todo_id = ?', [todoId]
-    )
-    return rows
+    const rows = await getDb().select({
+      id: tags.id,
+      user_id: tags.user_id,
+      name: tags.name,
+      created_at: tags.created_at,
+    }).from(tags)
+      .innerJoin(todoTags, eq(tags.id, todoTags.tag_id))
+      .where(eq(todoTags.todo_id, todoId))
+    return rows as unknown as RowDataPacket[]
   },
 
   async getIdeasCount(todoId: number): Promise<number> {
-    const [rows] = await getDb().query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM ideas WHERE todo_id = ?', [todoId]
-    )
-    return rows[0].count as number
+    const [row] = await getDb().select({ count: count() }).from(ideas)
+      .where(eq(ideas.todo_id, todoId))
+    return row.count
   },
 
-  /** Batch get tags for multiple todos (eliminates N+1) */
   async getTagsBatch(todoIds: number[]): Promise<Map<number, RowDataPacket[]>> {
     const result = new Map<number, RowDataPacket[]>()
     if (todoIds.length === 0) return result
     todoIds.forEach(id => result.set(id, []))
 
-    const [rows] = await getDb().query<RowDataPacket[]>(
-      'SELECT tt.todo_id, t.* FROM tags t JOIN todo_tags tt ON t.id = tt.tag_id WHERE tt.todo_id IN (?)',
-      [todoIds]
-    )
+    const rows = await getDb().select({
+      todo_id: todoTags.todo_id,
+      id: tags.id,
+      user_id: tags.user_id,
+      name: tags.name,
+      created_at: tags.created_at,
+    }).from(tags)
+      .innerJoin(todoTags, eq(tags.id, todoTags.tag_id))
+      .where(inArray(todoTags.todo_id, todoIds))
+
     for (const row of rows) {
       const list = result.get(row.todo_id)
-      if (list) list.push(row)
+      if (list) list.push(row as unknown as RowDataPacket)
     }
     return result
   },
 
-  /** Batch get ideas count for multiple todos (eliminates N+1) */
   async getIdeasCountBatch(todoIds: number[]): Promise<Map<number, number>> {
     const result = new Map<number, number>()
     if (todoIds.length === 0) return result
     todoIds.forEach(id => result.set(id, 0))
 
-    const [rows] = await getDb().query<RowDataPacket[]>(
-      'SELECT todo_id, COUNT(*) as count FROM ideas WHERE todo_id IN (?) GROUP BY todo_id',
-      [todoIds]
-    )
+    const rows = await getDb().select({
+      todo_id: ideas.todo_id,
+      count: count(),
+    }).from(ideas)
+      .where(inArray(ideas.todo_id, todoIds))
+      .groupBy(ideas.todo_id)
+
     for (const row of rows) {
-      result.set(row.todo_id, row.count as number)
+      if (row.todo_id !== null) result.set(row.todo_id, row.count)
     }
     return result
   },

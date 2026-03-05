@@ -60,7 +60,7 @@ function getMonthRange(year: number, month: number): { start: string, end: strin
  * 聚合月度数据
  */
 export async function aggregateMonthlyData(userId: number, year: number, month: number): Promise<MonthlyData> {
-  const db = getDb()
+  const db = getPool()
   const { start: monthStart, end: monthEnd } = getMonthRange(year, month)
 
   // 上月
@@ -201,7 +201,7 @@ export async function aggregateMonthlyData(userId: number, year: number, month: 
  * 聚合年度数据
  */
 export async function aggregateYearlyData(userId: number, year: number): Promise<YearlyData> {
-  const db = getDb()
+  const db = getPool()
   const yearStart = `${year}-01-01`
   const yearEnd = `${year}-12-31`
 

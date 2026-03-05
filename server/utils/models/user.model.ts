@@ -1,128 +1,111 @@
-import type { ResultSetHeader } from 'mysql2'
+import { eq, and, or, lt, sql } from 'drizzle-orm'
 import type { UserRow, CreateUserDTO, PasswordResetTokenRow } from '~~/server/types'
+import { users, passwordResetTokens } from '../../database/schema'
 
 export const UserModel = {
   async findByEmail(email: string): Promise<UserRow | null> {
-    const [rows] = await getDb().query<UserRow[]>(
-      'SELECT * FROM users WHERE email = ?',
-      [email]
-    )
-    return rows[0] || null
+    const rows = await getDb().select().from(users).where(eq(users.email, email))
+    return (rows[0] as unknown as UserRow) || null
   },
 
   async findById(id: number): Promise<UserRow | null> {
-    const [rows] = await getDb().query<UserRow[]>(
-      'SELECT * FROM users WHERE id = ?',
-      [id]
-    )
-    return rows[0] || null
+    const rows = await getDb().select().from(users).where(eq(users.id, id))
+    return (rows[0] as unknown as UserRow) || null
   },
 
   async findByUsername(username: string): Promise<UserRow | null> {
-    const [rows] = await getDb().query<UserRow[]>(
-      'SELECT * FROM users WHERE username = ?',
-      [username]
-    )
-    return rows[0] || null
+    const rows = await getDb().select().from(users).where(eq(users.username, username))
+    return (rows[0] as unknown as UserRow) || null
   },
 
   async create(data: CreateUserDTO): Promise<number> {
-    const [result] = await getDb().query<ResultSetHeader>(
-      'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-      [data.username, data.email, data.password]
-    )
-    return result.insertId
+    const result = await getDb().insert(users).values({
+      username: data.username,
+      email: data.email,
+      password: data.password,
+    })
+    return result[0].insertId
   },
 
   async updatePassword(id: number, hashedPassword: string): Promise<void> {
-    await getDb().query(
-      'UPDATE users SET password = ? WHERE id = ?',
-      [hashedPassword, id]
-    )
+    await getDb().update(users).set({ password: hashedPassword }).where(eq(users.id, id))
   },
 
   async getVaultSalt(id: number): Promise<string | null> {
-    const [rows] = await getDb().query<UserRow[]>(
-      'SELECT vault_salt FROM users WHERE id = ?', [id]
-    )
+    const rows = await getDb().select({ vault_salt: users.vault_salt }).from(users)
+      .where(eq(users.id, id))
     return rows[0]?.vault_salt || null
   },
 
   async setVaultSalt(id: number, salt: string): Promise<void> {
-    await getDb().query(
-      'UPDATE users SET vault_salt = ? WHERE id = ?',
-      [salt, id]
-    )
+    await getDb().update(users).set({ vault_salt: salt }).where(eq(users.id, id))
   },
 
   // ---- Password Reset Tokens ----
 
   async createResetToken(userId: number, token: string, expiresAt: Date): Promise<void> {
-    await getDb().query(
-      'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
-      [userId, token, expiresAt]
-    )
+    await getDb().insert(passwordResetTokens).values({
+      user_id: userId,
+      token,
+      expires_at: expiresAt,
+    })
   },
 
   async findResetToken(token: string): Promise<PasswordResetTokenRow | null> {
-    const [rows] = await getDb().query<PasswordResetTokenRow[]>(
-      'SELECT * FROM password_reset_tokens WHERE token = ?',
-      [token]
-    )
-    return rows[0] || null
+    const rows = await getDb().select().from(passwordResetTokens)
+      .where(eq(passwordResetTokens.token, token))
+    return (rows[0] as unknown as PasswordResetTokenRow) || null
   },
 
   async markResetTokenUsed(id: number): Promise<void> {
-    await getDb().query(
-      'UPDATE password_reset_tokens SET used = TRUE WHERE id = ?',
-      [id]
-    )
+    await getDb().update(passwordResetTokens).set({ used: true })
+      .where(eq(passwordResetTokens.id, id))
   },
 
   async invalidateResetTokens(userId: number): Promise<void> {
-    await getDb().query(
-      'UPDATE password_reset_tokens SET used = TRUE WHERE user_id = ? AND used = FALSE',
-      [userId]
-    )
+    await getDb().update(passwordResetTokens).set({ used: true })
+      .where(and(eq(passwordResetTokens.user_id, userId), eq(passwordResetTokens.used, false)))
   },
 
   async cleanupExpiredResetTokens(): Promise<void> {
-    await getDb().query(
-      'DELETE FROM password_reset_tokens WHERE expires_at < NOW() OR used = TRUE'
-    )
+    await getDb().delete(passwordResetTokens)
+      .where(or(lt(passwordResetTokens.expires_at, sql`NOW()`), eq(passwordResetTokens.used, true)))
   },
 
   // ---- Premium ----
 
-  /** 获取用于前端返回的安全用户信息（不含密码和 vault_salt） */
   async getSafeUser(id: number): Promise<Omit<UserRow, 'password' | 'vault_salt'> | null> {
-    const [rows] = await getDb().query<UserRow[]>(
-      'SELECT id, username, email, plan, plan_expires_at, auto_renew, created_at, updated_at FROM users WHERE id = ?',
-      [id]
-    )
-    return rows[0] || null
+    const rows = await getDb().select({
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      plan: users.plan,
+      plan_expires_at: users.plan_expires_at,
+      auto_renew: users.auto_renew,
+      created_at: users.created_at,
+      updated_at: users.updated_at,
+    }).from(users).where(eq(users.id, id))
+    return (rows[0] as any) || null
   },
 
-  /** 更新用户 plan（供支付回调或管理员手动调用） */
   async updatePlan(id: number, plan: 'free' | 'premium', expiresAt: Date | null, autoRenew?: boolean): Promise<void> {
     if (autoRenew !== undefined) {
-      await getDb().query(
-        'UPDATE users SET plan = ?, plan_expires_at = ?, auto_renew = ? WHERE id = ?',
-        [plan, expiresAt, autoRenew ? 1 : 0, id]
-      )
+      await getDb().update(users).set({
+        plan,
+        plan_expires_at: expiresAt,
+        auto_renew: autoRenew ? 1 : 0,
+      }).where(eq(users.id, id))
+    } else if (plan === 'free') {
+      await getDb().update(users).set({
+        plan,
+        plan_expires_at: expiresAt,
+        auto_renew: 0,
+      }).where(eq(users.id, id))
     } else {
-      // 降级为 free 时自动清除 auto_renew
-      if (plan === 'free') {
-        await getDb().query(
-          'UPDATE users SET plan = ?, plan_expires_at = ?, auto_renew = 0 WHERE id = ?',
-          [plan, expiresAt, id]
-        )
-      } else {
-        await getDb().query(
-          'UPDATE users SET plan = ?, plan_expires_at = ? WHERE id = ?',
-          [plan, expiresAt, id]
-        )
-      }
+      await getDb().update(users).set({
+        plan,
+        plan_expires_at: expiresAt,
+      }).where(eq(users.id, id))
     }
   },
 }

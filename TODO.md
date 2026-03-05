@@ -1,32 +1,17 @@
 # TODO
 
-## 数据库重构：引入 ORM + 迁移工具
+## ~~数据库重构：引入 ORM + 迁移工具~~ ✅ 已完成
 
-**优先级**：中  
-**目标**：告别手动管理 SQL，实现 schema 声明式管理 + 一键迁移同步
+已选择 **Drizzle ORM**，完成全部重构：
 
-### 候选方案
-
-| 工具 | 特点 | 迁移命令 |
-|------|------|---------|
-| **Prisma** | 最流行，schema 文件声明式，自动生成类型安全的 client | `prisma migrate deploy` |
-| **Drizzle ORM** | 轻量，贴近 SQL，Nuxt/TypeScript 生态热门 | `drizzle-kit push` |
-| **Knex.js** | 仅迁移层，不改现有 raw SQL 查询代码 | `knex migrate:latest` |
-
-### 重构步骤
-
-1. [ ] 选定 ORM 工具（建议 Drizzle，与现有 raw SQL 风格最接近）
-2. [ ] 根据 `scripts/init-db.sql` 编写 schema 定义文件
-3. [ ] 生成初始迁移文件，验证与现有数据库一致
-4. [ ] 逐步替换 `server/utils/models/` 中的 raw SQL 为 ORM 查询
-5. [ ] 在 Docker 启动流程中集成 `migrate deploy`，实现自动同步
-6. [ ] 移除 `scripts/init-db.sql`，由迁移文件管理 schema
-
-### 收益
-
-- 数据库 schema 变更有版本记录，可追溯
-- 部署时 `migrate deploy` 自动同步，无需手动执行 SQL
-- 类型安全的查询，减少运行时错误
+- [x] 安装 drizzle-orm + drizzle-kit
+- [x] 编写 `server/database/schema.ts`（25 张表，snake_case 保持 API 兼容）
+- [x] 创建 `drizzle.config.ts` 配置文件
+- [x] 重构 `server/utils/db.ts`：`getDb()` 返回 Drizzle 实例，`getPool()` 返回原始连接池
+- [x] 重写全部 15 个 model 文件（简单 CRUD 用 Drizzle，复杂查询保留 raw SQL）
+- [x] 更新 3 个工具文件（premium / shop-purchase / ai-data-aggregator）
+- [x] 重写 8 个测试文件适配 Drizzle mock
+- [x] 全部 741 单元测试通过
 
 ---
 

@@ -12,7 +12,7 @@ export interface PremiumStatus {
  * 获取用户的 Premium 状态（不报错）
  */
 export async function getPremiumStatus(userId: number): Promise<PremiumStatus> {
-  const [rows] = await getDb().query<any[]>(
+  const [rows] = await getPool().query<any[]>(
     'SELECT plan, plan_expires_at, auto_renew FROM users WHERE id = ?',
     [userId]
   )
@@ -63,7 +63,7 @@ export async function requirePremium(userId: number): Promise<void> {
  * 查 admin_users 表，与 App 用户无关。
  */
 export async function requireAdmin(adminId: number): Promise<void> {
-  const [rows] = await getDb().query<any[]>(
+  const [rows] = await getPool().query<any[]>(
     'SELECT id FROM admin_users WHERE id = ?',
     [adminId]
   )

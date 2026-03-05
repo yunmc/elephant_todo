@@ -29,8 +29,7 @@ export async function purchaseProduct(userId: number, productId: number): Promis
   }
 
   // 事务：检查拥有 + 扣币 + 流水 + 解锁
-  const db = getDb()
-  const conn = await db.getConnection()
+  const conn = await getPool().getConnection()
   try {
     await conn.beginTransaction()
 

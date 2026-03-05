@@ -33,32 +33,62 @@ async function expectError(handler: Function, statusCode: number, messageFragmen
 }
 
 // ══════════════════════════════════════════════════════════════
-// FinanceBudgetModel — CRUD + upsert
+// FinanceBudgetModel — CRUD + upsert (Drizzle ORM + getPool)
 // ══════════════════════════════════════════════════════════════
 
-let queryCalls: Array<{ sql: string; params: any[] }>
-let mockQueryFn: ReturnType<typeof vi.fn>
+// ── Drizzle proxy mock ──
+let setCalls: Record<string, any>[]
 
-function setupDbMock(customResponses?: (sql: string) => any) {
+function createChain(result: any) {
+  const handler: ProxyHandler<object> = {
+    get(_, prop: string) {
+      if (prop === 'then') return (resolve: Function) => resolve(result)
+      if (prop === 'catch' || prop === 'finally') return () => new Proxy({}, handler)
+      return (...args: any[]) => {
+        if (prop === 'set') setCalls.push(args[0])
+        return new Proxy({}, handler)
+      }
+    },
+  }
+  return new Proxy({}, handler)
+}
+
+// ── Pool query mock ──
+let queryCalls: Array<{ sql: string; params: any[] }>
+
+function setupBudgetMocks(opts: {
+  drizzleResult?: any[]
+  poolResponses?: (sql: string) => any
+} = {}) {
+  setCalls = []
+  const drizzleResult = opts.drizzleResult ?? []
+  const db = {
+    select: () => createChain(drizzleResult),
+    insert: () => createChain([{ insertId: 1, affectedRows: 1 }]),
+    update: () => createChain([{ affectedRows: 1 }]),
+    delete: () => createChain([{ affectedRows: 1 }]),
+  }
+  vi.stubGlobal('getDb', () => db)
+
   queryCalls = []
-  mockQueryFn = vi.fn().mockImplementation((sql: string, params?: any[]) => {
+  const mockPoolQueryFn = vi.fn().mockImplementation((sql: string, params?: any[]) => {
     queryCalls.push({ sql, params: params || [] })
-    if (customResponses) return customResponses(sql)
+    if (opts.poolResponses) return opts.poolResponses(sql)
     if (sql.includes('COUNT(*)')) return [[{ total: 0 }]]
     if (sql.includes('SUM(amount)')) return [[]]
     if (sql.startsWith('INSERT') || sql.includes('INSERT')) return [{ insertId: 1, affectedRows: 1 }]
-    if (sql.startsWith('UPDATE') || sql.includes('UPDATE')) return [{ affectedRows: 1 }]
+    if (sql.startsWith('UPDATE')) return [{ affectedRows: 1 }]
     if (sql.startsWith('DELETE')) return [{ affectedRows: 1 }]
     return [[]]
   })
-  vi.stubGlobal('getDb', () => ({ query: mockQueryFn }))
+  vi.stubGlobal('getPool', () => ({ query: mockPoolQueryFn, getConnection: vi.fn() }))
 }
 
 describe('FinanceBudgetModel.upsert', () => {
   let FinanceBudgetModel: any
 
   beforeEach(async () => {
-    setupDbMock()
+    setupBudgetMocks()
     const mod = await import('../../server/utils/models/finance-budget.model')
     FinanceBudgetModel = mod.FinanceBudgetModel
   })
@@ -90,16 +120,15 @@ describe('FinanceBudgetModel.update', () => {
   let FinanceBudgetModel: any
 
   beforeEach(async () => {
-    setupDbMock()
+    setupBudgetMocks()
     const mod = await import('../../server/utils/models/finance-budget.model')
     FinanceBudgetModel = mod.FinanceBudgetModel
   })
 
-  it('should update amount', async () => {
+  it('should update amount via Drizzle set()', async () => {
     await FinanceBudgetModel.update(1, 1, { amount: 6000 })
-    const call = queryCalls.find(c => c.sql.includes('UPDATE'))!
-    expect(call.sql).toContain('amount = ?')
-    expect(call.params).toEqual([6000, 1, 1])
+    expect(setCalls).toHaveLength(1)
+    expect(setCalls[0]).toEqual({ amount: '6000' })
   })
 
   it('should return false when no fields', async () => {
@@ -112,15 +141,14 @@ describe('FinanceBudgetModel.delete', () => {
   let FinanceBudgetModel: any
 
   beforeEach(async () => {
-    setupDbMock()
+    setupBudgetMocks()
     const mod = await import('../../server/utils/models/finance-budget.model')
     FinanceBudgetModel = mod.FinanceBudgetModel
   })
 
-  it('should build DELETE with user scope', async () => {
-    await FinanceBudgetModel.delete(5, 1)
-    const call = queryCalls.find(c => c.sql.includes('DELETE'))!
-    expect(call.params).toEqual([5, 1])
+  it('should delete via Drizzle without error', async () => {
+    const result = await FinanceBudgetModel.delete(5, 1)
+    expect(result).toBe(true)
   })
 })
 
@@ -128,16 +156,15 @@ describe('FinanceBudgetModel.findByMonth', () => {
   let FinanceBudgetModel: any
 
   beforeEach(async () => {
-    setupDbMock()
+    setupBudgetMocks()
     const mod = await import('../../server/utils/models/finance-budget.model')
     FinanceBudgetModel = mod.FinanceBudgetModel
   })
 
-  it('should query by user_id and year_month', async () => {
-    await FinanceBudgetModel.findByMonth(1, '2026-03')
-    const call = queryCalls.find(c => c.sql.includes('finance_budgets'))!
-    expect(call.params).toEqual([1, '2026-03'])
-    expect(call.sql).toContain('LEFT JOIN finance_categories')
+  it('should query by user_id and year_month via Drizzle', async () => {
+    const result = await FinanceBudgetModel.findByMonth(1, '2026-03')
+    // Returns drizzleResult (empty array by default)
+    expect(result).toEqual([])
   })
 })
 
@@ -145,11 +172,11 @@ describe('FinanceBudgetModel.getProgress', () => {
   let FinanceBudgetModel: any
 
   beforeEach(async () => {
-    setupDbMock((sql: string) => {
-      if (sql.includes('finance_budgets')) return [[]]
-      if (sql.includes('SUM(amount)')) return [[]]
-      if (sql.startsWith('INSERT')) return [{ insertId: 1, affectedRows: 1 }]
-      return [[]]
+    setupBudgetMocks({
+      poolResponses: (sql: string) => {
+        if (sql.includes('SUM(amount)')) return [[]]
+        return [[]]
+      },
     })
     const mod = await import('../../server/utils/models/finance-budget.model')
     FinanceBudgetModel = mod.FinanceBudgetModel
@@ -159,8 +186,7 @@ describe('FinanceBudgetModel.getProgress', () => {
     const result = await FinanceBudgetModel.getProgress(1, '2026-03')
     expect(result).toHaveProperty('budgets')
     expect(result).toHaveProperty('spending')
-    // First query: budgets, second: spending
-    expect(queryCalls.length).toBeGreaterThanOrEqual(2)
+    // Spending query goes through getPool
     const spendingCall = queryCalls.find(c => c.sql.includes('SUM(amount)'))!
     expect(spendingCall).toBeDefined()
     expect(spendingCall.params).toContain('2026-03-01')

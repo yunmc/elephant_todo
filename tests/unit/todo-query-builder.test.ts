@@ -8,7 +8,7 @@
  *   - Every filter condition (status, priority, category_id, search,
  *     due_filter [today/week/overdue], due_date_start, due_date_end, tag_id)
  *
- * Strategy: mock getDb().query to capture the SQL string + params,
+ * Strategy: mock getPool().query to capture the SQL string + params,
  * then assert correct WHERE clauses and parameter ordering.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -29,7 +29,7 @@ function setupDbMock() {
     }
     return [[ /* empty todos */ ]]
   })
-  vi.stubGlobal('getDb', () => ({ query: mockQuery }))
+  vi.stubGlobal('getPool', () => ({ query: mockQuery }))
 }
 
 describe('TodoModel.findByUser — Pagination', () => {

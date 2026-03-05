@@ -94,4 +94,5 @@ vi.stubGlobal('aggregateYearlyData', vi.fn())
 vi.stubGlobal('sendResetPasswordEmail', vi.fn())
 
 // ---------- DB stub (prevents real connections) ----------
-vi.stubGlobal('getDb', () => ({ query: vi.fn() }))
+vi.stubGlobal('getDb', () => ({ query: vi.fn(), select: vi.fn(() => ({ from: vi.fn() })), insert: vi.fn(), update: vi.fn(), delete: vi.fn() }))
+vi.stubGlobal('getPool', () => ({ query: vi.fn(), getConnection: vi.fn() }))

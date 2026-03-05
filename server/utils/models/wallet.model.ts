@@ -1,18 +1,20 @@
+import type { RowDataPacket } from 'mysql2'
 import type { UserWalletRow, WalletTransactionRow } from '~/server/types'
 
 export const WalletModel = {
   /** 获取或创建钱包（首次自动创建） */
   async getOrCreate(userId: number): Promise<UserWalletRow> {
-    const [rows] = await getDb().query<UserWalletRow[]>(
+    const pool = getPool()
+    const [rows] = await pool.query<UserWalletRow[]>(
       'SELECT * FROM user_wallets WHERE user_id = ?', [userId]
     )
     if (rows[0]) return rows[0]
     // 首次：INSERT IGNORE 防并发 duplicate entry
-    await getDb().query(
+    await pool.query(
       'INSERT IGNORE INTO user_wallets (user_id, balance, total_earned, total_spent) VALUES (?, 0, 0, 0)',
       [userId]
     )
-    const [newRows] = await getDb().query<UserWalletRow[]>(
+    const [newRows] = await pool.query<UserWalletRow[]>(
       'SELECT * FROM user_wallets WHERE user_id = ?', [userId]
     )
     return newRows[0]
@@ -20,12 +22,13 @@ export const WalletModel = {
 
   /** 获取流水记录（分页） */
   async getTransactions(userId: number, page: number, limit: number): Promise<{ items: WalletTransactionRow[]; total: number }> {
+    const pool = getPool()
     const offset = (page - 1) * limit
-    const [countRows] = await getDb().query<any[]>(
+    const [countRows] = await pool.query<RowDataPacket[]>(
       'SELECT COUNT(*) as total FROM wallet_transactions WHERE user_id = ?', [userId]
     )
-    const total = countRows[0].total
-    const [rows] = await getDb().query<WalletTransactionRow[]>(
+    const total = countRows[0].total as number
+    const [rows] = await pool.query<WalletTransactionRow[]>(
       'SELECT * FROM wallet_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
       [userId, limit, offset]
     )
@@ -44,8 +47,7 @@ export const WalletModel = {
     referenceType?: string,
     referenceId?: number,
   ): Promise<number> {
-    const db = getDb()
-    const conn = await db.getConnection()
+    const conn = await getPool().getConnection()
     try {
       await conn.beginTransaction()
 

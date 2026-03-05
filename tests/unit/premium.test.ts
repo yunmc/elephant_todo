@@ -19,7 +19,7 @@ describe('getPremiumStatus', () => {
       plan_expires_at: null,
       auto_renew: 0,
     }]])
-    vi.stubGlobal('getDb', () => ({ query: mockQuery }))
+    vi.stubGlobal('getPool', () => ({ query: mockQuery }))
 
     const { getPremiumStatus: fn } = await import('../../server/utils/premium')
     const status = await fn(1)
@@ -38,7 +38,7 @@ describe('getPremiumStatus', () => {
       plan_expires_at: future,
       auto_renew: 0,
     }]])
-    vi.stubGlobal('getDb', () => ({ query: mockQuery }))
+    vi.stubGlobal('getPool', () => ({ query: mockQuery }))
 
     const { getPremiumStatus: fn } = await import('../../server/utils/premium')
     const status = await fn(1)
@@ -57,7 +57,7 @@ describe('getPremiumStatus', () => {
       plan_expires_at: past,
       auto_renew: 0,
     }]])
-    vi.stubGlobal('getDb', () => ({ query: mockQuery }))
+    vi.stubGlobal('getPool', () => ({ query: mockQuery }))
 
     const { getPremiumStatus: fn } = await import('../../server/utils/premium')
     const status = await fn(1)
@@ -75,7 +75,7 @@ describe('getPremiumStatus', () => {
       plan_expires_at: past,
       auto_renew: 1,
     }]])
-    vi.stubGlobal('getDb', () => ({ query: mockQuery }))
+    vi.stubGlobal('getPool', () => ({ query: mockQuery }))
 
     const { getPremiumStatus: fn } = await import('../../server/utils/premium')
     const status = await fn(1)
@@ -92,7 +92,7 @@ describe('getPremiumStatus', () => {
       plan_expires_at: past,
       auto_renew: 1,
     }]])
-    vi.stubGlobal('getDb', () => ({ query: mockQuery }))
+    vi.stubGlobal('getPool', () => ({ query: mockQuery }))
 
     const { getPremiumStatus: fn } = await import('../../server/utils/premium')
     const status = await fn(1)
@@ -104,7 +104,7 @@ describe('getPremiumStatus', () => {
 
   it('用户不存在时抛 404', async () => {
     const mockQuery = vi.fn().mockResolvedValue([[]])
-    vi.stubGlobal('getDb', () => ({ query: mockQuery }))
+    vi.stubGlobal('getPool', () => ({ query: mockQuery }))
 
     const { getPremiumStatus: fn } = await import('../../server/utils/premium')
 
@@ -117,7 +117,7 @@ describe('getPremiumStatus', () => {
       plan_expires_at: null,
       auto_renew: 0,
     }]])
-    vi.stubGlobal('getDb', () => ({ query: mockQuery }))
+    vi.stubGlobal('getPool', () => ({ query: mockQuery }))
 
     const { getPremiumStatus: fn } = await import('../../server/utils/premium')
     const status = await fn(1)
@@ -136,7 +136,7 @@ describe('getPremiumStatus', () => {
       plan_expires_at: past,
       auto_renew: 1,
     }]])
-    vi.stubGlobal('getDb', () => ({ query: mockQuery }))
+    vi.stubGlobal('getPool', () => ({ query: mockQuery }))
 
     const { getPremiumStatus: fn } = await import('../../server/utils/premium')
     const status = await fn(1)
@@ -157,7 +157,7 @@ describe('requirePremium', () => {
       plan_expires_at: null,
       auto_renew: 0,
     }]])
-    vi.stubGlobal('getDb', () => ({ query: mockQuery }))
+    vi.stubGlobal('getPool', () => ({ query: mockQuery }))
 
     const { requirePremium: fn } = await import('../../server/utils/premium')
 
@@ -177,7 +177,7 @@ describe('requirePremium', () => {
       plan_expires_at: past,
       auto_renew: 0,
     }]])
-    vi.stubGlobal('getDb', () => ({ query: mockQuery }))
+    vi.stubGlobal('getPool', () => ({ query: mockQuery }))
 
     const { requirePremium: fn } = await import('../../server/utils/premium')
 
@@ -197,7 +197,7 @@ describe('requirePremium', () => {
       plan_expires_at: null,
       auto_renew: 0,
     }]])
-    vi.stubGlobal('getDb', () => ({ query: mockQuery }))
+    vi.stubGlobal('getPool', () => ({ query: mockQuery }))
 
     const { requirePremium: fn } = await import('../../server/utils/premium')
 
@@ -217,7 +217,7 @@ describe('requirePremium', () => {
       plan_expires_at: future,
       auto_renew: 0,
     }]])
-    vi.stubGlobal('getDb', () => ({ query: mockQuery }))
+    vi.stubGlobal('getPool', () => ({ query: mockQuery }))
 
     const { requirePremium: fn } = await import('../../server/utils/premium')
 
@@ -231,7 +231,7 @@ describe('requirePremium', () => {
       plan_expires_at: past,
       auto_renew: 1,
     }]])
-    vi.stubGlobal('getDb', () => ({ query: mockQuery }))
+    vi.stubGlobal('getPool', () => ({ query: mockQuery }))
 
     const { requirePremium: fn } = await import('../../server/utils/premium')
 
@@ -246,7 +246,7 @@ describe('requireAdmin', () => {
 
   it('对不存在的 adminId 抛 403', async () => {
     const mockQuery = vi.fn().mockResolvedValue([[]])
-    vi.stubGlobal('getDb', () => ({ query: mockQuery }))
+    vi.stubGlobal('getPool', () => ({ query: mockQuery }))
 
     const { requireAdmin: fn } = await import('../../server/utils/premium')
 
@@ -261,7 +261,7 @@ describe('requireAdmin', () => {
 
   it('对有效 adminId 不报错', async () => {
     const mockQuery = vi.fn().mockResolvedValue([[{ id: 1 }]])
-    vi.stubGlobal('getDb', () => ({ query: mockQuery }))
+    vi.stubGlobal('getPool', () => ({ query: mockQuery }))
 
     const { requireAdmin: fn } = await import('../../server/utils/premium')
 

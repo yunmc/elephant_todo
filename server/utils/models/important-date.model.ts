@@ -1,68 +1,58 @@
-import type { ResultSetHeader } from 'mysql2'
+import { eq, and, asc } from 'drizzle-orm'
 import type {
   ImportantDateRow,
   CreateImportantDateDTO,
   UpdateImportantDateDTO,
 } from '~~/server/types'
+import { importantDates } from '../../database/schema'
 
 export const ImportantDateModel = {
   async findByUser(userId: number): Promise<ImportantDateRow[]> {
-    const [rows] = await getDb().query<ImportantDateRow[]>(
-      'SELECT * FROM important_dates WHERE user_id = ? ORDER BY date ASC',
-      [userId],
-    )
-    return rows
+    const rows = await getDb().select().from(importantDates)
+      .where(eq(importantDates.user_id, userId))
+      .orderBy(asc(importantDates.date))
+    return rows as unknown as ImportantDateRow[]
   },
 
   async findById(id: number, userId: number): Promise<ImportantDateRow | null> {
-    const [rows] = await getDb().query<ImportantDateRow[]>(
-      'SELECT * FROM important_dates WHERE id = ? AND user_id = ?',
-      [id, userId],
-    )
-    return rows[0] || null
+    const rows = await getDb().select().from(importantDates)
+      .where(and(eq(importantDates.id, id), eq(importantDates.user_id, userId)))
+    return (rows[0] as unknown as ImportantDateRow) || null
   },
 
   async create(userId: number, data: CreateImportantDateDTO): Promise<number> {
-    const [result] = await getDb().query<ResultSetHeader>(
-      'INSERT INTO important_dates (user_id, title, date, is_lunar, repeat_type, remind_days_before, icon, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [
-        userId,
-        data.title,
-        data.date,
-        data.is_lunar ?? false,
-        data.repeat_type ?? 'none',
-        data.remind_days_before ?? 0,
-        data.icon || '📅',
-        data.note || null,
-      ],
-    )
-    return result.insertId
+    const result = await getDb().insert(importantDates).values({
+      user_id: userId,
+      title: data.title,
+      date: data.date,
+      is_lunar: data.is_lunar ?? false,
+      repeat_type: data.repeat_type ?? 'none',
+      remind_days_before: data.remind_days_before ?? 0,
+      icon: data.icon || '📅',
+      note: data.note || null,
+    })
+    return result[0].insertId
   },
 
   async update(id: number, userId: number, data: UpdateImportantDateDTO): Promise<boolean> {
-    const fields: string[] = []
-    const values: any[] = []
-    if (data.title !== undefined) { fields.push('title = ?'); values.push(data.title) }
-    if (data.date !== undefined) { fields.push('date = ?'); values.push(data.date) }
-    if (data.is_lunar !== undefined) { fields.push('is_lunar = ?'); values.push(data.is_lunar) }
-    if (data.repeat_type !== undefined) { fields.push('repeat_type = ?'); values.push(data.repeat_type) }
-    if (data.remind_days_before !== undefined) { fields.push('remind_days_before = ?'); values.push(data.remind_days_before) }
-    if (data.icon !== undefined) { fields.push('icon = ?'); values.push(data.icon) }
-    if (data.note !== undefined) { fields.push('note = ?'); values.push(data.note) }
-    if (fields.length === 0) return false
+    const setObj: Record<string, any> = {}
+    if (data.title !== undefined) setObj.title = data.title
+    if (data.date !== undefined) setObj.date = data.date
+    if (data.is_lunar !== undefined) setObj.is_lunar = data.is_lunar
+    if (data.repeat_type !== undefined) setObj.repeat_type = data.repeat_type
+    if (data.remind_days_before !== undefined) setObj.remind_days_before = data.remind_days_before
+    if (data.icon !== undefined) setObj.icon = data.icon
+    if (data.note !== undefined) setObj.note = data.note
+    if (Object.keys(setObj).length === 0) return false
 
-    const [result] = await getDb().query<ResultSetHeader>(
-      `UPDATE important_dates SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`,
-      [...values, id, userId],
-    )
-    return result.affectedRows > 0
+    const result = await getDb().update(importantDates).set(setObj)
+      .where(and(eq(importantDates.id, id), eq(importantDates.user_id, userId)))
+    return result[0].affectedRows > 0
   },
 
   async delete(id: number, userId: number): Promise<boolean> {
-    const [result] = await getDb().query<ResultSetHeader>(
-      'DELETE FROM important_dates WHERE id = ? AND user_id = ?',
-      [id, userId],
-    )
-    return result.affectedRows > 0
+    const result = await getDb().delete(importantDates)
+      .where(and(eq(importantDates.id, id), eq(importantDates.user_id, userId)))
+    return result[0].affectedRows > 0
   },
 }

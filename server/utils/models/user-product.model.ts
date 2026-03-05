@@ -1,41 +1,47 @@
-import type { UserAppearanceRow } from '~/server/types'
+import { eq, and } from 'drizzle-orm'
+import type { UserAppearanceRow } from '~~/server/types'
+import { userProducts, shopProducts, userAppearance } from '../../database/schema'
 
 export const UserProductModel = {
-  /** 查询用户是否拥有某商品 */
   async isOwned(userId: number, productId: number): Promise<boolean> {
-    const [rows] = await getDb().query<any[]>(
-      'SELECT 1 FROM user_products WHERE user_id = ? AND product_id = ?',
-      [userId, productId]
-    )
+    const rows = await getDb().select({ id: userProducts.id }).from(userProducts)
+      .where(and(eq(userProducts.user_id, userId), eq(userProducts.product_id, productId)))
+      .limit(1)
     return rows.length > 0
   },
 
-  /** 获取用户拥有的所有商品 ID 集合 */
   async getOwnedIds(userId: number): Promise<Set<number>> {
-    const [rows] = await getDb().query<any[]>(
-      'SELECT product_id FROM user_products WHERE user_id = ?', [userId]
-    )
+    const rows = await getDb().select({ product_id: userProducts.product_id }).from(userProducts)
+      .where(eq(userProducts.user_id, userId))
     return new Set(rows.map(r => r.product_id))
   },
 
-  /** 获取用户仓库（带商品详情） */
   async getUserProducts(userId: number): Promise<any[]> {
-    const [rows] = await getDb().query<any[]>(
-      `SELECT up.*, p.type, p.name, p.description, p.price, p.preview_url, p.asset_key, p.is_free
-       FROM user_products up
-       JOIN shop_products p ON p.id = up.product_id
-       WHERE up.user_id = ?
-       ORDER BY up.purchased_at DESC`,
-      [userId]
-    )
+    const rows = await getDb().select({
+      id: userProducts.id,
+      user_id: userProducts.user_id,
+      product_id: userProducts.product_id,
+      purchased_at: userProducts.purchased_at,
+      source: userProducts.source,
+      type: shopProducts.type,
+      name: shopProducts.name,
+      description: shopProducts.description,
+      price: shopProducts.price,
+      preview_url: shopProducts.preview_url,
+      asset_key: shopProducts.asset_key,
+      is_free: shopProducts.is_free,
+    }).from(userProducts)
+      .innerJoin(shopProducts, eq(shopProducts.id, userProducts.product_id))
+      .where(eq(userProducts.user_id, userId))
+      .orderBy(userProducts.purchased_at)
     return rows
   },
 }
 
 export const UserAppearanceModel = {
-  /** 获取用户当前装扮配置（含商品详情） */
   async get(userId: number): Promise<any> {
-    const [rows] = await getDb().query<any[]>(
+    // Complex multi-join query, use raw pool
+    const [rows] = await getPool().query<any[]>(
       `SELECT ua.skin_id, ua.sticker_pack_id, ua.font_id,
               s.name as skin_name, s.asset_key as skin_asset_key, s.preview_url as skin_preview_url,
               st.name as sticker_name, st.asset_key as sticker_asset_key,
@@ -61,9 +67,9 @@ export const UserAppearanceModel = {
     }
   },
 
-  /** 更新装扮（只能装扮已拥有的或免费的商品） */
   async update(userId: number, skinId: number | null, stickerPackId: number | null, fontId: number | null): Promise<void> {
-    await getDb().query(
+    // UPSERT with ON DUPLICATE KEY UPDATE — use raw pool
+    await getPool().query(
       `INSERT INTO user_appearance (user_id, skin_id, sticker_pack_id, font_id)
        VALUES (?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE skin_id = VALUES(skin_id), sticker_pack_id = VALUES(sticker_pack_id), font_id = VALUES(font_id)`,
