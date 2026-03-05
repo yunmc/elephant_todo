@@ -5,13 +5,13 @@ services:
     container_name: elephant-app
     restart: always
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     environment:
       # 数据库
       - NUXT_DB_HOST=mysql
       - NUXT_DB_PORT=3306
       - NUXT_DB_USER=elephant
-      - NUXT_DB_PASSWORD=${DB_PASSWORD:-elephant123}
+      - NUXT_DB_PASSWORD=${DB_PASSWORD:-Ele8hant#App2026!mQ}
       - NUXT_DB_NAME=elephant_todo
       # JWT
       - NUXT_JWT_SECRET=${JWT_SECRET:-change-me-in-production}
@@ -45,15 +45,15 @@ services:
     container_name: elephant-mysql
     restart: always
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root123}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-Ele8hant#Db2026!xK}
       - MYSQL_DATABASE=elephant_todo
       - MYSQL_USER=elephant
-      - MYSQL_PASSWORD=${DB_PASSWORD:-elephant123}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-Ele8hant#App2026!mQ}
     volumes:
       - mysql_data:/var/lib/mysql
       - ./scripts/migrate-all.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    ports:
-      - "3306:3306"
+    # ports:
+    #   - "3306:3306"  # 不暴露到公网，仅容器内网访问
     command: >
       --authentication-policy=mysql_native_password
       --sort_buffer_size=4M
