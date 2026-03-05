@@ -36,26 +36,30 @@ test.describe.serial('Premium', () => {
   })
 
   test('P02: Premium 用户设置页显示会员状态', async ({ page }) => {
-    // 通过 cookie 注入 Premium 状态（无需 API 调用）
     await page.goto(`${BASE}/settings`)
     await waitForHydration(page)
 
-    // 注入 premium 到 user cookie
+    // Directly modify Pinia auth store state to simulate premium user
     await page.evaluate(() => {
-      const userStr = document.cookie.split(';').find(c => c.trim().startsWith('user='))
-      if (userStr) {
-        try {
-          const user = JSON.parse(decodeURIComponent(userStr.split('=').slice(1).join('=')))
-          user.plan = 'premium'
-          user.plan_expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-          document.cookie = `user=${encodeURIComponent(JSON.stringify(user))};path=/;max-age=604800`
-        } catch { /* ignore */ }
+      const app = (document.getElementById('__nuxt') as any)?.__vue_app__
+      if (app) {
+        const pinia = app.config.globalProperties.$pinia
+        if (pinia?.state?.value?.auth) {
+          pinia.state.value.auth.user = {
+            ...(pinia.state.value.auth.user || {}),
+            id: pinia.state.value.auth.user?.id || 999,
+            username: pinia.state.value.auth.user?.username || 'test_premium',
+            email: pinia.state.value.auth.user?.email || 'test@test.com',
+            plan: 'premium',
+            plan_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            auto_renew: false,
+          }
+        }
       }
     })
 
-    // 刷新页面以应用 premium 状态
-    await page.goto(`${BASE}/settings`)
-    await waitForHydration(page)
+    // Wait for Vue reactivity to update the UI
+    await page.waitForTimeout(500)
 
     // Premium 用户应看到"Premium 会员"卡片
     const premiumCard = page.locator('.premium-card').filter({ hasText: 'Premium 会员' })

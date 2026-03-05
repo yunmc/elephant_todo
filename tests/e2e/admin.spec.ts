@@ -32,8 +32,15 @@ async function adminLoginOnce(): Promise<{ adminToken: string; adminUser: string
     )
     await page.getByPlaceholder('请输入管理员用户名').fill('admin')
     await page.getByPlaceholder('请输入密码').fill('123456')
-    await page.getByRole('button', { name: '登录' }).click()
-    await page.waitForURL('**/admin', { timeout: 15000 })
+    const [loginResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/admin/auth/login'), { timeout: 15000 }),
+      page.getByRole('button', { name: '登录' }).click(),
+    ])
+    if (!loginResp.ok()) {
+      const body = await loginResp.text().catch(() => 'no body')
+      throw new Error(`Admin login API failed (${loginResp.status}): ${body}`)
+    }
+    await page.waitForURL(/\/admin\/?$/, { timeout: 15000 })
 
     const cookies = await ctx.cookies()
     const adminToken = cookies.find(c => c.name === 'adminToken')?.value ?? ''
@@ -47,6 +54,7 @@ async function adminLoginOnce(): Promise<{ adminToken: string; adminUser: string
 
 /**
  * Inject admin auth cookies so the middleware allows access.
+ * Sets cookies both via Playwright API and document.cookie for SPA mode compatibility.
  */
 async function injectAdminAuth(page: Page, t: typeof tokens) {
   const url = new URL(BASE)
@@ -57,6 +65,25 @@ async function injectAdminAuth(page: Page, t: typeof tokens) {
     cookies.push({ name: 'adminUser', value: t.adminUser, domain: url.hostname, path: '/' })
   }
   await page.context().addCookies(cookies)
+}
+
+/**
+ * Navigate to admin dashboard with cookie injection workaround for SPA mode.
+ * Loads /admin/login first to ensure document.cookie is set before navigating to target.
+ */
+async function gotoAdminDashboard(page: Page, t: typeof tokens) {
+  await gotoAdminPage(page, t, '/admin')
+}
+
+async function gotoAdminPage(page: Page, t: typeof tokens, path: string) {
+  // Ensure admin cookies are set BEFORE any page JavaScript runs.
+  // This is critical for SPA mode where useCookie reads document.cookie at boot.
+  await page.addInitScript(({ token, user }) => {
+    document.cookie = `adminToken=${token}; path=/`
+    if (user) document.cookie = `adminUser=${user}; path=/`
+  }, { token: t.adminToken, user: t.adminUser })
+  await page.goto(`${BASE}${path}`)
+  await waitForHydration(page)
 }
 
 test.describe.serial('Admin Panel', () => {
@@ -112,7 +139,7 @@ test.describe.serial('Admin Panel', () => {
 
     // NaiveUI form validation shows error messages below each field
     await expect(page.getByText('请输入用户名')).toBeVisible({ timeout: 3000 })
-    await expect(page.getByText('请输入密码')).toBeVisible({ timeout: 3000 })
+    await expect(page.locator('.n-form-item-feedback__line').getByText('请输入密码')).toBeVisible({ timeout: 3000 })
     expect(page.url()).toContain('/admin/login')
   })
 
@@ -128,9 +155,15 @@ test.describe.serial('Admin Panel', () => {
   // ════════════════════════════════════════════
 
   test('A05: dashboard shows exactly 5 stat cards with correct labels', async ({ page }) => {
-    await page.goto(`${BASE}/admin`)
-    await waitForHydration(page)
-    await expect(page.locator('.stat-card').first()).toBeVisible({ timeout: 10000 })
+    // Intercept dashboard API to verify it succeeds
+    const [overviewResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/admin/stats/overview'), { timeout: 20000 }),
+      gotoAdminDashboard(page, tokens),
+    ])
+    expect(overviewResp.ok(), `Dashboard overview API failed: ${overviewResp.status()}`).toBe(true)
+
+    // Wait for loading spinner to disappear and stat cards to render
+    await expect(page.locator('.stat-card').first()).toBeVisible({ timeout: 20000 })
 
     // Exactly 5 stat cards
     await expect(page.locator('.stat-card')).toHaveCount(5)
@@ -141,18 +174,19 @@ test.describe.serial('Admin Panel', () => {
       await expect(page.getByText(label)).toBeVisible()
     }
 
-    // Each .stat-value is non-empty
+    // Each .stat-value is non-empty and contains a valid number/percentage
     const values = page.locator('.stat-value')
     for (let i = 0; i < 5; i++) {
       const text = (await values.nth(i).textContent())?.trim()
       expect(text).toBeDefined()
       expect(text!.length).toBeGreaterThan(0)
+      // Value should be a number or percentage (e.g. "12", "0.5%")
+      expect(text).toMatch(/^[\d,.]+%?$/)
     }
   })
 
   test('A06: dashboard revenue & module usage sections', async ({ page }) => {
-    await page.goto(`${BASE}/admin`)
-    await waitForHydration(page)
+    await gotoAdminDashboard(page, tokens)
     await expect(page.locator('.stat-card').first()).toBeVisible({ timeout: 10000 })
 
     // Revenue section
@@ -165,8 +199,7 @@ test.describe.serial('Admin Panel', () => {
   })
 
   test('A07: dashboard trend chart with day selector', async ({ page }) => {
-    await page.goto(`${BASE}/admin`)
-    await waitForHydration(page)
+    await gotoAdminDashboard(page, tokens)
     await expect(page.locator('.stat-card').first()).toBeVisible({ timeout: 10000 })
 
     await expect(page.getByText('注册趋势', { exact: false })).toBeVisible()
@@ -177,8 +210,7 @@ test.describe.serial('Admin Panel', () => {
   })
 
   test('A08: dashboard top products table with columns', async ({ page }) => {
-    await page.goto(`${BASE}/admin`)
-    await waitForHydration(page)
+    await gotoAdminDashboard(page, tokens)
     await expect(page.locator('.stat-card').first()).toBeVisible({ timeout: 10000 })
 
     await expect(page.getByText('热门商品 Top 10')).toBeVisible()
@@ -195,8 +227,7 @@ test.describe.serial('Admin Panel', () => {
   // ════════════════════════════════════════════
 
   test('A09: sidebar shows admin username and role tag', async ({ page }) => {
-    await page.goto(`${BASE}/admin`)
-    await waitForHydration(page)
+    await gotoAdminDashboard(page, tokens)
     await expect(page.locator('.stat-card').first()).toBeVisible({ timeout: 10000 })
 
     await expect(page.locator('.admin-name')).toHaveText('admin')
@@ -204,8 +235,7 @@ test.describe.serial('Admin Panel', () => {
   })
 
   test('A10: sidebar navigation to all 5 pages', async ({ page }) => {
-    await page.goto(`${BASE}/admin`)
-    await waitForHydration(page)
+    await gotoAdminDashboard(page, tokens)
     await expect(page.locator('.stat-card').first()).toBeVisible({ timeout: 10000 })
 
     const pages = [
@@ -227,18 +257,26 @@ test.describe.serial('Admin Panel', () => {
   // Users
   // ════════════════════════════════════════════
 
-  test('A11: users page renders table and toolbar', async ({ page }) => {
-    await page.goto(`${BASE}/admin/users`)
-    await waitForHydration(page)
-    await expect(page.locator('.page-title')).toHaveText('用户管理', { timeout: 8000 })
+  test('A11: users page renders table with data rows', async ({ page }) => {
+    // Intercept users API to verify it succeeds (catches DB errors like wrong table names)
+    const [usersResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/admin/users'), { timeout: 15000 }),
+      gotoAdminPage(page, tokens, '/admin/users'),
+    ])
+    expect(usersResp.ok(), `Users API failed: ${usersResp.status()}`).toBe(true)
+    const body = await usersResp.json()
+    expect(body.data?.users?.length, 'Users API should return at least 1 user').toBeGreaterThan(0)
 
+    await expect(page.locator('.page-title')).toHaveText('用户管理', { timeout: 8000 })
     await expect(page.getByPlaceholder('搜索用户名或邮箱')).toBeVisible()
     await expect(page.locator('.n-data-table')).toBeVisible()
+
+    // Table should actually have data rows (not just empty skeleton)
+    await expect(page.locator('.n-data-table-tr--summary, .n-data-table tbody tr').first()).toBeVisible({ timeout: 5000 })
   })
 
   test('A12: users search input preserves exact value', async ({ page }) => {
-    await page.goto(`${BASE}/admin/users`)
-    await waitForHydration(page)
+    await gotoAdminPage(page, tokens, '/admin/users')
     await expect(page.locator('.page-title')).toHaveText('用户管理', { timeout: 8000 })
 
     const searchInput = page.getByPlaceholder('搜索用户名或邮箱')
@@ -253,10 +291,14 @@ test.describe.serial('Admin Panel', () => {
   // ════════════════════════════════════════════
 
   test('A13: products page shows create button and table', async ({ page }) => {
-    await page.goto(`${BASE}/admin/products`)
-    await waitForHydration(page)
-    await expect(page.locator('.page-title')).toHaveText('商品管理', { timeout: 8000 })
+    // Intercept products API to verify it succeeds
+    const [productsResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/admin/products'), { timeout: 15000 }),
+      gotoAdminPage(page, tokens, '/admin/products'),
+    ])
+    expect(productsResp.ok(), `Products API failed: ${productsResp.status()}`).toBe(true)
 
+    await expect(page.locator('.page-title')).toHaveText('商品管理', { timeout: 8000 })
     await expect(page.getByRole('button', { name: /新建商品/ })).toBeVisible()
     await expect(page.locator('.n-data-table')).toBeVisible()
   })
@@ -264,8 +306,7 @@ test.describe.serial('Admin Panel', () => {
   test('A14: create product via modal → product appears in table', async ({ page }) => {
     const productName = `E2E测试商品_${Date.now()}`
 
-    await page.goto(`${BASE}/admin/products`)
-    await waitForHydration(page)
+    await gotoAdminPage(page, tokens, '/admin/products')
     await expect(page.locator('.page-title')).toHaveText('商品管理', { timeout: 8000 })
 
     // Open create modal
@@ -292,8 +333,13 @@ test.describe.serial('Admin Panel', () => {
   // ════════════════════════════════════════════
 
   test('A15: orders page two tabs and status filter', async ({ page }) => {
-    await page.goto(`${BASE}/admin/orders`)
-    await waitForHydration(page)
+    // Intercept orders API to verify it succeeds
+    const [ordersResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/admin/orders'), { timeout: 15000 }),
+      gotoAdminPage(page, tokens, '/admin/orders'),
+    ])
+    expect(ordersResp.ok(), `Orders API failed: ${ordersResp.status()}`).toBe(true)
+
     await expect(page.locator('.page-title')).toHaveText('订单查看', { timeout: 8000 })
 
     // Both tabs visible
@@ -323,30 +369,33 @@ test.describe.serial('Admin Panel', () => {
   // ════════════════════════════════════════════
 
   test('A16: activities page shows create button and table', async ({ page }) => {
-    await page.goto(`${BASE}/admin/activities`)
-    await waitForHydration(page)
-    await expect(page.locator('.page-title')).toHaveText('活动配置', { timeout: 8000 })
+    // Intercept activities API to verify it succeeds
+    const [activitiesResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/admin/activities'), { timeout: 15000 }),
+      gotoAdminPage(page, tokens, '/admin/activities'),
+    ])
+    expect(activitiesResp.ok(), `Activities API failed: ${activitiesResp.status()}`).toBe(true)
 
+    await expect(page.locator('.page-title')).toHaveText('活动配置', { timeout: 8000 })
     await expect(page.getByRole('button', { name: /创建活动/ })).toBeVisible()
     await expect(page.locator('.n-data-table')).toBeVisible()
   })
 
   test('A17: activity creation validates missing title', async ({ page }) => {
-    await page.goto(`${BASE}/admin/activities`)
-    await waitForHydration(page)
+    await gotoAdminPage(page, tokens, '/admin/activities')
     await expect(page.locator('.page-title')).toHaveText('活动配置', { timeout: 8000 })
 
     // Open create modal
     await page.getByRole('button', { name: /创建活动/ }).click()
     await page.waitForTimeout(500)
-    await expect(page.getByText('创建活动')).toBeVisible()
+    await expect(page.getByRole('heading', { name: '创建活动', exact: true })).toBeVisible()
 
     // Submit without filling title
     await page.getByRole('button', { name: '创建', exact: true }).click()
     await page.waitForTimeout(1500)
 
     // Modal remains open (validation prevented close)
-    await expect(page.getByText('创建活动')).toBeVisible()
+    await expect(page.getByRole('heading', { name: '创建活动', exact: true })).toBeVisible()
   })
 
   // ════════════════════════════════════════════
@@ -354,8 +403,7 @@ test.describe.serial('Admin Panel', () => {
   // ════════════════════════════════════════════
 
   test('A18: logout redirects to /admin/login', async ({ page }) => {
-    await page.goto(`${BASE}/admin`)
-    await waitForHydration(page)
+    await gotoAdminDashboard(page, tokens)
     await expect(page.locator('.stat-card').first()).toBeVisible({ timeout: 10000 })
 
     // Click logout in sidebar footer

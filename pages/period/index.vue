@@ -9,15 +9,26 @@
         :key="name"
         :class="['person-btn', { active: periodStore.selectedPerson === name }]"
         @click="periodStore.switchPerson(name)"
+        @dblclick.prevent="startRenamePerson(name)"
+        @touchstart="onPersonTouchStart(name)"
+        @touchend="onPersonTouchEnd"
+        @touchcancel="onPersonTouchEnd"
       >{{ name }}</button>
       <button class="person-btn add-btn" @click="showAddPerson = true">+</button>
     </div>
 
+    <!-- Rename Person Mini-Row -->
+    <div v-if="renamingPerson" class="add-person-row">
+      <input v-model="renamePersonValue" class="person-input" placeholder="输入新名称" maxlength="50" @keyup.enter="confirmRenamePerson" />
+      <button class="person-action-btn primary" :disabled="!renamePersonValue.trim()" @click="confirmRenamePerson">确认</button>
+      <button class="person-action-btn" @click="cancelRenamePerson">取消</button>
+    </div>
+
     <!-- Add Person Mini-Modal -->
     <div v-if="showAddPerson" class="add-person-row">
-      <n-input v-model:value="newPersonName" placeholder="输入名称" size="small" :maxlength="50" style="flex: 1;" @keyup.enter="confirmAddPerson" />
-      <n-button size="small" type="primary" :disabled="!newPersonName.trim()" @click="confirmAddPerson">确认</n-button>
-      <n-button size="small" @click="showAddPerson = false; newPersonName = ''">取消</n-button>
+      <input v-model="newPersonName" class="person-input" placeholder="输入名称" maxlength="50" @keyup.enter="confirmAddPerson" />
+      <button class="person-action-btn primary" :disabled="!newPersonName.trim()" @click="confirmAddPerson">确认</button>
+      <button class="person-action-btn" @click="showAddPerson = false; newPersonName = ''">取消</button>
     </div>
 
     <!-- Prediction Card -->
@@ -141,6 +152,9 @@ const showModal = ref(false)
 const editingId = ref<number | null>(null)
 const showAddPerson = ref(false)
 const newPersonName = ref('')
+const renamingPerson = ref<string | null>(null)
+const renamePersonValue = ref('')
+let longPressTimer: ReturnType<typeof setTimeout> | null = null
 
 const flowLabels: Record<string, string> = {
   light: '少量',
@@ -185,6 +199,44 @@ function confirmAddPerson() {
   periodStore.switchPerson(name)
   showAddPerson.value = false
   newPersonName.value = ''
+}
+
+function startRenamePerson(name: string) {
+  renamingPerson.value = name
+  renamePersonValue.value = name
+  showAddPerson.value = false
+}
+
+function cancelRenamePerson() {
+  renamingPerson.value = null
+  renamePersonValue.value = ''
+}
+
+async function confirmRenamePerson() {
+  const oldName = renamingPerson.value
+  const newName = renamePersonValue.value.trim()
+  if (!oldName || !newName) return
+  if (oldName === newName) { cancelRenamePerson(); return }
+  try {
+    await periodStore.renamePerson(oldName, newName)
+    message.success('已重命名')
+  } catch (e: any) {
+    message.error(e?.data?.statusMessage || '重命名失败')
+  }
+  cancelRenamePerson()
+}
+
+function onPersonTouchStart(name: string) {
+  longPressTimer = setTimeout(() => {
+    startRenamePerson(name)
+  }, 600)
+}
+
+function onPersonTouchEnd() {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer)
+    longPressTimer = null
+  }
 }
 
 function openAddModal() {
@@ -306,6 +358,46 @@ function formatDateShort(dateStr: string) {
   gap: 8px;
   margin-bottom: 16px;
   align-items: center;
+}
+.person-input {
+  flex: 1;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text, #fff);
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+.person-input:focus {
+  border-color: var(--color-primary, #7c5cfc);
+}
+.person-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+.person-action-btn {
+  height: 34px;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text, #fff);
+  font-size: 14px;
+  cursor: pointer;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+.person-action-btn.primary {
+  background: var(--color-primary, #7c5cfc);
+  border-color: var(--color-primary, #7c5cfc);
+  color: #fff;
+}
+.person-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .prediction-card {

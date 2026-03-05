@@ -1,7 +1,9 @@
+import { sql } from 'drizzle-orm'
+
 export default defineEventHandler(async () => {
   try {
     const db = getDb()
-    await db.query('SELECT 1')
+    await db.execute(sql`SELECT 1`)
     return {
       success: true,
       status: 'healthy',

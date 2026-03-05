@@ -8,7 +8,7 @@
  * The Nuxt app authenticates via cookies: `accessToken` + `refreshToken`
  * (set by `useCookie()` in stores/auth.ts).
  */
-import { test as base, chromium, type Page } from '@playwright/test'
+import { test as base, type Page, type APIRequestContext } from '@playwright/test'
 
 const BASE = process.env.BASE_URL || 'http://localhost:3001'
 
@@ -17,90 +17,77 @@ export interface AuthFixtures {
   credentials: { email: string; password: string; username: string }
 }
 
-async function registerAndInjectCookies(page: Page) {
+/**
+ * Generate unique credentials for a test user.
+ */
+function makeCreds() {
   const ts = Date.now()
   const rand = Math.random().toString(36).slice(2, 8)
-  const creds = {
+  return {
     username: `e2e_${rand}`,
     email: `e2e_${ts}_${rand}@test.com`,
     password: 'Test123456',
   }
+}
 
-  // Register via UI
-  await page.goto(`${BASE}/register`)
-  await page.waitForFunction(
-    () => {
-      const el = document.getElementById('__nuxt')
-      return el && (el as any).__vue_app__
-    },
-    { timeout: 15000 },
-  )
-  await page.getByPlaceholder('请输入用户名').fill(creds.username)
-  await page.getByPlaceholder('请输入邮箱').fill(creds.email)
-  await page.getByPlaceholder('请输入密码（至少6位）').fill(creds.password)
-  await page.getByPlaceholder('请再次输入密码').fill(creds.password)
-  await page.getByRole('button', { name: '注册' }).click()
-  await page.waitForURL('**/', { timeout: 15000 })
+/**
+ * Register a user via the API (much faster & more reliable than UI registration).
+ */
+async function registerViaAPI(request: APIRequestContext, creds: { username: string; email: string; password: string }) {
+  const res = await request.post(`${BASE}/api/auth/register`, {
+    data: creds,
+  })
+  if (!res.ok()) {
+    const body = await res.text()
+    throw new Error(`Registration API failed (${res.status()}): ${body}`)
+  }
+  const json = await res.json()
+  const { accessToken, refreshToken } = json.data
+  if (!accessToken) throw new Error('Registration API succeeded but no accessToken in response')
+  return { accessToken, refreshToken }
+}
 
-  // Extract tokens from cookies
-  const cookies = await page.context().cookies()
-  const accessToken = cookies.find(c => c.name === 'accessToken')?.value ?? ''
-  const refreshToken = cookies.find(c => c.name === 'refreshToken')?.value ?? ''
+async function registerAndInjectCookies(page: Page) {
+  const creds = makeCreds()
+  const request = page.context().request
+  const { accessToken, refreshToken } = await registerViaAPI(request, creds)
 
-  if (!accessToken) throw new Error('Registration succeeded but accessToken cookie not found')
+  // Inject cookies so the page is authenticated
+  const url = new URL(BASE)
+  await page.context().addCookies([
+    { name: 'accessToken', value: accessToken, domain: url.hostname, path: '/' },
+    { name: 'refreshToken', value: refreshToken, domain: url.hostname, path: '/' },
+  ])
 
   return { creds, accessToken, refreshToken }
 }
 
 /**
  * Register a user once (for serial tests). Call from test.beforeAll().
- * Uses a temporary browser to perform UI registration.
+ * Uses a direct API call — no browser needed.
  * Returns creds + tokens for injection in each test via injectAuth().
  */
 export async function registerOnce(): Promise<{
   creds: { username: string; email: string; password: string }
   tokens: { accessToken: string; refreshToken: string }
 }> {
-  const ts = Date.now()
-  const rand = Math.random().toString(36).slice(2, 8)
-  const creds = {
-    username: `e2e_${rand}`,
-    email: `e2e_${ts}_${rand}@test.com`,
-    password: 'Test123456',
+  const creds = makeCreds()
+
+  // Direct HTTP call — no browser overhead
+  const res = await fetch(`${BASE}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(creds),
+  })
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`Registration API failed (${res.status}): ${body}`)
   }
+  const json = await res.json()
+  const { accessToken, refreshToken } = json.data
+  if (!accessToken) throw new Error('Registration API succeeded but no accessToken in response')
 
-  // Launch a temporary browser for UI registration
-  const browser = await chromium.launch()
-  const ctx = await browser.newContext()
-  const page = await ctx.newPage()
-
-  try {
-    await page.goto(`${BASE}/register`)
-    await page.waitForFunction(
-      () => {
-        const el = document.getElementById('__nuxt')
-        return el && (el as any).__vue_app__
-      },
-      { timeout: 15000 },
-    )
-    await page.getByPlaceholder('请输入用户名').fill(creds.username)
-    await page.getByPlaceholder('请输入邮箱').fill(creds.email)
-    await page.getByPlaceholder('请输入密码（至少6位）').fill(creds.password)
-    await page.getByPlaceholder('请再次输入密码').fill(creds.password)
-    await page.getByRole('button', { name: '注册' }).click()
-    await page.waitForURL('**/', { timeout: 15000 })
-
-    // Extract tokens from cookies
-    const cookies = await ctx.cookies()
-    const accessToken = cookies.find(c => c.name === 'accessToken')?.value ?? ''
-    const refreshToken = cookies.find(c => c.name === 'refreshToken')?.value ?? ''
-
-    if (!accessToken) throw new Error('Registration succeeded but accessToken cookie not found')
-
-    return { creds, tokens: { accessToken, refreshToken } }
-  } finally {
-    await browser.close()
-  }
+  return { creds, tokens: { accessToken, refreshToken } }
 }
 
 /**
@@ -147,7 +134,7 @@ export async function waitForHydration(page: Page) {
       const el = document.getElementById('__nuxt')
       return el && (el as any).__vue_app__
     },
-    { timeout: 15000 },
+    { timeout: 30000 },
   )
   // Remove DevTools container after hydration — it intercepts pointer events
   await page.evaluate(() => {

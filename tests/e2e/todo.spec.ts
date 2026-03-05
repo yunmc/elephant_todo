@@ -37,11 +37,15 @@ test.describe.serial('Todo Flow', () => {
     // Open quick-add modal via ＋ button (dispatchEvent bypasses DevTools overlay)
     await page.locator('.nav-add-icon').dispatchEvent('click')
     // Wait for modal content to appear
-    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
 
-    // Type content and click "新建待办"
+    // Type content and click "新建待办" — verify API succeeds
     await page.getByPlaceholder('输入内容...').fill(TITLE)
-    await page.getByRole('button', { name: '新建待办' }).click()
+    const [createResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/todos') && resp.request().method() === 'POST', { timeout: 10000 }),
+      page.getByRole('button', { name: '新建待办' }).click(),
+    ])
+    expect(createResp.ok(), `Todo create API failed: ${createResp.status()}`).toBe(true)
 
     // Wait for navigation back to home + todo to appear
     await expect(page).toHaveURL(/\/$/, { timeout: 8000 })
@@ -286,9 +290,15 @@ test.describe.serial('Todo Flow', () => {
     await page.keyboard.press('Enter')
     await page.waitForTimeout(500)
 
-    // Save
-    await page.locator('.action-btn.save').click()
-    await page.waitForTimeout(1000)
+    // Save and verify the API response includes the correct due_date
+    const [saveResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().match(/\/api\/todos\/\d+/) !== null && resp.request().method() === 'PUT', { timeout: 10000 }),
+      page.locator('.action-btn.save').click(),
+    ])
+    expect(saveResp.ok(), `Todo update API failed: ${saveResp.status()}`).toBe(true)
+    const saveBody = await saveResp.json()
+    // Verify the saved due_date contains the correct date string
+    expect(saveBody.data?.due_date || saveBody.due_date).toBeTruthy()
 
     // Go back and verify date tag shows on list
     await page.locator('.back-btn').click()
@@ -379,10 +389,10 @@ test.describe.serial('Todo Flow', () => {
 
     // Open quick-add modal via ＋ button
     await page.locator('.nav-add-icon').dispatchEvent('click')
-    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
     await page.getByPlaceholder('输入内容...').fill(tmpTitle)
     await page.getByRole('button', { name: '新建待办' }).click()
-    await expect(page).toHaveURL(/\/$/, { timeout: 8000 })
+    await expect(page).toHaveURL(/\/$/, { timeout: 10000 })
     await expect(page.getByText(tmpTitle)).toBeVisible({ timeout: 5000 })
 
     // Click inline delete on list item

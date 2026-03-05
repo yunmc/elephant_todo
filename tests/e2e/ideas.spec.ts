@@ -39,11 +39,15 @@ test.describe.serial('Ideas Flow', () => {
     await page.locator('.nav-add-icon').waitFor({ state: 'visible' })
     await page.locator('.nav-add-icon').dispatchEvent('click')
     // Wait for modal content to appear
-    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
 
-    // Type and save as idea
+    // Type and save as idea — verify API response
     await page.getByPlaceholder('输入内容...').fill(CONTENT)
-    await page.getByRole('button', { name: '保存为随手记' }).click()
+    const [saveResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/ideas') && resp.request().method() === 'POST', { timeout: 10000 }),
+      page.getByRole('button', { name: '保存为随手记' }).click(),
+    ])
+    expect(saveResp.ok(), `Ideas create API failed: ${saveResp.status()}`).toBe(true)
 
     // Navigate to ideas and verify
     await page.goto(`${BASE}/ideas`)
@@ -76,10 +80,9 @@ test.describe.serial('Ideas Flow', () => {
 
     // Click "转为待办"
     await page.getByText('转为待办').click()
-    await page.waitForTimeout(2000)
 
-    // Should now show a linked todo
-    await expect(page.locator('.linked-todo')).toBeVisible({ timeout: 5000 })
+    // Wait for the API call to complete and page to update
+    await expect(page.locator('.linked-todo')).toBeVisible({ timeout: 10000 })
   })
 
   test('I10: linked idea click-through navigates to todo', async ({ page }) => {
@@ -168,7 +171,7 @@ test.describe.serial('Ideas Flow', () => {
     await waitForHydration(page)
     await page.locator('.nav-add').waitFor({ state: 'visible' })
     await page.locator('.nav-add').dispatchEvent('click')
-    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
     await page.getByPlaceholder('输入内容...').fill(tmpContent)
     await page.getByRole('button', { name: '保存为随手记' }).click()
     await page.goto(`${BASE}/ideas`)

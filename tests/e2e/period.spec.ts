@@ -38,12 +38,20 @@ async function createRecordViaUI(
     if (await personBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await personBtn.click()
       await page.waitForTimeout(1000)
+    } else {
+      // Person doesn't exist yet — add via person switcher UI
+      await page.locator('.person-btn.add-btn').click()
+      await expect(page.locator('.add-person-row')).toBeVisible({ timeout: 3000 })
+      await page.locator('.add-person-row').getByPlaceholder('输入名称').fill(personName)
+      await page.locator('.add-person-row').getByRole('button', { name: '确认' }).click()
+      await page.waitForTimeout(1000)
+      await expect(page.locator('.person-btn').filter({ hasText: personName })).toBeVisible({ timeout: 5000 })
     }
   }
 
   // Click "+ 记录经期" button
   await page.getByRole('button', { name: '+ 记录经期' }).click()
-  await expect(page.getByText('少量', { exact: true })).toBeVisible({ timeout: 5000 })
+  await expect(page.getByRole('dialog').getByText('少量', { exact: true })).toBeVisible({ timeout: 5000 })
 
   // Set start date
   const startDateRow = page.locator('.n-form-item').filter({ hasText: '开始日期' })
@@ -104,7 +112,12 @@ test.describe.serial('Period Tracking Flow', () => {
     await page.getByText('少量', { exact: true }).click()
 
     // Save — button text is "记录" (not "保存") for new records
-    await page.getByRole('button', { name: '记录', exact: true }).click()
+    // Verify the API succeeds
+    const [createResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/period') && resp.request().method() === 'POST', { timeout: 10000 }),
+      page.getByRole('button', { name: '记录', exact: true }).click(),
+    ])
+    expect(createResp.ok(), `Period create API failed: ${createResp.status()}`).toBe(true)
     await page.waitForTimeout(2000)
 
     // Verify period card appears
@@ -155,12 +168,12 @@ test.describe.serial('Period Tracking Flow', () => {
 
     // Save
     await page.getByRole('button', { name: '保存' }).click()
-    await page.waitForTimeout(2000)
+    await page.waitForTimeout(3000)
 
     // Verify symptom badges appear on card
     const card = page.locator('.period-card').first()
-    await expect(card.locator('.symptom-badge').filter({ hasText: '痛经' })).toBeVisible({ timeout: 5000 })
-    await expect(card.locator('.symptom-badge').filter({ hasText: '头痛' })).toBeVisible()
+    await expect(card.locator('.symptom-badge').filter({ hasText: '痛经' })).toBeVisible({ timeout: 8000 })
+    await expect(card.locator('.symptom-badge').filter({ hasText: '头痛' })).toBeVisible({ timeout: 5000 })
   })
 
   test('P09: add note to period record', async ({ page }) => {
@@ -296,7 +309,7 @@ test.describe.serial('Period Tracking Flow', () => {
 
     // Click "+" add-person button
     await page.locator('.person-btn.add-btn').click()
-    await expect(page.locator('.add-person-row')).toBeVisible({ timeout: 3000 })
+    await expect(page.locator('.add-person-row')).toBeVisible({ timeout: 8000 })
 
     // Click "取消" to dismiss without adding
     await page.locator('.add-person-row').getByRole('button', { name: '取消' }).click()

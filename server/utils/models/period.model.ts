@@ -42,7 +42,7 @@ export const PeriodModel = {
       start_date: data.start_date,
       end_date: data.end_date || null,
       flow_level: data.flow_level || 'moderate',
-      symptoms: data.symptoms ? JSON.stringify(data.symptoms) : null,
+      symptoms: data.symptoms ?? null,
       note: data.note || null,
     })
 
@@ -58,7 +58,7 @@ export const PeriodModel = {
     if (data.start_date !== undefined) setObj.start_date = data.start_date
     if (data.end_date !== undefined) setObj.end_date = data.end_date
     if (data.flow_level !== undefined) setObj.flow_level = data.flow_level
-    if (data.symptoms !== undefined) setObj.symptoms = JSON.stringify(data.symptoms)
+    if (data.symptoms !== undefined) setObj.symptoms = data.symptoms
     if (data.note !== undefined) setObj.note = data.note
     if (Object.keys(setObj).length === 0) return false
 
@@ -73,6 +73,16 @@ export const PeriodModel = {
     }
 
     return result[0].affectedRows > 0
+  },
+
+  /** Rename a person: bulk update person_name across all records */
+  async renamePerson(userId: number, oldName: string, newName: string): Promise<number> {
+    const pool = getPool()
+    const [result] = await pool.query<any>(
+      'UPDATE period_records SET person_name = ? WHERE user_id = ? AND person_name = ?',
+      [newName, userId, oldName],
+    )
+    return result.affectedRows ?? 0
   },
 
   async delete(id: number, userId: number): Promise<boolean> {

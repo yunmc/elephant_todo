@@ -171,7 +171,7 @@ export const AdminUserMgmtModel = {
         (SELECT COUNT(*) FROM ideas WHERE user_id = u.id) AS idea_count,
         (SELECT COUNT(*) FROM finance_records WHERE user_id = u.id) AS finance_count
       FROM users u
-      LEFT JOIN wallets w ON w.user_id = u.id
+      LEFT JOIN user_wallets w ON w.user_id = u.id
       ${where}
       ORDER BY u.created_at DESC
       LIMIT ? OFFSET ?
@@ -189,7 +189,7 @@ export const AdminUserMgmtModel = {
         (SELECT COUNT(*) FROM ideas WHERE user_id = u.id) AS idea_count,
         (SELECT COUNT(*) FROM finance_records WHERE user_id = u.id) AS finance_count
       FROM users u
-      LEFT JOIN wallets w ON w.user_id = u.id
+      LEFT JOIN user_wallets w ON w.user_id = u.id
       WHERE u.id = ?
     `, [userId])
     return rows[0] || null
@@ -275,10 +275,12 @@ export const AdminProductModel = {
     name: string; type: string; price: number; description?: string
     preview_url?: string; css_class?: string; is_free?: boolean; sort_order?: number
   }): Promise<number> {
+    // Auto-generate a unique asset_key from name + timestamp
+    const assetKey = data.name.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_').toLowerCase() + '_' + Date.now()
     const [result] = await getPool().query<ResultSetHeader>(
-      `INSERT INTO shop_products (name, type, price, description, preview_url, css_class, is_free, sort_order, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
-      [data.name, data.type, data.price, data.description || '', data.preview_url || '', data.css_class || '', data.is_free ? 1 : 0, data.sort_order || 0]
+      `INSERT INTO shop_products (name, type, price, description, preview_url, is_free, sort_order, status, asset_key)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
+      [data.name, data.type, data.price, data.description || '', data.preview_url || '', data.is_free ? 1 : 0, data.sort_order || 0, assetKey]
     )
     return result.insertId
   },

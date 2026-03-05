@@ -52,8 +52,12 @@ test.describe.serial('Important Dates Flow', () => {
     await page.keyboard.press('Enter')
     await page.waitForTimeout(300)
 
-    // Click "添加"
-    await page.getByRole('button', { name: '添加', exact: true }).click()
+    // Click "添加" and verify API succeeds
+    const [createResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/important-dates') && resp.request().method() === 'POST', { timeout: 10000 }),
+      page.getByRole('button', { name: '添加', exact: true }).click(),
+    ])
+    expect(createResp.ok(), `Important dates create API failed: ${createResp.status()}`).toBe(true)
     await page.waitForTimeout(2000)
 
     // Verify date card appears
@@ -145,8 +149,8 @@ test.describe.serial('Important Dates Flow', () => {
     await page.locator('.date-card').filter({ hasText: `${TITLE} Edited` }).click()
     await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
 
-    // Select "提前 7 天" remind option
-    const remindSelect = page.locator('.n-select')
+    // Select "提前 7 天" remind option — scope to the "提前提醒" form item (2nd n-select)
+    const remindSelect = page.locator('.n-form-item').filter({ hasText: '提前提醒' }).locator('.n-select')
     await remindSelect.click()
     await page.waitForTimeout(300)
     await page.locator('.n-base-select-option__content').filter({ hasText: '提前 7 天' }).click()
@@ -161,7 +165,9 @@ test.describe.serial('Important Dates Flow', () => {
     await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
 
     // The select should show "提前 7 天"
-    await expect(page.locator('.n-base-selection-label')).toContainText('提前 7 天', { timeout: 3000 })
+    await expect(
+      page.locator('.n-form-item').filter({ hasText: '提前提醒' }).locator('.n-base-selection-label')
+    ).toContainText('提前 7 天', { timeout: 3000 })
 
     // Close modal
     await page.keyboard.press('Escape')
@@ -177,22 +183,12 @@ test.describe.serial('Important Dates Flow', () => {
     await page.locator('.date-card').filter({ hasText: `${TITLE} Edited` }).click()
     await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
 
-    // Toggle the repeat yearly switch OFF using evaluate to ensure click registers
-    const switchEl = page.getByRole('switch')
-    await switchEl.scrollIntoViewIfNeeded()
+    // Change repeat type from "每年重复" to "不重复" via the select dropdown
+    const repeatSelect = page.locator('.n-form-item').filter({ hasText: '重复' }).first().locator('.n-select')
+    await repeatSelect.click()
     await page.waitForTimeout(300)
-    // Use evaluate to directly trigger the native click on the switch element
-    await switchEl.evaluate((el: HTMLElement) => el.click())
-    await page.waitForTimeout(800)
-
-    // Verify switch is now unchecked (aria-checked=false)
-    const ariaVal = await switchEl.getAttribute('aria-checked')
-    // If click didn't toggle, try clicking the switch rail button as fallback
-    if (ariaVal === 'true') {
-      await page.locator('.n-switch__rail').click({ force: true })
-      await page.waitForTimeout(500)
-    }
-    await expect(switchEl).toHaveAttribute('aria-checked', 'false', { timeout: 5000 })
+    await page.locator('.n-base-select-option__content').filter({ hasText: '不重复' }).click()
+    await page.waitForTimeout(300)
 
     // Save
     await page.getByRole('button', { name: '保存' }).click()

@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
     updateData.category_id = body.category_id ? Number(body.category_id) : null
   }
   if (body.due_date !== undefined) {
-    updateData.due_date = body.due_date || null
+    updateData.due_date = body.due_date ? new Date(body.due_date) : null
   }
 
   await TodoModel.update(id, userId, updateData)

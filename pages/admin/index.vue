@@ -36,7 +36,7 @@
           <div class="revenue-list">
             <div class="revenue-item">
               <span class="revenue-label">Premium 订阅收入</span>
-              <span class="revenue-value">¥{{ stats.revenue?.premiumRevenue?.toFixed(2) || '0.00' }}</span>
+              <span class="revenue-value">¥{{ Number(stats.revenue?.premiumRevenue || 0).toFixed(2) }}</span>
             </div>
             <div class="revenue-item">
               <span class="revenue-label">象币消费总额</span>

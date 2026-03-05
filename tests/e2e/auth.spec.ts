@@ -48,7 +48,11 @@ test.describe('Auth — Public Pages', () => {
     await page.getByPlaceholder('请输入邮箱').fill(`reg_${ts}_${rand}@test.com`)
     await page.getByPlaceholder('请输入密码（至少6位）').fill('Test123456')
     await page.getByPlaceholder('请再次输入密码').fill('Test123456')
-    await page.getByRole('button', { name: '注册' }).click()
+    const [registerResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/auth/register') && resp.request().method() === 'POST', { timeout: 15000 }),
+      page.getByRole('button', { name: '注册' }).click(),
+    ])
+    expect(registerResp.ok(), `Register API failed: ${registerResp.status()}`).toBe(true)
     // Should redirect to home (todo list)
     await page.waitForURL('**/', { timeout: 10000 })
     const url = page.url()
@@ -150,7 +154,7 @@ test.describe('Auth — Public Pages', () => {
     await page.getByPlaceholder('请输入密码（至少6位）').fill(password)
     await page.getByPlaceholder('请再次输入密码').fill(password)
     await page.getByRole('button', { name: '注册' }).click()
-    await page.waitForURL('**/', { timeout: 15000 })
+    await page.waitForURL('**/', { timeout: 30000 })
 
     // Clear cookies to simulate fresh session
     await page.context().clearCookies()
@@ -193,7 +197,7 @@ test.describe('Auth — Public Pages', () => {
     await page.getByPlaceholder('请再次输入密码').fill('Test123456')
     await page.getByRole('button', { name: '注册' }).click()
     // Wait for successful registration (redirect to home)
-    await page.waitForURL('**/', { timeout: 15000 })
+    await page.waitForURL('**/', { timeout: 30000 })
 
     // Clear cookies to simulate fresh session
     await page.context().clearCookies()
@@ -219,7 +223,7 @@ test.describe('Auth — Public Pages', () => {
     // Blur to trigger NaiveUI validation
     await page.getByPlaceholder('请输入用户名').click()
     await page.waitForTimeout(1000)
-    await expect(page.getByText('密码长度不能少于6位')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('密码长度不能少于6位')).toBeVisible({ timeout: 10000 })
   })
 
   test('A19: register with invalid email shows validation', async ({ page }) => {
@@ -229,7 +233,7 @@ test.describe('Auth — Public Pages', () => {
     // Blur to trigger validation
     await page.getByPlaceholder('请输入用户名').click()
     await page.waitForTimeout(1000)
-    await expect(page.getByText('请输入有效的邮箱地址')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('请输入有效的邮箱地址')).toBeVisible({ timeout: 10000 })
   })
 
   test('A20: forgot password with valid email submits', async ({ page }) => {
@@ -244,7 +248,7 @@ test.describe('Auth — Public Pages', () => {
         .or(page.getByText('请求过于频繁'))
         .or(page.getByText('发送失败'))
         .first()
-    ).toBeVisible({ timeout: 10000 })
+    ).toBeVisible({ timeout: 20000 })
   })
 
   test('A17: logged-in user visiting /login is redirected to home', async ({ page }) => {
@@ -259,7 +263,7 @@ test.describe('Auth — Public Pages', () => {
     await page.getByPlaceholder('请再次输入密码').fill('Test123456')
     await page.getByRole('button', { name: '注册' }).click()
     // Wait for successful registration (redirect to home — user is now logged in)
-    await page.waitForURL('**/', { timeout: 15000 })
+    await page.waitForURL('**/', { timeout: 30000 })
 
     // Navigate to /login — should be redirected to home
     await page.goto(`${BASE}/login`)

@@ -49,50 +49,44 @@ test.describe.serial('AI Features', () => {
     await page.waitForTimeout(1000)
 
     // Free user should see premium upgrade modal, or AI modal if already premium
-    const premiumModal = page.getByText('升级到 Premium')
-    const aiModal = page.getByText('AI 快速记账')
-    await expect(premiumModal.or(aiModal)).toBeVisible({ timeout: 5000 })
+    const premiumModal = page.locator('.n-modal').filter({ hasText: '升级 Premium' })
+    const aiModal = page.locator('.n-modal').filter({ hasText: 'AI 快速记账' })
+    await expect(premiumModal.or(aiModal)).toBeVisible({ timeout: 8000 })
   })
 
   test('AI03: AI 快速记账弹窗包含输入框和解析按钮', async ({ page }) => {
-    // Mock premium check to allow access
-    await page.route('**/api/premium/status', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          isPremium: true,
-          plan: 'premium',
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          autoRenew: false,
-          expired: false,
-        }),
-      })
-    })
-
     await page.goto(`${BASE}/finance`)
     await waitForHydration(page)
 
-    // Inject premium status into auth store
+    // Inject premium status into Pinia auth store
     await page.evaluate(() => {
-      const user = JSON.parse(localStorage.getItem('auth_user') || '{}')
-      user.plan = 'premium'
-      user.plan_expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-      localStorage.setItem('auth_user', JSON.stringify(user))
+      const app = (document.getElementById('__nuxt') as any)?.__vue_app__
+      if (app) {
+        const pinia = app.config.globalProperties.$pinia
+        if (pinia?.state?.value?.auth) {
+          pinia.state.value.auth.user = {
+            ...(pinia.state.value.auth.user || {}),
+            id: pinia.state.value.auth.user?.id || 999,
+            username: pinia.state.value.auth.user?.username || 'test',
+            email: pinia.state.value.auth.user?.email || 'test@test.com',
+            plan: 'premium',
+            plan_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            auto_renew: false,
+          }
+        }
+      }
     })
-
-    await page.reload()
-    await waitForHydration(page)
+    await page.waitForTimeout(500)
 
     const aiBtn = page.getByText('AI 记账')
     await aiBtn.click()
 
     // AI modal should have input and parse button
     await page.waitForTimeout(500)
-    const aiInput = page.getByPlaceholder('说一句话')
+    const aiInput = page.getByPlaceholder('说一句话，比如：昨天星巴克拿铁38')
     const parseBtn = page.getByText('解析')
 
-    // Premium status was mocked above — AI modal must appear
+    // Premium status was injected — AI modal must appear
     await expect(aiInput).toBeVisible({ timeout: 5000 })
     await expect(parseBtn).toBeVisible({ timeout: 5000 })
   })

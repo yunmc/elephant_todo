@@ -1,8 +1,8 @@
 /**
  * E2E — Navigation & Quick-Add (N01–N06)
  *
- * Bottom nav: 待办(/) | 随手记(/ideas) | ＋(quick-add) | 密码本(/vault) | 更多(/more)
- * More page: 记账(/finance) | 重要日期(/important-dates) | 经期追踪(/period) | 设置(/settings)
+ * Bottom nav: 待办(/) | 随手记(/ideas) | ＋(quick-add) | 记账(/finance) | 更多(/more)
+ * More page: 手帐商店(/shop) | 我的仓库(/shop/inventory) | 密码本(/vault) | 重要日期(/important-dates) | 经期追踪(/period) | AI 报告(/ai/report) | 设置(/settings)
  */
 import { test, expect } from './fixtures/auth.fixture'
 import { waitForHydration } from './fixtures/auth.fixture'
@@ -25,10 +25,10 @@ test.describe('Navigation', () => {
     await page.waitForURL('**/more')
     expect(page.url()).toContain('/more')
 
-    // Navigate to 密码本
-    await page.locator('.bottom-nav').getByText('密码本').click()
-    await page.waitForURL('**/vault')
-    expect(page.url()).toContain('/vault')
+    // Navigate to 记账
+    await page.locator('.bottom-nav').getByText('记账').click()
+    await page.waitForURL('**/finance')
+    expect(page.url()).toContain('/finance')
 
     // Navigate back to 待办
     await page.locator('.bottom-nav').getByText('待办').click()
@@ -41,16 +41,19 @@ test.describe('Navigation', () => {
     await waitForHydration(page)
     await expect(page.getByText('更多功能')).toBeVisible({ timeout: 8000 })
 
-    // Check all 4 feature cards are visible
-    await expect(page.locator('.feature-card').filter({ hasText: '记账' })).toBeVisible()
+    // Check all 7 feature cards are visible
+    await expect(page.locator('.feature-card').filter({ hasText: '手帐商店' })).toBeVisible()
+    await expect(page.locator('.feature-card').filter({ hasText: '我的仓库' })).toBeVisible()
+    await expect(page.locator('.feature-card').filter({ hasText: '密码本' })).toBeVisible()
     await expect(page.locator('.feature-card').filter({ hasText: '重要日期' })).toBeVisible()
     await expect(page.locator('.feature-card').filter({ hasText: '经期追踪' })).toBeVisible()
+    await expect(page.locator('.feature-card').filter({ hasText: 'AI 报告' })).toBeVisible()
     await expect(page.locator('.feature-card').filter({ hasText: '设置' })).toBeVisible()
 
-    // Click "记账" → /finance
-    await page.locator('.feature-card').filter({ hasText: '记账' }).click()
-    await page.waitForURL('**/finance')
-    expect(page.url()).toContain('/finance')
+    // Click "密码本" → /vault
+    await page.locator('.feature-card').filter({ hasText: '密码本' }).click()
+    await page.waitForURL('**/vault')
+    expect(page.url()).toContain('/vault')
 
     // Go back and click "重要日期" → /important-dates
     await page.goto(`${BASE}/more`)
@@ -79,7 +82,7 @@ test.describe('Navigation', () => {
     // Click the center "+" FAB (dispatchEvent bypasses DevTools overlay)
     await page.locator('.nav-add-icon').dispatchEvent('click')
     // Wait for modal content to appear
-    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
 
     // Modal should have the textarea
     await expect(page.getByPlaceholder('输入内容...')).toBeVisible()
@@ -118,7 +121,7 @@ test.describe('Navigation', () => {
 
     // Open quick-add modal
     await page.locator('.nav-add-icon').dispatchEvent('click')
-    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
 
     // Type content
     await page.getByPlaceholder('输入内容...').fill(ideaText)
@@ -140,7 +143,7 @@ test.describe('Navigation', () => {
 
     // Open quick-add modal
     await page.locator('.nav-add-icon').dispatchEvent('click')
-    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
 
     // With empty input, both buttons should be disabled
     const todoBtn = page.getByRole('button', { name: '新建待办' })

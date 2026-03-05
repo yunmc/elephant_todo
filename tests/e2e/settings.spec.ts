@@ -35,9 +35,13 @@ test.describe.serial('Settings', () => {
     // Type new category name
     await page.getByPlaceholder('新分类名称').fill(catName)
 
-    // Click "添加" for category
+    // Click "添加" for category and verify API succeeds
     const catSection = page.locator('.section-card').filter({ hasText: '分类管理' })
-    await catSection.getByRole('button', { name: '添加' }).click()
+    const [catResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/categories') && resp.request().method() === 'POST', { timeout: 10000 }),
+      catSection.getByRole('button', { name: '添加' }).click(),
+    ])
+    expect(catResp.ok(), `Category create API failed: ${catResp.status()}`).toBe(true)
     await page.waitForTimeout(2000)
 
     // Verify category appears in list

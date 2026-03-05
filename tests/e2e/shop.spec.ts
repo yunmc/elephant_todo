@@ -33,21 +33,38 @@ test.describe.serial('Shop Flow', () => {
   // ─── S01: 商店页面可访问 ────────────────────────────────
 
   test('S01: shop page loads with title and wallet badge', async ({ page }) => {
-    await page.goto(`${BASE}/shop`)
+    // Intercept both shop APIs to verify they succeed
+    const [walletResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/wallet') && !resp.url().includes('transactions'), { timeout: 15000 }),
+      page.goto(`${BASE}/shop`),
+    ])
     await waitForHydration(page)
+
+    expect(walletResp.ok(), `Wallet API failed: ${walletResp.status()}`).toBe(true)
 
     await expect(page.locator('.page-title')).toContainText('手帐商店', { timeout: 8000 })
     // 新用户注册赠送 10 象币
     const walletBadge = page.locator('.wallet-badge')
     await expect(walletBadge).toBeVisible({ timeout: 5000 })
     await expect(walletBadge).toContainText('象币')
+    // Wallet badge should show a numeric balance
+    const badgeText = await walletBadge.textContent() ?? ''
+    expect(badgeText).toMatch(/\d+/)
   })
 
   // ─── S02: 商品列表显示 ─────────────────────────────────
 
   test('S02: products grid shows at least the default free skin', async ({ page }) => {
-    await page.goto(`${BASE}/shop`)
+    // Intercept products API to verify it succeeds
+    const [productsResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/shop/products'), { timeout: 15000 }),
+      page.goto(`${BASE}/shop`),
+    ])
     await waitForHydration(page)
+
+    expect(productsResp.ok(), `Shop products API failed: ${productsResp.status()}`).toBe(true)
+    const body = await productsResp.json()
+    expect(body.data?.length, 'Products API should return at least 1 product').toBeGreaterThanOrEqual(1)
 
     // 等待商品加载
     const productCards = page.locator('.product-card')
@@ -135,9 +152,15 @@ test.describe.serial('Shop Flow', () => {
 
     // 在浏览器上下文中通过 fetch 充值 100 象币（利用页面已有的 cookie）
     const result = await page.evaluate(async () => {
+      // Read accessToken from cookie for Authorization header
+      const tokenMatch = document.cookie.split(';').find(c => c.trim().startsWith('accessToken='))
+      const token = tokenMatch ? tokenMatch.split('=').slice(1).join('=').trim() : ''
       const resp = await fetch('/api/wallet/add-coins', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ amount: 100 }),
       })
       return resp.json()
@@ -208,6 +231,8 @@ test.describe.serial('Shop Flow', () => {
     await page.waitForTimeout(1000)
 
     // 找到带有 .owned-badge 但不带 .free-badge 的商品卡（付费已拥有）
+    // 注意：当 product.owned 为 true 时，free-badge 不会显示（v-else-if），
+    // 所以还需要排除 asset_key 为 "default" 的默认皮肤
     const allCards = page.locator('.product-card')
     const count = await allCards.count()
     let ownedPaidFound = false
@@ -216,7 +241,9 @@ test.describe.serial('Shop Flow', () => {
       const card = allCards.nth(i)
       const hasFree = await card.locator('.free-badge').isVisible().catch(() => false)
       const hasOwned = await card.locator('.owned-badge').isVisible().catch(() => false)
-      if (hasOwned && !hasFree) {
+      // 排除默认皮肤（asset_key 为 "default"，v-if/v-else-if 会隐藏 free-badge）
+      const skinPreview = await card.locator('[data-skin-preview]').getAttribute('data-skin-preview').catch(() => null)
+      if (hasOwned && !hasFree && skinPreview !== 'default') {
         await card.click()
         await page.waitForURL('**/shop/product/**', { timeout: 5000 })
         ownedPaidFound = true
@@ -229,6 +256,9 @@ test.describe.serial('Shop Flow', () => {
       return
     }
 
+    // 等待商品详情加载完成
+    await expect(page.getByRole('button', { name: /立即使用|使用中/ })).toBeVisible({ timeout: 8000 })
+
     // 点"立即使用"
     const equipBtn = page.getByRole('button', { name: '立即使用' })
     if (await equipBtn.isVisible()) {
@@ -237,9 +267,11 @@ test.describe.serial('Shop Flow', () => {
       await expect(page.getByRole('button', { name: '使用中' })).toBeVisible({ timeout: 5000 })
     }
 
-    // 验证 data-skin 属性已设置到 html 元素
-    const htmlSkin = await page.evaluate(() => document.documentElement.getAttribute('data-skin'))
-    expect(htmlSkin).toBeTruthy()
+    // 验证 data-skin 属性已设置到 html 元素（retrying assertion）
+    await expect(async () => {
+      const htmlSkin = await page.evaluate(() => document.documentElement.getAttribute('data-skin'))
+      expect(htmlSkin).toBeTruthy()
+    }).toPass({ timeout: 5000 })
   })
 
   // ─── S09: 我的仓库 ─────────────────────────────────────

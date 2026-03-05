@@ -76,8 +76,12 @@ test.describe.serial('Finance Flow', () => {
       }
     }
 
-    // Save
-    await page.getByRole('button', { name: '保存' }).click()
+    // Save and verify API response
+    const [saveResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/finance') && resp.request().method() === 'POST', { timeout: 10000 }),
+      page.getByRole('button', { name: '保存' }).click(),
+    ])
+    expect(saveResp.ok(), `Finance create API failed: ${saveResp.status()}`).toBe(true)
     await page.waitForTimeout(2000)
 
     // Verify expense appears in stats
@@ -305,16 +309,22 @@ test.describe.serial('Finance Flow', () => {
     // Current month label should be visible
     const now = new Date()
     const monthStr = `${now.getFullYear()}年${now.getMonth() + 1}月`
-    await expect(page.getByText(monthStr)).toBeVisible({ timeout: 3000 })
+    await expect(page.getByText(monthStr)).toBeVisible({ timeout: 5000 })
 
     // Go to previous month
     await page.locator('.month-btn').first().click()
-    await page.waitForTimeout(1000)
+    await page.waitForTimeout(1500)
+
+    // The month label should have changed (no longer current month)
+    const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth()
+    const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
+    const prevMonthStr = `${prevYear}年${prevMonth}月`
+    await expect(page.getByText(prevMonthStr)).toBeVisible({ timeout: 5000 })
 
     // Go back to current month
     await page.locator('.month-btn').last().click()
-    await page.waitForTimeout(1000)
-    await expect(page.getByText(monthStr)).toBeVisible()
+    await page.waitForTimeout(1500)
+    await expect(page.getByText(monthStr)).toBeVisible({ timeout: 5000 })
   })
 
   test('F06: delete record', async ({ page }) => {
@@ -390,23 +400,27 @@ test.describe.serial('Finance Flow', () => {
     await waitForHydration(page)
     await page.waitForTimeout(2000)
 
-    // Inject premium into auth store cookie
+    // Inject premium status into Pinia auth store
     await page.evaluate(() => {
-      const userStr = document.cookie.split(';').find(c => c.trim().startsWith('user='))
-      if (userStr) {
-        try {
-          const user = JSON.parse(decodeURIComponent(userStr.split('=').slice(1).join('=')))
-          user.plan = 'premium'
-          user.plan_expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-          document.cookie = `user=${encodeURIComponent(JSON.stringify(user))};path=/;max-age=604800`
-        } catch { /* ignore */ }
+      const app = (document.getElementById('__nuxt') as any)?.__vue_app__
+      if (app) {
+        const pinia = app.config.globalProperties.$pinia
+        if (pinia?.state?.value?.auth) {
+          pinia.state.value.auth.user = {
+            ...(pinia.state.value.auth.user || {}),
+            id: pinia.state.value.auth.user?.id || 999,
+            username: pinia.state.value.auth.user?.username || 'test',
+            email: pinia.state.value.auth.user?.email || 'test@test.com',
+            plan: 'premium',
+            plan_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            auto_renew: false,
+          }
+        }
       }
     })
 
-    // Reload with premium status
-    await page.goto(`${BASE}/finance`)
-    await waitForHydration(page)
-    await page.waitForTimeout(2000)
+    // Wait for Vue reactivity to update the UI
+    await page.waitForTimeout(1000)
 
     // At least one budget button should be visible for premium user
     const setBudgetBtn = page.getByText('设置月度预算')
@@ -421,9 +435,8 @@ test.describe.serial('Finance Flow', () => {
     }
     await page.waitForTimeout(1000)
 
-    // Budget modal/drawer should appear with budget-related content
-    const budgetInput = page.locator('input[type="number"], .n-input-number')
-    const budgetModal = page.locator('.n-modal, .n-drawer, .n-dialog')
-    await expect(budgetInput.or(budgetModal)).toBeVisible({ timeout: 5000 })
+    // Budget modal should appear with title "设置预算"
+    const budgetModal = page.locator('.n-modal').filter({ hasText: '设置预算' })
+    await expect(budgetModal).toBeVisible({ timeout: 5000 })
   })
 })

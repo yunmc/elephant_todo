@@ -80,9 +80,20 @@ export const usePeriodStore = defineStore('period', () => {
     await Promise.all([fetchRecords(), fetchPrediction()])
   }
 
+  async function renamePerson(oldName: string, newName: string) {
+    await api.put('/period/persons', { old_name: oldName, new_name: newName })
+    // Update local state
+    const idx = personNames.value.indexOf(oldName)
+    if (idx !== -1) personNames.value[idx] = newName
+    if (selectedPerson.value === oldName) {
+      selectedPerson.value = newName
+    }
+    await fetchRecords()
+  }
+
   return {
     records, prediction, loading, personNames, selectedPerson,
     fetchRecords, createRecord, updateRecord, deleteRecord, fetchPrediction,
-    fetchPersonNames, switchPerson,
+    fetchPersonNames, switchPerson, renamePerson,
   }
 })

@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   const priority = VALID_PRIORITIES.includes(body.priority) ? body.priority : 'medium'
   const description = typeof body.description === 'string' ? body.description.trim() || null : null
   const category_id = body.category_id ? Number(body.category_id) : null
-  const due_date = body.due_date || null
+  const due_date = body.due_date ? new Date(body.due_date) : null
   const tag_ids = Array.isArray(body.tag_ids) ? body.tag_ids.filter((id: any) => typeof id === 'number' && Number.isInteger(id) && id > 0) : []
 
   const todoId = await TodoModel.create(userId, { title, description, priority, category_id, due_date })

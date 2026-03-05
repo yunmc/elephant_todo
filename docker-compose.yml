@@ -51,7 +51,7 @@ services:
       - MYSQL_PASSWORD=${DB_PASSWORD:-elephant123}
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./scripts/migrate-all.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
       - "3306:3306"
     command: >
