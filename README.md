@@ -69,25 +69,32 @@ npm run build
 npm run preview
 ```
 
-### 6. Docker 构建与推送
+### 6. Docker 构建与推送（本地）
 
 ```bash
-# 构建镜像
-docker build -t registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo:latest .
-
-# 推送到阿里云 ACR
-docker push registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo:latest
+docker build -t registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo:latest . && docker push registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo:latest
 ```
 
-### 7. 线上部署更新
+### 7. 线上部署更新（ECS）
 
 ```bash
-# 拉取最新镜像
-docker pull registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo:latest
+# 仅代码更新（无数据库变更）
+cd /opt/elephant_app && docker compose pull app && docker compose up -d app
 
-# 重启应用容器
-docker compose up -d app
+# 含数据库迁移（有新建表/改表时）
+cd /opt/elephant_app && docker compose pull app && docker compose up -d app && docker exec elephant-app cat /app/scripts/migrate-all.sql | docker exec -i elephant-mysql mysql -u root -p'Ele8hant#Db2026!xK'
 ```
+
+### 8. 首次部署（全新 ECS）
+
+```bash
+cd /opt/elephant_app
+# 确保 docker-compose.yml、scripts/migrate-all.sql、nginx/nginx.conf 已就位
+docker compose up -d
+# MySQL 初始化会自动执行 migrate-all.sql 创建全部表
+```
+
+> **安全注意事项：** MySQL 不暴露公网端口，仅通过 Docker 内网与 App 通信。App 端口绑定 127.0.0.1，外部流量走 Nginx 反向代理。
 
 ## 项目结构
 
