@@ -40,6 +40,7 @@
   // Spacing
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --keyboard-height: 0px;
   --nav-height: 56px;
   --bottom-tab-height: 60px;
   --page-px: 16px;
@@ -164,8 +165,10 @@ button,
 // ---------- Layout ----------
 .page-container {
   padding: var(--page-px);
-  padding-top: calc(var(--page-px) + var(--safe-area-top));
-  padding-bottom: calc(var(--page-px) + var(--bottom-tab-height) + var(--safe-area-bottom));
+  // 顶部：Web 下 safe-area=0 取 page-px；iOS 下 safe-area≈59px 取 safe-area+8px
+  padding-top: max(var(--page-px), calc(env(safe-area-inset-top, 0px) + 8px));
+  // 底部：需匹配 fixed 底部导航的完整高度（tab高度 + 底部安全区域）
+  padding-bottom: calc(var(--page-px) + var(--bottom-tab-height) + env(safe-area-inset-bottom, 0px));
   min-height: 100vh;
   max-width: 600px;
   margin: 0 auto;
@@ -272,4 +275,23 @@ button,
 .slide-up-leave-to {
   opacity: 0;
   transform: translateY(20px);
+}
+
+// ===== Capacitor iOS 原生适配 =====
+.capacitor-ios {
+  -webkit-touch-callout: none;
+  user-select: none;
+
+  input, textarea, [contenteditable] {
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+}
+
+// Naive UI 消息/通知适配安全区域（避免被刘海/灵动岛遮挡）
+.n-message-container {
+  top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
+}
+.n-notification-container {
+  top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
 }

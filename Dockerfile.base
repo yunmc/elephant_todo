@@ -1,0 +1,8 @@
+# Base image — 仅安装依赖，依赖变更时才需要重新构建
+# 构建: docker buildx build --platform linux/amd64 -f Dockerfile.base -t registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo-base:latest --push .
+FROM docker.m.daocloud.io/library/node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install --legacy-peer-deps && npm cache clean --force

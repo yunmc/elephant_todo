@@ -71,9 +71,27 @@ npm run preview
 
 ### 6. Docker 构建与推送（本地）
 
+项目采用两层镜像结构，将依赖安装和代码构建分离，加速日常更新：
+
+| 镜像 | Dockerfile | 用途 | 何时重建 |
+|------|-----------|------|---------|
+| `elephant-todo-base:latest` | `Dockerfile.base` | Node.js + node_modules | `package.json` 变更时 |
+| `elephant-todo:latest` | `Dockerfile` | 复制代码 + nuxt build | 代码变更时 |
+
 ```bash
-docker build -t registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo:latest . && docker push registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo:latest
+# 重建 base 镜像（仅依赖变更时需要）
+docker buildx build --platform linux/amd64 \
+  -f Dockerfile.base \
+  -t registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo-base:latest \
+  --push .
+
+# 构建并推送 app 镜像（日常更新）
+docker buildx build --platform linux/amd64 \
+  -t registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo:latest \
+  --push .
 ```
+
+> **注意：** 本机为 Apple Silicon (ARM)，服务器为 x86_64，必须加 `--platform linux/amd64`。
 
 ### 7. 线上部署更新（ECS）
 

@@ -5,7 +5,7 @@ export default defineNuxtRouteMiddleware((to) => {
   const authStore = useAuthStore()
 
   // Public pages that don't require auth
-  const publicPages = ['/login', '/register', '/forgot-password', '/reset-password']
+  const publicPages = ['/login', '/register', '/forgot-password', '/reset-password', '/privacy', '/terms']
 
   // Redirect logged-in users away from auth pages
   if (authStore.isLoggedIn && publicPages.includes(to.path)) {

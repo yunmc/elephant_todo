@@ -215,7 +215,6 @@ function resetAndClose() {
 
 .app-main {
   flex: 1;
-  padding-bottom: calc(var(--bottom-tab-height) + var(--safe-area-bottom));
 }
 
 // ---------- Bottom Nav ----------

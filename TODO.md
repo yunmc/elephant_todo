@@ -58,37 +58,41 @@
 
 ### 前置条件
 
-- [ ] **Apple Developer 账号**（$99/年）注册完成
-- [ ] **Mac 电脑** + Xcode 15+ 安装
+- [x] **Apple Developer 账号** — Personal Team 已登录 Xcode
+- [x] **Mac 电脑** + Xcode 26.3 + CocoaPods 1.16.2 已安装
 - [ ] **域名备案通过** + HTTPS 配置（certbot + Let's Encrypt）— iOS WebView 强制 HTTPS
-- [ ] **CocoaPods 安装**：`sudo gem install cocoapods`
+- [ ] **Apple Developer Program**（$99/年）— 上架 App Store 需付费账号
 
 ### Nuxt 项目适配
 
-- [ ] 安装 Capacitor 前端依赖（`@capacitor/core`, `@capacitor/status-bar` 等）
-- [ ] 创建 `plugins/capacitor.client.ts`（StatusBar / Keyboard / SplashScreen 集成）
-- [ ] 创建 `composables/useHaptics.ts`（触觉反馈）
-- [ ] CSS 适配：键盘高度变量 `--keyboard-height`、`.capacitor-ios` 平台样式
-- [ ] 验证 `viewport-fit=cover` 和 `safe-area-inset` 安全区域已正确处理（✅ 已有）
+- [x] 安装 Capacitor 前端依赖（`@capacitor/core`, `@capacitor/status-bar` 等）
+- [x] 创建 `plugins/capacitor.client.ts`（StatusBar / Keyboard / SplashScreen 集成）
+- [x] 创建 `composables/useHaptics.ts`（触觉反馈）
+- [x] CSS 适配：键盘高度变量、安全区域布局（`contentInset: 'never'` + CSS `env(safe-area-inset-*)` 统筹管理）
+- [x] 登录页 logo 替换为 App 图标（圆角）
+- [x] Naive UI 消息组件适配刘海/灵动岛安全区域
 
 ### Capacitor 子项目
 
-- [ ] 创建 `capacitor-app/` 目录，初始化 Capacitor 项目
-- [ ] 配置 `capacitor.config.ts`（远程加载模式，指向 HTTPS 域名）
-- [ ] `npx cap add ios` 添加 iOS 平台
-- [ ] 创建占位 `www/index.html`
+- [x] 创建 `capacitor-app/` 目录，初始化 Capacitor 项目
+- [x] 配置 `capacitor.config.ts`（开发阶段指向本地，上线改回 HTTPS 域名）
+- [x] `npx cap add ios` 添加 iOS 平台
+- [x] iOS 部署目标设为 15.0
+- [x] App 图标 1024×1024 已导入 Xcode 项目
+- [x] 模拟器测试通过（iPhone 16 - iOS 18.0）
 
 ### Xcode 配置
 
-- [ ] Bundle ID：`com.sigmalove.elephant`
-- [ ] Display Name：`Elephant Todo`
-- [ ] Deployment Target：iOS 15.0
-- [ ] Device Orientation：仅 Portrait
-- [ ] Signing：关联 Apple Developer Team，开启自动签名
+- [x] Bundle ID：`com.sigmalove.elephant`
+- [x] Display Name：`Elephant Todo`
+- [x] Deployment Target：iOS 15.0
+- [ ] Device Orientation：仅 Portrait（当前允许横屏，上架前改为仅竖屏）
+- [x] Signing：Personal Team 自动签名已配置（上架需升级付费账号）
 
 ### 资源准备
 
-- [ ] App 图标：1024×1024 源图（无圆角无透明）
+- [x] App 图标：1024×1024 已导入（无圆角无透明）
+- [x] 隐私政策页面（`/privacy`）、服务条款页面（`/terms`）已创建
 - [ ] 启动屏（LaunchScreen.storyboard）：品牌色 `#4f46e5` + Logo
 - [ ] App Store 截图（5 组设备尺寸：6.9" / 6.3" / 6.7" / 6.5" / 5.5"）
 - [ ] 截图页面建议：待办列表、随手记、密码本、记账、经期追踪/更多功能
@@ -98,6 +102,13 @@
 - [ ] 创建 App 记录（名称 / Bundle ID / SKU）
 - [ ] 填写 App 描述、关键词、类别（效率）、内容分级（4+）
 - [ ] 上传截图
-- [ ] 隐私政策 URL
+- [ ] 隐私政策 URL：`https://elephantodo.com/privacy`
 - [ ] Archive + 上传构建版本
 - [ ] 提交审核
+
+### 备案后待办
+
+- [ ] `capacitor.config.ts` 的 `server.url` 改回 `https://elephantodo.com`
+- [ ] 服务器配置 HTTPS（certbot + Let's Encrypt）
+- [ ] `Info.plist` 移除 `NSAllowsArbitraryLoads`（关闭 ATS 例外）
+- [ ] 注册 Apple Developer Program（$99/年）
