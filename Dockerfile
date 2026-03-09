@@ -9,8 +9,8 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Production stage
-FROM docker.m.daocloud.io/library/node:20-alpine AS runner
+# Production stage — 干净的 node:20-alpine（已推到自己的阿里云仓库）
+FROM registry.cn-shanghai.aliyuncs.com/sigmalove/node:20-alpine AS runner
 
 WORKDIR /app
 
@@ -18,13 +18,10 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nuxtjs
 
-# Copy built assets
+# Copy only built output and scripts
 COPY --from=builder /app/.output ./.output
-
-# Copy init-db script for optional manual init
 COPY --from=builder /app/scripts ./scripts
 
-# Set ownership
 RUN chown -R nuxtjs:nodejs /app
 
 USER nuxtjs
