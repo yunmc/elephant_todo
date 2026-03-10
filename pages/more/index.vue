@@ -21,6 +21,12 @@
         <span class="feature-desc">记录与预测周期</span>
       </NuxtLink>
 
+      <NuxtLink to="/checklist" class="feature-card">
+        <span class="feature-icon">☑️</span>
+        <span class="feature-name">每日打卡</span>
+        <span class="feature-desc">日常习惯追踪</span>
+      </NuxtLink>
+
       <NuxtLink to="/settings" class="feature-card">
         <span class="feature-icon">⚙️</span>
         <span class="feature-name">设置</span>
@@ -104,7 +110,7 @@
 
 .coming-soon-badge {
   font-size: 10px;
-  color: var(--color-primary, #4f46e5);
+  color: var(--color-primary);
   background: var(--color-bg-elevated);
   padding: 2px 8px;
   border-radius: 8px;

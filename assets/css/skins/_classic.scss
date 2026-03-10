@@ -1,0 +1,154 @@
+// ============================================================
+// 经典皮肤 (Classic Skin) — 日式暖色调
+// 所有颜色在此文件集中维护
+// :root = 浅色模式, .dark 系列 = 深色模式
+// ============================================================
+
+// ==================== 浅色模式 ====================
+:root {
+  // --- Brand / 主色 ---
+  --color-primary: #4a5a75;            // 藏青 — 主操作
+  --color-primary-hover: #3d4d66;
+  --color-primary-light: rgba(74, 90, 117, 0.10);
+  --color-accent: #c49850;             // 金色 — 强调 / CTA（高饱和）
+  --color-accent-hover: #b28842;
+  --color-accent-light: rgba(196, 152, 80, 0.10);
+
+  // --- Semantic / 语义色 ---
+  --color-success: #7a9e6e;            // 抹茶绿
+  --color-success-bg: rgba(122, 158, 110, 0.10);
+  --color-warning: #b8923e;             // 琥珀 — 区别于 accent 金色
+  --color-warning-bg: rgba(184, 146, 62, 0.12);
+  --color-danger: #bf6f65;             // 朱红（暖红）
+  --color-danger-bg: rgba(191, 111, 101, 0.10);
+
+  // --- Status / 状态 ---
+  --color-status-pending: #4a5a75;
+  --color-status-pending-bg: rgba(74, 90, 117, 0.10);
+  --color-status-completed: #7a9e6e;
+  --color-status-completed-bg: rgba(122, 158, 110, 0.10);
+
+  // --- Surfaces / 表面 ---
+  --color-bg: #f5f2ea;                 // 和纸色页面背景
+  --color-bg-card: #fffdf9;            // 暖白卡片
+  --color-bg-nav: rgba(245, 242, 234, 0.92);
+  --color-bg-elevated: #ffffff;            // 纯白浮层，与卡片拉开层级
+  --color-bg-input: #eae5dc;           // 输入框背景
+
+  // --- Text / 文字 ---
+  --color-text: #5d574f;               // 灰棕主文字
+  --color-text-secondary: #857f75;     // 次要文字（≥3.5:1 on card）
+  --color-text-muted: #b0a89c;         // 占位符 / 禁用
+  --color-text-inverse: #ffffff;       // 有色背景上的白色文字
+
+  // --- Border / 描边 ---
+  --color-border: rgba(120, 100, 70, 0.08);    // 暖色描边
+  --color-border-light: rgba(120, 100, 70, 0.04);
+
+  // --- Interactive / 交互 ---
+  --color-pill-active: #7a6e5e;        // 胶囊选中态（白字 ≥4.5:1）
+  --color-nav-gradient-end: #8e99b3;   // 底部导航渐变终点
+
+  // --- RGB 通道（用于 rgba 透明度变体）---
+  --color-primary-rgb: 74, 90, 117;
+
+  // --- Shadows / 阴影 ---
+  --shadow-sm: 0 1px 3px rgba(80, 60, 30, 0.06);    // 暖色阴影
+  --shadow-md: 0 2px 10px rgba(80, 60, 30, 0.08);
+  --shadow-lg: 0 4px 15px rgba(80, 60, 30, 0.10);
+}
+
+// ==================== 深色模式 ====================
+.dark,
+[data-theme='dark'],
+[data-app-theme='dark'] {
+  // --- Surfaces ---
+  --color-bg: #1a1a1c;
+  --color-bg-card: #2a2a2e;
+  --color-bg-nav: rgba(26, 26, 28, 0.92);
+  --color-bg-elevated: #333338;
+  --color-bg-input: #353538;
+
+  // --- Text ---
+  --color-text: #e8e4df;
+  --color-text-secondary: #9e988f;
+  --color-text-muted: #6b665e;
+  --color-text-inverse: #ffffff;
+
+  // --- Border ---
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-light: rgba(255, 255, 255, 0.03);
+
+  // --- Brand ---
+  --color-primary: #7b8da6;
+  --color-primary-hover: #8e9db3;
+  --color-primary-light: rgba(123, 141, 166, 0.15);
+  --color-accent: #d6a968;
+  --color-accent-hover: #c69958;
+  --color-accent-light: rgba(214, 169, 104, 0.12);
+
+  // --- Semantic ---
+  --color-success: #8ab87e;            // 抹茶绿
+  --color-success-bg: rgba(138, 184, 126, 0.12);
+  --color-warning: #d4a455;
+  --color-warning-bg: rgba(212, 164, 85, 0.12);
+  --color-danger: #d88d84;             // 暖红
+  --color-danger-bg: rgba(216, 141, 132, 0.12);
+
+  // --- Status ---
+  --color-status-pending: #7b8da6;
+  --color-status-pending-bg: rgba(123, 141, 166, 0.15);
+  --color-status-completed: #8ab87e;
+  --color-status-completed-bg: rgba(138, 184, 126, 0.12);
+
+  // --- Interactive ---
+  --color-pill-active: #6b6358;
+  --color-nav-gradient-end: #5a6a80;
+
+  // --- RGB 通道 ---
+  --color-primary-rgb: 123, 141, 166;
+
+  // --- Shadows ---
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+// 跟随系统深色模式
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']):not([data-app-theme='light']) {
+    --color-bg: #1a1a1c;
+    --color-bg-card: #2a2a2e;
+    --color-bg-nav: rgba(26, 26, 28, 0.92);
+    --color-bg-elevated: #333338;
+    --color-bg-input: #353538;
+    --color-text: #e8e4df;
+    --color-text-secondary: #9e988f;
+    --color-text-muted: #6b665e;
+    --color-text-inverse: #ffffff;
+    --color-border: rgba(255, 255, 255, 0.06);
+    --color-border-light: rgba(255, 255, 255, 0.03);
+    --color-primary: #7b8da6;
+    --color-primary-hover: #8e9db3;
+    --color-primary-light: rgba(123, 141, 166, 0.15);
+    --color-accent: #d6a968;
+    --color-accent-hover: #c69958;
+    --color-accent-light: rgba(214, 169, 104, 0.12);
+    --color-success: #8ab87e;
+    --color-success-bg: rgba(138, 184, 126, 0.12);
+    --color-warning: #d4a455;
+    --color-warning-bg: rgba(212, 164, 85, 0.12);
+    --color-danger: #d88d84;
+    --color-danger-bg: rgba(216, 141, 132, 0.12);
+    --color-status-pending: #7b8da6;
+    --color-status-pending-bg: rgba(123, 141, 166, 0.15);
+    --color-status-completed: #8ab87e;
+    --color-status-completed-bg: rgba(138, 184, 126, 0.12);
+    --color-pill-active: #6b6358;
+    --color-nav-gradient-end: #5a6a80;
+    --color-primary-rgb: 123, 141, 166;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+}

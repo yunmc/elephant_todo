@@ -284,7 +284,7 @@ function formatGeneratedAt(dateStr: string) {
 .report-tabs .tab {
   flex: 1;
   padding: 10px;
-  border: 1px solid var(--color-border, #e0e0e0);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm, 8px);
   background: var(--color-bg-card);
   color: var(--color-text);
@@ -294,9 +294,9 @@ function formatGeneratedAt(dateStr: string) {
 }
 
 .report-tabs .tab.active {
-  background: var(--color-primary, #18a058);
-  color: #fff;
-  border-color: var(--color-primary, #18a058);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-primary);
 }
 
 .date-selector {
@@ -311,7 +311,7 @@ function formatGeneratedAt(dateStr: string) {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1px solid var(--color-border, #e0e0e0);
+  border: 1px solid var(--color-border);
   background: var(--color-bg-card);
   color: var(--color-text);
   font-size: 16px;
@@ -368,12 +368,12 @@ function formatGeneratedAt(dateStr: string) {
 .report-card .suggestion {
   margin-top: 8px;
   font-size: 13px;
-  color: var(--color-primary, #18a058);
+  color: var(--color-primary);
 }
 
 .summary-card {
   background: linear-gradient(135deg, var(--color-bg-elevated), var(--color-bg-card));
-  border: 1px solid var(--color-border, #e0e0e0);
+  border: 1px solid var(--color-border);
 }
 
 .summary-card p {

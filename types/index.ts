@@ -38,6 +38,7 @@ export interface Category {
 export interface Tag {
   id: number
   name: string
+  color: string | null
   created_at: string
 }
 
@@ -348,6 +349,68 @@ export interface BudgetCategoryProgress {
   spent: number
   percentage: number
   status: 'normal' | 'warning' | 'over'
+}
+
+// ==================== Checklist ====================
+export interface ChecklistItem {
+  id: number
+  user_id: number
+  title: string
+  icon: string
+  sort_order: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ChecklistRecord {
+  id: number
+  item_id: number
+  user_id: number
+  check_date: string
+  checked_at: string
+}
+
+export interface ChecklistTodayItem extends ChecklistItem {
+  checked: boolean
+  checked_at: string | null
+}
+
+export interface ChecklistItemStats {
+  item_id: number
+  title: string
+  icon: string
+  checked_days: number
+  total_days: number
+  completion_rate: number
+  current_streak: number
+  longest_streak: number
+}
+
+export interface ChecklistOverallStats {
+  total_days: number
+  perfect_days: number
+  overall_rate: number
+  current_streak: number
+  longest_streak: number
+}
+
+export interface ChecklistHeatmapDay {
+  date: string
+  total: number
+  checked: number
+  rate: number
+}
+
+export interface ChecklistStats {
+  overall: ChecklistOverallStats
+  items: ChecklistItemStats[]
+  heatmap: ChecklistHeatmapDay[]
+}
+
+export interface ChecklistDayRecord {
+  date: string
+  items: { item_id: number; title: string; icon: string; checked: boolean }[]
 }
 
 // ==================== API Response ====================

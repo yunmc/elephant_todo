@@ -78,6 +78,7 @@ export const tags = mysqlTable('tags', {
   id: int('id').autoincrement().primaryKey(),
   user_id: int('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 50 }).notNull(),
+  color: varchar('color', { length: 20 }).default('#999999'),
   created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (t) => [
   uniqueIndex('uk_tags_user_name').on(t.user_id, t.name),
@@ -457,4 +458,37 @@ export const adminActivities = mysqlTable('admin_activities', {
 }, (t) => [
   index('idx_activity_status').on(t.status),
   index('idx_activity_dates').on(t.starts_at, t.ends_at),
+])
+
+// ══════════════════════════════════════════════════════════════
+// 26. checklist_items (migrate-006)
+// ══════════════════════════════════════════════════════════════
+
+export const checklistItems = mysqlTable('checklist_items', {
+  id: int('id').autoincrement().primaryKey(),
+  user_id: int('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 100 }).notNull(),
+  icon: varchar('icon', { length: 20 }).default('✅'),
+  sort_order: int('sort_order').notNull().default(0),
+  is_active: tinyint('is_active').notNull().default(1),
+  created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  updated_at: datetime('updated_at').notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
+}, (t) => [
+  index('idx_checklist_items_user').on(t.user_id, t.is_active, t.sort_order),
+])
+
+// ══════════════════════════════════════════════════════════════
+// 27. checklist_records (migrate-006)
+// ══════════════════════════════════════════════════════════════
+
+export const checklistRecords = mysqlTable('checklist_records', {
+  id: int('id').autoincrement().primaryKey(),
+  item_id: int('item_id').notNull().references(() => checklistItems.id, { onDelete: 'cascade' }),
+  user_id: int('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  check_date: date('check_date').notNull(),
+  checked_at: datetime('checked_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (t) => [
+  uniqueIndex('uq_checklist_records_item_date').on(t.item_id, t.check_date),
+  index('idx_checklist_records_user_date').on(t.user_id, t.check_date),
+  index('idx_checklist_records_item_date').on(t.item_id, t.check_date),
 ])

@@ -196,7 +196,7 @@ function formatDate(dateStr: string) {
   transform: scale(0.96);
 }
 .action-btn.save {
-  color: #fff;
+  color: var(--color-text-inverse);
   background: var(--color-primary);
   border-color: var(--color-primary);
   font-weight: 600;
@@ -237,7 +237,7 @@ function formatDate(dateStr: string) {
   min-height: 120px;
 }
 .inline-content:focus {
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
 }
 .inline-content::placeholder {
   color: var(--color-text-muted);
@@ -322,17 +322,17 @@ function formatDate(dateStr: string) {
   padding: 12px;
   margin-top: 8px;
   margin-bottom: 16px;
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-danger-bg);
   border: none;
   border-radius: var(--radius-md, 12px);
-  color: #ef4444;
+  color: var(--color-danger);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 }
 .delete-btn:active {
-  background: rgba(239, 68, 68, 0.18);
+  background: var(--color-danger-bg);
   transform: scale(0.98);
 }
 

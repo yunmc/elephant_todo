@@ -3,40 +3,17 @@
 // Mobile-first design system
 // ============================
 
-// ---------- Skin Variables ----------
+// ---------- Skin: 经典皮肤（默认）色彩变量 ----------
+@use 'skins/classic';
+// ---------- Skin: 其他主题皮肤 ----------
 @use 'skins/variables';
 
-// ---------- CSS Variables ----------
+// ---------- 字体 ----------
+@import '@fontsource/noto-sans-sc/300.css';
+@import '@fontsource/noto-sans-sc/400.css';
+
+// ---------- Layout & Design Tokens (非色彩) ----------
 :root {
-  // Brand Colors
-  --color-primary: #6366f1;
-  --color-primary-hover: #4f46e5;
-  --color-primary-light: #eef2ff;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
-
-  // Status Colors
-  --color-status-pending: #3b82f6;
-  --color-status-pending-bg: rgba(59, 130, 246, 0.1);
-  --color-status-completed: #22c55e;
-  --color-status-completed-bg: rgba(34, 197, 94, 0.1);
-
-  // Surfaces
-  --color-bg: #f8fafc;
-  --color-bg-card: #ffffff;
-  --color-bg-nav: rgba(255, 255, 255, 0.92);
-  --color-bg-elevated: #ffffff;
-
-  // Text
-  --color-text: #0f172a;
-  --color-text-secondary: #64748b;
-  --color-text-muted: #94a3b8;
-
-  // Border
-  --color-border: #e2e8f0;
-  --color-border-light: #f1f5f9;
-
   // Spacing
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
@@ -45,56 +22,14 @@
   --bottom-tab-height: 60px;
   --page-px: 16px;
 
-  // Shadows
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
-
   // Radius
-  --radius-sm: 8px;
+  --radius-sm: 6px;
   --radius-md: 12px;
   --radius-lg: 16px;
 
   // Transitions
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
-}
-
-// ---------- Dark Mode ----------
-.dark,
-[data-theme='dark'],
-[data-app-theme='dark'] {
-  --color-bg: #0f0f0f;
-  --color-bg-card: #1c1c1e;
-  --color-bg-nav: rgba(22, 22, 24, 0.92);
-  --color-bg-elevated: #2c2c2e;
-  --color-text: #f5f5f7;
-  --color-text-secondary: #98989d;
-  --color-text-muted: #636366;
-  --color-border: #38383a;
-  --color-border-light: #2c2c2e;
-  --color-primary-light: #312e81;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']):not([data-app-theme='light']) {
-    --color-bg: #0f0f0f;
-    --color-bg-card: #1c1c1e;
-    --color-bg-nav: rgba(22, 22, 24, 0.92);
-    --color-bg-elevated: #2c2c2e;
-    --color-text: #f5f5f7;
-    --color-text-secondary: #98989d;
-    --color-text-muted: #636366;
-    --color-border: #38383a;
-    --color-border-light: #2c2c2e;
-    --color-primary-light: #312e81;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
-  }
 }
 
 // ---------- Chrome Autofill Fix ----------
@@ -106,6 +41,12 @@ input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 1000px var(--color-bg-card) inset !important;
   transition: background-color 5000s ease-in-out 0s;
   caret-color: var(--color-text);
+}
+
+// ---------- Focus Visible ----------
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 // ---------- Reset & Base ----------
@@ -124,8 +65,8 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-family: 'Noto Sans SC', 'Hiragino Sans', 'PingFang SC', -apple-system, BlinkMacSystemFont,
+    'Microsoft YaHei', sans-serif;
   color: var(--color-text);
   background-color: var(--color-bg);
   background-image: var(--skin-bg-image, none);
@@ -177,9 +118,9 @@ button,
 // ---------- Page Title ----------
 .page-title {
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
   margin: 0 0 16px;
-  letter-spacing: -0.3px;
+  letter-spacing: 1px;
 }
 
 // ---------- Detail Page Header ----------
@@ -295,3 +236,210 @@ button,
 .n-notification-container {
   top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
 }
+
+// ============================================================
+// 可复用组件样式模板 — 日式简约设计体系
+// 页面中通过 class 直接引用，保证全局一致
+// ============================================================
+
+// ----- 卡片 -----
+.jp-card {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--shadow-md);
+  border: none;
+}
+
+// ----- 卡片标题 -----
+.jp-card-title {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--color-text);
+  margin: 0 0 15px;
+  display: flex;
+  align-items: center;
+
+  i {
+    font-style: normal;
+    margin-right: 8px;
+  }
+}
+
+// ----- 信息行 -----
+.jp-info-row {
+  display: flex;
+  margin-bottom: 12px;
+  font-size: 15px;
+  &:last-child { margin-bottom: 0; }
+}
+.jp-label {
+  width: 80px;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+.jp-value {
+  color: var(--color-text);
+}
+
+// ----- 列表行 -----
+.jp-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 15px;
+  & + .jp-list-row {
+    border-top: 1px solid var(--color-border);
+  }
+}
+.jp-list-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// ----- 添加行 -----
+.jp-add-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+// ----- 主按钮（藏青色） -----
+.jp-btn {
+  flex-shrink: 0;
+  min-width: auto;
+  height: auto;
+  padding: 8px 18px;
+  border: none;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  cursor: pointer;
+  min-height: auto;
+  font-family: inherit;
+  &:active { opacity: 0.8; }
+}
+
+// ----- 强调按钮（金色） -----
+.jp-btn-accent {
+  width: 100%;
+  height: auto;
+  padding: 13px;
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 400;
+  cursor: pointer;
+  min-height: auto;
+  font-family: inherit;
+  &:active { opacity: 0.85; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+// ----- 危险/删除文字 -----
+.jp-del {
+  background: none;
+  border: none;
+  color: var(--color-danger);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  min-height: auto;
+  min-width: auto;
+  font-family: inherit;
+  &:active { background: var(--color-danger-bg); }
+}
+
+// ----- 药丸切换按钮组 -----
+.jp-pill-group {
+  display: flex;
+  gap: 8px;
+}
+.jp-pill {
+  padding: 7px 18px;
+  font-size: 13px;
+  border-radius: 14px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  min-height: 0 !important;
+  min-width: 0 !important;
+  line-height: 1.4;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+
+  &.active {
+    background: var(--color-pill-active);
+    color: var(--color-text-inverse);
+    border-color: var(--color-pill-active);
+  }
+}
+
+// ----- 提示文字 -----
+.jp-hint {
+  font-size: 12px;
+  color: var(--color-accent);
+  line-height: 1.5;
+  margin: 10px 0 0;
+}
+
+// ----- 次要文字 -----
+.jp-muted {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+// ----- 圆点 -----
+.jp-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+// ----- Section 间距 -----
+.jp-section {
+  margin-bottom: 16px;
+}
+
+// ----- Naive UI 输入框覆盖 -----
+.jp-input-override {
+  :deep(.n-input) {
+    --n-border-radius: #{var(--radius-sm)} !important;
+    --n-color: var(--color-bg-input) !important;
+    --n-color-focus: var(--color-bg-input) !important;
+    --n-border: none !important;
+    --n-border-hover: none !important;
+    --n-border-focus: none !important;
+    --n-box-shadow-focus: none !important;
+    --n-font-size: 15px !important;
+    --n-placeholder-color: var(--color-text-secondary) !important;
+    --n-text-color: var(--color-text) !important;
+    --n-caret-color: var(--color-accent) !important;
+    --n-height: auto !important;
+    --n-padding-left: 14px !important;
+    --n-padding-right: 14px !important;
+  }
+  :deep(.n-input__input),
+  :deep(.n-input__textarea) {
+    padding: 10px 0 !important;
+  }
+  :deep(.n-input__eye) {
+    color: var(--color-text-secondary) !important;
+  }
+}
+
+// ----- Dark mode pill override -----
+// (已通过 --color-pill-active 变量在 _classic.scss 深色模式中统一管理)

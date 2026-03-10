@@ -263,7 +263,7 @@ function resetAndClose() {
 
 .nav-label {
   font-size: 10px;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .nav-add {
@@ -274,14 +274,14 @@ function resetAndClose() {
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary), #818cf8);
-  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-nav-gradient-end));
+  color: var(--color-text-inverse);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
   line-height: 1;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 12px var(--color-primary-light);
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 
   &:active {

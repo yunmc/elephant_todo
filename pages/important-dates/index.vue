@@ -276,16 +276,16 @@ function countdownClass(daysUntil?: number) {
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 10px;
-  background: rgba(99, 102, 241, 0.12);
+  background: var(--color-primary-light);
   color: var(--color-primary);
 }
 .date-tag.lunar {
-  background: rgba(234, 179, 8, 0.15);
-  color: #ca8a04;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 .date-tag.monthly {
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 .date-note {
   font-size: 12px;
@@ -316,10 +316,10 @@ function countdownClass(daysUntil?: number) {
   color: var(--color-text-muted);
 }
 .countdown.today .countdown-num {
-  color: #ef4444;
+  color: var(--color-danger);
 }
 .countdown.soon .countdown-num {
-  color: #f59e0b;
+  color: var(--color-warning);
 }
 
 .icon-picker {
@@ -344,6 +344,6 @@ function countdownClass(daysUntil?: number) {
 }
 .icon-btn.active {
   border-color: var(--color-primary);
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--color-primary-light);
 }
 </style>

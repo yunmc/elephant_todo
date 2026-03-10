@@ -86,9 +86,10 @@ function formatBudget(val: number) {
 }
 
 function progressColor(percentage: number): string {
-  if (percentage >= 100) return '#ef4444'
-  if (percentage >= 80) return '#f59e0b'
-  return '#10b981'
+  // 颜色需与 _classic.scss 皮肤语义色保持一致
+  if (percentage >= 100) return '#bf6f65'  // --color-danger
+  if (percentage >= 80) return '#b8923e'   // --color-warning
+  return '#7a9e6e'                         // --color-success
 }
 </script>
 
@@ -165,8 +166,8 @@ function progressColor(percentage: number): string {
   padding: 0 4px;
   border-radius: 4px;
 }
-.budget-status-badge.warning { color: #f59e0b; }
-.budget-status-badge.over { color: #ef4444; font-weight: 600; }
+.budget-status-badge.warning { color: var(--color-warning); }
+.budget-status-badge.over { color: var(--color-danger); font-weight: 600; }
 
 .budget-locked {
   background: var(--color-bg-card);

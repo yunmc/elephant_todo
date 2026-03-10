@@ -124,15 +124,18 @@ export interface TagRow extends RowDataPacket {
   id: number
   user_id: number
   name: string
+  color: string | null
   created_at: Date
 }
 
 export interface CreateTagDTO {
   name: string
+  color?: string
 }
 
 export interface UpdateTagDTO {
   name: string
+  color?: string
 }
 
 // ==================== Idea ====================
@@ -385,6 +388,37 @@ export interface UpdatePeriodRecordDTO {
   flow_level?: 'light' | 'moderate' | 'heavy'
   symptoms?: string[]
   note?: string
+}
+
+// ==================== Checklist ====================
+export interface ChecklistItemRow extends RowDataPacket {
+  id: number
+  user_id: number
+  title: string
+  icon: string
+  sort_order: number
+  is_active: number
+  created_at: Date
+  updated_at: Date
+}
+
+export interface CreateChecklistItemDTO {
+  title: string
+  icon?: string
+}
+
+export interface UpdateChecklistItemDTO {
+  title?: string
+  icon?: string
+  is_active?: number
+}
+
+export interface ChecklistRecordRow extends RowDataPacket {
+  id: number
+  item_id: number
+  user_id: number
+  check_date: Date
+  checked_at: Date
 }
 
 // ==================== Shop ====================

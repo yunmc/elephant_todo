@@ -1,160 +1,127 @@
 <template>
-  <div class="page-container">
-    <h1 class="page-title">设置</h1>
-
-    <!-- User Info -->
-    <div class="section-card">
-    <n-card title="账户信息" size="small">
-      <n-descriptions bordered :column="1" label-placement="left" v-if="authStore.user">
-        <n-descriptions-item label="用户名">{{ authStore.user.username }}</n-descriptions-item>
-        <n-descriptions-item label="邮箱">{{ authStore.user.email }}</n-descriptions-item>
-      </n-descriptions>
-    </n-card>
+  <div class="page-container jp-page">
+    <!-- ====== Header ====== -->
+    <div class="jp-header">
+      <div class="jp-header-content">
+        <img class="jp-header-icon" src="/elephant-icon.png" alt="logo" />
+        <h1 class="jp-header-title">設置</h1>
+      </div>
+      <p class="jp-header-ver">v1.0.0 · 🐘</p>
     </div>
 
-    <!-- Premium (Coming Soon) -->
-    <div class="section-card">
-      <n-card size="small" class="premium-card premium-card--free">
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 0;">
-          <div>
-            <div style="font-weight: 600; font-size: 15px; line-height: 1.6;">🐘 高级功能</div>
-            <div style="font-size: 13px; color: var(--color-text-muted); line-height: 1.6; margin-top: 4px;">更多高级功能正在开发中，敬请期待</div>
+    <!-- ====== 账户信息 ====== -->
+    <section class="jp-section">
+      <div class="jp-card">
+        <h3 class="jp-card-title"><i>👤</i> 账户信息</h3>
+        <template v-if="authStore.user">
+          <div class="jp-info-row">
+            <span class="jp-label">用户名</span>
+            <span class="jp-value">{{ authStore.user.username }}</span>
           </div>
-          <n-tag type="info" size="small" style="flex-shrink: 0; margin-left: 12px;">敬请期待</n-tag>
-        </div>
-      </n-card>
-    </div>
+          <div class="jp-info-row">
+            <span class="jp-label">邮箱</span>
+            <span class="jp-value">{{ authStore.user.email }}</span>
+          </div>
+        </template>
+      </div>
+    </section>
 
-    <!-- Category Management -->
-    <div class="section-card">
-    <n-card size="small">
-      <template #header>
-        <n-space align="center" :size="4">
-          <span>分类管理</span>
-          <n-tooltip style="max-width: 200px;">
-            <template #trigger>
-              <n-button text size="tiny" style="color: var(--n-text-color-3); font-size: 14px;">❓</n-button>
-            </template>
-            每个待办只能属于一个分类，适合按领域划分，如“工作”“生活”“学习”
-          </n-tooltip>
-        </n-space>
-      </template>
-      <n-spin v-if="categoriesStore.loading" style="display: flex; justify-content: center; padding: 16px 0;" />
-      <n-list v-else bordered>
-        <n-list-item v-for="cat in categoriesStore.categories" :key="cat.id">
-          <n-space justify="space-between" align="center" style="width: 100%;">
-            <n-space align="center">
-              <span :style="{ width: '12px', height: '12px', borderRadius: '50%', background: cat.color, display: 'inline-block' }"></span>
-              <n-text>{{ cat.name }}</n-text>
-            </n-space>
+    <!-- ====== 高级功能 ====== -->
+    <section class="jp-section">
+      <div class="jp-card jp-card--premium">
+        <div class="jp-card-title"><i>🍵</i> 高级功能 <span class="jp-premium-badge">敬请期待</span></div>
+        <p class="jp-muted">更多高级功能正在开发中，敬请期待</p>
+      </div>
+    </section>
+
+    <!-- ====== 分类管理 ====== -->
+    <section class="jp-section">
+      <div class="jp-card">
+        <h3 class="jp-card-title"><i>🍃</i> 分类管理</h3>
+        <n-spin v-if="categoriesStore.loading" style="display: flex; justify-content: center; padding: 16px 0;" />
+        <template v-else>
+          <div v-for="cat in categoriesStore.categories" :key="cat.id" class="jp-list-row">
+            <div class="jp-list-left">
+              <span class="jp-dot" :style="{ background: cat.color }"></span>
+              <span>{{ cat.name }}</span>
+            </div>
             <n-popconfirm positive-text="确认" negative-text="取消" @positive-click="handleDeleteCategory(cat.id)">
               <template #trigger>
-                <n-button text type="error" size="small">删除</n-button>
+                <button class="jp-del">删除</button>
               </template>
               删除分类「{{ cat.name }}」？
             </n-popconfirm>
-          </n-space>
-        </n-list-item>
-        <n-list-item>
-          <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+          </div>
+          <div class="jp-add-row">
             <n-input v-model:value="newCategoryName" placeholder="新分类名称" size="medium" style="flex: 1; min-width: 0;" @keyup.enter="handleAddCategory" />
             <input type="color" v-model="newCategoryColor" class="color-input" />
-            <n-button size="medium" type="primary" style="flex-shrink: 0; min-width: 56px;" @click="handleAddCategory">添加</n-button>
+            <button class="jp-btn" @click="handleAddCategory">添加</button>
           </div>
-        </n-list-item>
-      </n-list>
-    </n-card>
-    </div>
+        </template>
+      </div>
+    </section>
 
-    <!-- Tag Management -->
-    <div class="section-card">
-    <n-card size="small">
-      <template #header>
-        <n-space align="center" :size="4">
-          <span>标签管理</span>
-          <n-tooltip style="max-width: 200px;">
-            <template #trigger>
-              <n-button text size="tiny" style="color: var(--n-text-color-3); font-size: 14px;">❓</n-button>
-            </template>
-            每个待办可以打多个标签，适合横向标记，如“紧急”“周末”“需要资料”
-          </n-tooltip>
-        </n-space>
-      </template>
-      <n-spin v-if="tagsStore.loading" style="display: flex; justify-content: center; padding: 16px 0;" />
-      <n-list v-else bordered>
-        <n-list-item v-for="tag in tagsStore.tags" :key="tag.id">
-          <n-space justify="space-between" align="center" style="width: 100%;">
-            <n-text>{{ tag.name }}</n-text>
+    <!-- ====== 标签管理 ====== -->
+    <section class="jp-section">
+      <div class="jp-card">
+        <h3 class="jp-card-title"><i>🏷️</i> 标签管理</h3>
+        <n-spin v-if="tagsStore.loading" style="display: flex; justify-content: center; padding: 16px 0;" />
+        <template v-else>
+          <div v-for="tag in tagsStore.tags" :key="tag.id" class="jp-list-row">
+            <div class="jp-list-left">
+              <span class="jp-dot" :style="{ background: tag.color || 'var(--color-text-muted)' }"></span>
+              <span>{{ tag.name }}</span>
+            </div>
             <n-popconfirm positive-text="确认" negative-text="取消" @positive-click="handleDeleteTag(tag.id)">
               <template #trigger>
-                <n-button text type="error" size="small">删除</n-button>
+                <button class="jp-del">删除</button>
               </template>
               删除标签「{{ tag.name }}」？
             </n-popconfirm>
-          </n-space>
-        </n-list-item>
-        <n-list-item>
-          <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
-            <n-input v-model:value="newTagName" placeholder="新标签名称" size="medium" style="flex: 1;" @keyup.enter="handleAddTag" />
-            <n-button size="medium" type="primary" style="min-width: 56px;" @click="handleAddTag">添加</n-button>
           </div>
-        </n-list-item>
-      </n-list>
-    </n-card>
-    </div>
+          <div class="jp-add-row">
+            <n-input v-model:value="newTagName" placeholder="输入新标签" size="medium" style="flex: 1;" @keyup.enter="handleAddTag" />
+            <input type="color" v-model="newTagColor" class="color-input" />
+            <button class="jp-btn" @click="handleAddTag">添加</button>
+          </div>
+        </template>
+      </div>
+    </section>
 
-    <!-- Change Password -->
-    <div class="section-card">
-    <n-card title="修改密码" size="small">
-      <n-space vertical :size="12">
-        <n-input v-model:value="pwdForm.currentPassword" type="password" show-password-on="click" placeholder="当前密码" />
-        <n-input v-model:value="pwdForm.newPassword" type="password" show-password-on="click" placeholder="新密码 (至少6位)" />
-        <n-input v-model:value="pwdForm.confirmPassword" type="password" show-password-on="click" placeholder="确认新密码" />
-        <n-text depth="3" type="warning" style="font-size: 12px;">
-          ⚠️ 修改密码后，密码本将使用新密码重新加密。确保记住新密码。
-        </n-text>
-        <n-button type="warning" size="small" block :loading="changingPwd" @click="handleChangePassword">修改密码</n-button>
-      </n-space>
-    </n-card>
-    </div>
+    <!-- ====== 修改密码 ====== -->
+    <section class="jp-section">
+      <div class="jp-card">
+        <h3 class="jp-card-title"><i>🔑</i> 修改密码</h3>
+        <div class="jp-form-col">
+          <n-input v-model:value="pwdForm.currentPassword" type="password" show-password-on="click" placeholder="当前密码" />
+          <n-input v-model:value="pwdForm.newPassword" type="password" show-password-on="click" placeholder="新密码 (至少6位)" />
+          <n-input v-model:value="pwdForm.confirmPassword" type="password" show-password-on="click" placeholder="确认新密码" />
+        </div>
+        <p class="jp-hint">⚠ 修改密码后，密码本将使用新密码重新加密。确保记住新密码。</p>
+        <button class="jp-btn-primary" :disabled="changingPwd" @click="handleChangePassword">
+          {{ changingPwd ? '修改中...' : '修改密码' }}
+        </button>
+      </div>
+    </section>
 
-    <!-- Theme -->
-    <div class="section-card">
-    <n-card title="主题" size="small">
-      <ClientOnly>
-        <n-skeleton v-if="!themeReady" text :repeat="1" />
-        <n-space v-else>
-          <n-button
-            size="small"
-            :type="themeMode === 'system' ? 'primary' : 'default'"
-            :ghost="themeMode !== 'system'"
-            @click="handleThemeChange('system')"
-          >跟随系统</n-button>
-          <n-button
-            size="small"
-            :type="themeMode === 'light' ? 'primary' : 'default'"
-            :ghost="themeMode !== 'light'"
-            @click="handleThemeChange('light')"
-          >浅色</n-button>
-          <n-button
-            size="small"
-            :type="themeMode === 'dark' ? 'primary' : 'default'"
-            :ghost="themeMode !== 'dark'"
-            @click="handleThemeChange('dark')"
-          >深色</n-button>
-        </n-space>
-      </ClientOnly>
-    </n-card>
-    </div>
+    <!-- ====== 主题 ====== -->
+    <section class="jp-section">
+      <div class="jp-card">
+        <h3 class="jp-card-title"><i>☀️</i> 主题</h3>
+        <ClientOnly>
+          <n-skeleton v-if="!themeReady" text :repeat="1" />
+          <div v-else class="jp-theme-toggle">
+            <button class="jp-theme-item" :class="{ active: themeMode === 'system' }" @click="handleThemeChange('system')">跟随系统</button>
+            <button class="jp-theme-item" :class="{ active: themeMode === 'light' }" @click="handleThemeChange('light')">浅色</button>
+            <button class="jp-theme-item" :class="{ active: themeMode === 'dark' }" @click="handleThemeChange('dark')">深色</button>
+          </div>
+        </ClientOnly>
+      </div>
+    </section>
 
-    <!-- Logout -->
-    <n-button type="error" block ghost @click="handleLogout" style="margin-top: 20px;">
-      退出登录
-    </n-button>
-
-    <n-text depth="3" style="display: block; text-align: center; margin-top: 24px; font-size: 12px; padding-bottom: 8px;">
-      Elephant Todo v1.0.0 · 🐘
-    </n-text>
+    <!-- ====== 退出 ====== -->
+    <div class="jp-logout" @click="handleLogout">退出登录</div>
+    <p class="jp-footer">Elephant Todo v1.0.0 · 🐘</p>
   </div>
 </template>
 
@@ -202,11 +169,12 @@ async function handleDeleteCategory(id: number) {
 
 // === Tag ===
 const newTagName = ref('')
+const newTagColor = ref('#4a5a75')
 
 async function handleAddTag() {
   if (!newTagName.value.trim()) return
   try {
-    await tagsStore.createTag({ name: newTagName.value.trim() })
+    await tagsStore.createTag({ name: newTagName.value.trim(), color: newTagColor.value })
     newTagName.value = ''
     message.success('标签已添加')
   } catch (e: any) {
@@ -251,7 +219,6 @@ async function handleChangePassword() {
       currentPassword: pwdForm.currentPassword,
       newPassword: pwdForm.newPassword,
     }).then((res: any) => {
-      // Save new tokens to invalidate old sessions
       if (res?.data?.accessToken && res?.data?.refreshToken) {
         const authStore = useAuthStore()
         const accessTokenCookie = useCookie('accessToken', { maxAge: 60 * 60 * 24 * 7 })
@@ -261,7 +228,6 @@ async function handleChangePassword() {
       }
     })
 
-    // Re-encrypt vault entries
     const vaultStore = useVaultStore()
     if (vaultStore.entries.length) {
       try {
@@ -303,3 +269,180 @@ function handleLogout() {
   navigateTo('/login')
 }
 </script>
+
+<style scoped lang="scss">
+/* ========== Settings 页面 — 仅保留页面特有样式 ========== */
+/* 通用组件样式(jp-card/jp-btn/jp-list-row等)已沉淀到 main.scss */
+
+/* ========== Header ========== */
+.jp-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.jp-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 0 0;
+}
+.jp-header-icon {
+  width: 48px;
+  opacity: 0.65;
+}
+.jp-header-title {
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: 3px;
+  margin: 0;
+}
+.jp-header-ver {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  margin: 4px 0 0;
+}
+
+/* Premium card */
+.jp-card--premium {
+  background: var(--color-bg-elevated);
+  opacity: 0.8;
+}
+.jp-premium-badge {
+  font-size: 11px;
+  margin-left: auto;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+/* Form column */
+.jp-form-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Primary button (金色, settings专用) */
+.jp-btn-primary {
+  width: 100%;
+  height: auto;
+  padding: 13px;
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 400;
+  cursor: pointer;
+  margin-top: 15px;
+  min-height: auto;
+  font-family: inherit;
+  &:active { opacity: 0.85; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+/* Theme toggle (reuse jp-pill from global) */
+.jp-theme-toggle {
+  display: flex;
+  gap: 8px;
+}
+.jp-theme-item {
+  padding: 7px 18px;
+  font-size: 13px;
+  border-radius: 14px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  min-height: 0 !important;
+  min-width: 0 !important;
+  line-height: 1.4;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+
+  &.active {
+    background: var(--color-pill-active);
+    color: var(--color-text-inverse);
+    border-color: var(--color-pill-active);
+  }
+}
+
+/* Logout */
+.jp-logout {
+  text-align: center;
+  color: var(--color-danger);
+  margin-top: 30px;
+  font-size: 16px;
+  cursor: pointer;
+  letter-spacing: 1px;
+}
+
+/* Footer */
+.jp-footer {
+  text-align: center;
+  margin-top: 15px;
+  padding-bottom: 8px;
+  font-size: 10px;
+  color: var(--color-text-secondary);
+}
+
+/* Naive UI overrides */
+:deep(.n-input) {
+  --n-border-radius: 6px !important;
+  --n-color: var(--color-bg-input) !important;
+  --n-color-focus: var(--color-bg-input) !important;
+  --n-border: none !important;
+  --n-border-hover: none !important;
+  --n-border-focus: none !important;
+  --n-box-shadow-focus: none !important;
+  --n-font-size: 15px !important;
+  --n-placeholder-color: var(--color-text-secondary) !important;
+  --n-text-color: var(--color-text) !important;
+  --n-caret-color: var(--color-accent) !important;
+  --n-height: auto !important;
+  --n-padding-left: 14px !important;
+  --n-padding-right: 14px !important;
+
+  .n-input__input,
+  .n-input__textarea {
+    padding: 10px 0 !important;
+  }
+}
+:deep(.n-input__eye) {
+  color: var(--color-text-secondary) !important;
+}
+:deep(.n-spin-content) {
+  --n-color: var(--color-accent) !important;
+}
+:deep(.n-skeleton) {
+  --n-color: rgba(120, 100, 70, 0.04) !important;
+  --n-color-end: rgba(120, 100, 70, 0.08) !important;
+}
+
+/* Dark mode overrides (settings-specific) */
+:global(.dark) .jp-page,
+:global([data-theme='dark']) .jp-page,
+:global([data-app-theme='dark']) .jp-page {
+  .jp-card--premium {
+    background: var(--color-bg-elevated);
+    opacity: 0.9;
+  }
+
+  .jp-header-icon {
+    filter: invert(1);
+    opacity: 0.55;
+  }
+
+  .jp-theme-item {
+    border-color: var(--color-border);
+    &.active {
+      background: var(--color-pill-active);
+      border-color: var(--color-pill-active);
+    }
+  }
+
+  :deep(.n-skeleton) {
+    --n-color: rgba(255, 255, 255, 0.04) !important;
+    --n-color-end: rgba(255, 255, 255, 0.08) !important;
+  }
+}
+</style>

@@ -1,15 +1,24 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+const devServerUrl = process.env.CAP_SERVER_URL || 'http://localhost:3000';
+const devServerHost = (() => {
+  try {
+    return new URL(devServerUrl).hostname;
+  } catch {
+    return 'localhost';
+  }
+})();
+
 const config: CapacitorConfig = {
   appId: 'com.sigmalove.elephant',
   appName: 'Elephant Todo',
   webDir: 'www',
 
-  // 开发阶段：指向本地Nuxt开发服务器（上线前改回 https://elephantodo.com）
+  // 开发阶段：默认连本机 Nuxt 开发服务；真机调试可通过 CAP_SERVER_URL 覆盖。
   server: {
-    url: 'http://192.168.0.125:3001',
+    url: devServerUrl,
     cleartext: true,
-    allowNavigation: ['elephantodo.com', 'localhost', '192.168.0.125'],
+    allowNavigation: ['elephantodo.com', 'localhost', '127.0.0.1', devServerHost],
   },
 
   ios: {

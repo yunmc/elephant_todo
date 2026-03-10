@@ -59,6 +59,7 @@ CREATE TABLE tags (
   id         INT          AUTO_INCREMENT PRIMARY KEY,
   user_id    INT          NOT NULL,
   name       VARCHAR(50)  NOT NULL,
+  color      VARCHAR(20)  DEFAULT '#999999',
   created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uk_tags_user_name (user_id, name),
   KEY idx_tags_user_id (user_id),

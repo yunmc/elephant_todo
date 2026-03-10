@@ -68,6 +68,7 @@
           <span :class="['record-amount', record.type]">
             {{ record.type === 'income' ? '+' : '-' }}{{ formatMoney(record.amount) }}
           </span>
+          <n-button size="tiny" quaternary type="info" @click.stop="handleOpenEdit(record)">编辑</n-button>
           <n-popconfirm positive-text="删除" negative-text="取消" @positive-click="handleDelete(record.id)">
             <template #trigger>
               <n-button size="tiny" quaternary type="error" @click.stop>删除</n-button>
@@ -87,9 +88,9 @@
       />
     </n-space>
 
-    <!-- Add Record Modal -->
+    <!-- Add/Edit Record Modal -->
     <ClientOnly>
-      <n-modal v-model:show="showAddModal" preset="card" title="记一笔" :style="{ maxWidth: '500px', width: '100%' }">
+      <n-modal v-model:show="showAddModal" preset="card" :title="editingRecordId ? '编辑记录' : '记一笔'" :style="{ maxWidth: '500px', width: '100%' }">
         <n-form :model="form" label-placement="left" label-width="70">
           <n-form-item label="类型">
             <n-radio-group v-model:value="form.type">
@@ -106,7 +107,15 @@
               :options="categoryOptions"
               placeholder="选择分类"
               clearable
-            />
+              filterable
+            >
+              <template #action>
+                <div style="display: flex; gap: 6px; padding: 4px 0;">
+                  <n-input v-model:value="quickCategoryName" placeholder="输入新分类名" @keyup.enter="handleQuickAddCategory" />
+                  <n-button type="primary" :disabled="!quickCategoryName.trim()" @click="handleQuickAddCategory">添加</n-button>
+                </div>
+              </template>
+            </n-select>
           </n-form-item>
           <n-form-item label="日期">
             <n-date-picker v-model:value="form.record_date_ts" type="date" style="width: 100%;" />
@@ -116,7 +125,7 @@
           </n-form-item>
         </n-form>
         <template #action>
-          <n-button type="primary" :disabled="!form.amount || form.amount <= 0" @click="handleAdd">保存</n-button>
+          <n-button type="primary" :disabled="!form.amount || form.amount <= 0" @click="editingRecordId ? handleUpdate() : handleAdd()">保存</n-button>
         </template>
       </n-modal>
     </ClientOnly>
@@ -166,6 +175,7 @@ function handleOpenBudgetModal() {
 const showAddModal = ref(false)
 const showCategoryModal = ref(false)
 const filterType = ref<'income' | 'expense' | undefined>(undefined)
+const editingRecordId = ref<number | null>(null)
 
 // Month control
 const currentDate = ref(new Date())
@@ -190,7 +200,7 @@ const form = reactive({
 
 // When opening add modal, default date to selected month if not current month
 watch(showAddModal, (show) => {
-  if (show) {
+  if (show && !editingRecordId.value) {
     const now = new Date()
     const isCurrentMonth = currentYear.value === now.getFullYear() && currentMonth.value === now.getMonth() + 1
     if (isCurrentMonth) {
@@ -198,6 +208,9 @@ watch(showAddModal, (show) => {
     } else {
       form.record_date_ts = new Date(currentYear.value, currentMonth.value - 1, 1).getTime()
     }
+  }
+  if (!show) {
+    editingRecordId.value = null
   }
 })
 
@@ -209,6 +222,77 @@ const categoryOptions = computed(() =>
 
 const newCategoryName = ref('')
 const newCategoryType = ref<'income' | 'expense'>('expense')
+const quickCategoryName = ref('')
+
+// 预设分类图标映射，根据关键词自动匹配
+const CATEGORY_ICON_MAP: Record<string, string> = {
+  // 餐饮食品
+  '吃饭': '🍚', '餐饮': '🍴', '外卖': '🍱', '快餐': '🍔', '火锅': '🍲',
+  '零食': '🍬', '水果': '🍎', '饮料': '🧃', '咖啡': '☕', '茶': '🍵',
+  '奶茶': '🧁', '早餐': '🥐', '午餐': '🍜', '晚餐': '🍝', '孵酒': '🍺',
+  '酒': '🍷', '甜品': '🍰', '烘焙': '🥐', '食材': '🥦', '下午茶': '🧁',
+  // 出行交通
+  '打车': '🚕', '公交': '🚌', '地铁': '🚇', '加油': '⛽', '停车': '🅿️',
+  '高铁': '🚄', '飞机': '✈️', '出行': '🚶', '交通': '🚗', '共享单车': '🚲',
+  '共享': '🚲',
+  // 购物消费
+  '购物': '🛒', '超市': '🏪', '网购': '📦', '衣服': '👗', '鞋子': '👟',
+  '化妆品': '💄', '护肤': '🧴', '日用品': '🧹', '家居': '🛋️', '电子产品': '📱',
+  '数码': '📱', '电器': '📺',
+  // 居住生活
+  '房租': '🏠', '水电': '💡', '物业': '🏢', '缴费': '💳', '维修': '🔧',
+  '家政': '🧹', '电话费': '📞', '网费': '🌐', '燃气': '🔥',
+  // 娱乐休闲
+  '游戏': '🎮', '电影': '🎬', '音乐': '🎵', '旅行': '✈️', '旅游': '🏖️',
+  '运动': '🏋️', '健身': '💪', '书籍': '📚', '学习': '📖', '培训': '🎓',
+  '教育': '🎓', '课程': '📝',
+  // 社交人情
+  '红包': '🧧', '礼物': '🎁', '人情': '🎁', '请客': '🍽️', '约会': '💑',
+  '聚会': '🎉', '社交': '🤝',
+  // 医疗健康
+  '医疗': '🏥', '买药': '💊', '健康': '❤️', '保险': '🛡️', '体检': '🩺',
+  '看病': '🏥',
+  // 嬌物
+  '嬌物': '🐾', '猫': '🐱', '狗': '🐶',
+  // 其他支出
+  '投资': '📈', '理财': '💰', '股票': '📈', '基金': '📊',
+  '还款': '💳', '还贷': '🏦', '借贷': '🏦', '信用卡': '💳',
+  '工具': '🔧', '维护': '⚙️', '捐款': '❤️', '慈善': '❤️',
+  '罚款': '🚨', '税': '🏦', '税费': '🏦',
+  '按摩': '💆', '美容': '💇', '美发': '✂️', '理发': '✂️',
+  '充值': '🔋', '会员': '🌟',
+  // 收入类
+  '工资': '💵', '薪资': '💵', '奖金': '🏆', '兑换': '💱', '转账': '💱',
+  '抵扣': '🏷️', '退款': '💱', '副业': '💼', '兼职': '💼', '租金': '🏠',
+  '利息': '🏦', '分红': '💰', '抽奖': '🎰', '中奖': '🎉',
+}
+
+const DEFAULT_EXPENSE_ICON = '💸'
+const DEFAULT_INCOME_ICON = '💰'
+
+function matchCategoryIcon(name: string, type: 'income' | 'expense'): string {
+  // 精确匹配
+  if (CATEGORY_ICON_MAP[name]) return CATEGORY_ICON_MAP[name]
+  // 包含匹配
+  for (const [keyword, icon] of Object.entries(CATEGORY_ICON_MAP)) {
+    if (name.includes(keyword) || keyword.includes(name)) return icon
+  }
+  return type === 'income' ? DEFAULT_INCOME_ICON : DEFAULT_EXPENSE_ICON
+}
+
+async function handleQuickAddCategory() {
+  const name = quickCategoryName.value.trim()
+  if (!name) return
+  try {
+    const icon = matchCategoryIcon(name, form.type)
+    const cat = await financeStore.createCategory({ name, icon, type: form.type })
+    quickCategoryName.value = ''
+    if (cat) form.category_id = cat.id
+    message.success('分类已添加')
+  } catch (e: any) {
+    message.error(e?.data?.message || '添加分类失败')
+  }
+}
 
 // Data loading
 await useAsyncData('finance-init', async () => {
@@ -217,6 +301,18 @@ await useAsyncData('finance-init', async () => {
     loadData(),
   ])
   return true
+})
+
+// 自动修正旧分类的默认图标
+onMounted(async () => {
+  for (const cat of financeStore.categories) {
+    if (cat.icon === '💰') {
+      const betterIcon = matchCategoryIcon(cat.name, cat.type as 'income' | 'expense')
+      if (betterIcon !== '💰') {
+        await financeStore.updateCategory(cat.id, { icon: betterIcon })
+      }
+    }
+  }
 })
 
 async function loadData() {
@@ -282,6 +378,41 @@ async function handleAdd() {
   }
 }
 
+function handleOpenEdit(record: any) {
+  editingRecordId.value = record.id
+  form.type = record.type
+  form.amount = Number(record.amount)
+  form.category_id = record.category_id || null
+  form.note = record.note || ''
+  // Parse date string to timestamp, avoid timezone offset
+  const parts = record.record_date.split('T')[0].split('-')
+  form.record_date_ts = new Date(+parts[0], +parts[1] - 1, +parts[2]).getTime()
+  showAddModal.value = true
+}
+
+async function handleUpdate() {
+  if (!editingRecordId.value || !form.amount || form.amount <= 0) return
+  try {
+    const dateStr = new Date(form.record_date_ts).toISOString().split('T')[0]
+    await financeStore.updateRecord(editingRecordId.value, {
+      type: form.type,
+      amount: form.amount,
+      category_id: form.category_id || undefined,
+      note: form.note || undefined,
+      record_date: dateStr,
+    })
+    message.success('修改成功')
+    showAddModal.value = false
+    form.amount = null
+    form.note = ''
+    form.category_id = null
+    editingRecordId.value = null
+    await loadData()
+  } catch {
+    message.error('修改失败')
+  }
+}
+
 async function handleDelete(id: number) {
   try {
     await financeStore.deleteRecord(id)
@@ -294,8 +425,11 @@ async function handleDelete(id: number) {
 async function handleAddCategory() {
   if (!newCategoryName.value.trim()) return
   try {
+    const name = newCategoryName.value.trim()
+    const icon = matchCategoryIcon(name, newCategoryType.value)
     await financeStore.createCategory({
-      name: newCategoryName.value.trim(),
+      name,
+      icon,
       type: newCategoryType.value,
     })
     newCategoryName.value = ''
@@ -373,8 +507,8 @@ function formatDate(dateStr: string) {
   font-size: 16px;
   font-weight: 700;
 }
-.stat-card.income .stat-value { color: #10b981; }
-.stat-card.expense .stat-value { color: #ef4444; }
+.stat-card.income .stat-value { color: var(--color-success); }
+.stat-card.expense .stat-value { color: var(--color-danger); }
 .stat-card.balance .stat-value { color: var(--color-primary); }
 
 .filter-tabs {
@@ -396,7 +530,7 @@ function formatDate(dateStr: string) {
 }
 .tab.active {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-text-inverse);
   border-color: var(--color-primary);
 }
 
@@ -448,8 +582,8 @@ function formatDate(dateStr: string) {
   font-size: 16px;
   font-weight: 700;
 }
-.record-amount.income { color: #10b981; }
-.record-amount.expense { color: #ef4444; }
+.record-amount.income { color: var(--color-success); }
+.record-amount.expense { color: var(--color-danger); }
 
 .section-divider {
   margin-top: 16px;

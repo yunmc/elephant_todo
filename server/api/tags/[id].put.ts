@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    await TagModel.update(id, userId, { name })
+    await TagModel.update(id, userId, { name, color: body.color })
     const tag = await TagModel.findById(id, userId)
     return { success: true, data: tag }
   } catch (err: any) {

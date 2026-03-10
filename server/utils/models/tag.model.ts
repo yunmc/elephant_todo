@@ -20,12 +20,15 @@ export const TagModel = {
     const result = await getDb().insert(tags).values({
       user_id: userId,
       name: data.name,
+      ...(data.color ? { color: data.color } : {}),
     })
     return result[0].insertId
   },
 
   async update(id: number, userId: number, data: UpdateTagDTO): Promise<boolean> {
-    const result = await getDb().update(tags).set({ name: data.name })
+    const setData: Record<string, string> = { name: data.name }
+    if (data.color !== undefined) setData.color = data.color
+    const result = await getDb().update(tags).set(setData)
       .where(and(eq(tags.id, id), eq(tags.user_id, userId)))
     return result[0].affectedRows > 0
   },

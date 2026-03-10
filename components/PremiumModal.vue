@@ -108,7 +108,7 @@ function onClose() {
 
   &.active {
     border-color: var(--color-primary);
-    background: rgba(99, 102, 241, 0.06);
+    background: var(--color-primary-light);
   }
 }
 
@@ -119,7 +119,7 @@ function onClose() {
 
 .plan-badge {
   font-size: 12px;
-  color: #f59e0b;
+  color: var(--color-accent);
   margin-top: 4px;
 }
 </style>

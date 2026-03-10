@@ -194,7 +194,7 @@ useHead({
     border-top: 1px solid var(--color-border);
 
     a {
-      color: var(--color-primary, #6366f1);
+      color: var(--color-primary);
       text-decoration: none;
       font-size: 14px;
     }

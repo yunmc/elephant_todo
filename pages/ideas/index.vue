@@ -165,7 +165,7 @@ async function deleteIdea(ideaId: number) {
   font-size: 12px;
   padding: 3px 10px;
   border-radius: 12px;
-  background: rgba(99, 102, 241, 0.12);
+  background: var(--color-primary-light);
   color: var(--color-primary);
 }
 

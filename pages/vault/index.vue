@@ -2,7 +2,7 @@
   <div class="page-container">
     <!-- Master Password Gate -->
     <div v-if="!unlocked" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 16px; padding: 0 24px;">
-      <div style="width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #eef2ff, #e0e7ff); display: flex; align-items: center; justify-content: center;">
+      <div style="width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, var(--color-bg-input), var(--color-bg-elevated)); display: flex; align-items: center; justify-content: center;">
         <span style="font-size: 28px;">🔒</span>
       </div>
       <div style="text-align: center;">

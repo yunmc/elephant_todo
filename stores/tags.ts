@@ -17,7 +17,7 @@ export const useTagsStore = defineStore('tags', () => {
     }
   }
 
-  async function createTag(data: { name: string }) {
+  async function createTag(data: { name: string; color?: string }) {
     const res = await api.post<Tag>('/tags', data)
     if (res.data) {
       tags.value.push(res.data)
@@ -25,7 +25,7 @@ export const useTagsStore = defineStore('tags', () => {
     return res.data
   }
 
-  async function updateTag(id: number, data: { name: string }) {
+  async function updateTag(id: number, data: { name: string; color?: string }) {
     const res = await api.put<Tag>(`/tags/${id}`, data)
     if (res.data) {
       const idx = tags.value.findIndex((t) => t.id === id)

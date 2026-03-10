@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const id = await TagModel.create(userId, { name })
+    const id = await TagModel.create(userId, { name, color: body.color })
     const tag = await TagModel.findById(id, userId)
     setResponseStatus(event, 201)
     return { success: true, data: tag }

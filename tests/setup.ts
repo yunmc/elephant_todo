@@ -72,6 +72,9 @@ vi.stubGlobal('purchaseProduct', vi.fn())
 // ---------- Budget Model stubs ----------
 vi.stubGlobal('FinanceBudgetModel', {})
 
+// ---------- Checklist Model stubs ----------
+vi.stubGlobal('ChecklistModel', {})
+
 // ---------- Admin stubs ----------
 vi.stubGlobal('requireAdminAuth', vi.fn(() => ({ adminId: 1, role: 'super_admin' })))
 vi.stubGlobal('requireSuperAdminAuth', vi.fn(() => ({ adminId: 1, role: 'super_admin' })))

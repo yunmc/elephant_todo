@@ -418,7 +418,7 @@ function formatFullDate(dateStr: string) {
   transform: scale(0.96);
 }
 .action-btn.save {
-  color: #fff;
+  color: var(--color-text-inverse);
   background: var(--color-primary);
   border-color: var(--color-primary);
   font-weight: 600;
@@ -569,7 +569,7 @@ function formatFullDate(dateStr: string) {
   min-width: 20px;
   height: 20px;
   border-radius: 10px;
-  background: rgba(99, 102, 241, 0.12);
+  background: var(--color-primary-light);
   color: var(--color-primary);
   font-size: 12px;
   font-weight: 600;
@@ -584,7 +584,7 @@ function formatFullDate(dateStr: string) {
 }
 .subtask-progress-fill {
   height: 100%;
-  background: var(--color-status-completed, #22c55e);
+  background: var(--color-status-completed);
   border-radius: 2px;
   transition: width 0.3s ease;
 }
@@ -622,9 +622,9 @@ function formatFullDate(dateStr: string) {
   transition: all 0.2s;
 }
 .subtask-check .check-circle.checked {
-  background: var(--color-status-completed, #22c55e);
-  border-color: var(--color-status-completed, #22c55e);
-  color: #fff;
+  background: var(--color-status-completed);
+  border-color: var(--color-status-completed);
+  color: var(--color-text-inverse);
 }
 .subtask-title {
   font-size: 14px;
@@ -665,7 +665,7 @@ function formatFullDate(dateStr: string) {
 }
 .subtask-del:active {
   opacity: 1;
-  color: #ef4444;
+  color: var(--color-danger);
 }
 .add-subtask {
   display: flex;
@@ -694,7 +694,7 @@ function formatFullDate(dateStr: string) {
 .add-subtask-btn {
   flex-shrink: 0;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-text-inverse);
   border: none;
   border-radius: var(--radius-sm, 8px);
   padding: 8px 16px;
@@ -713,7 +713,7 @@ function formatFullDate(dateStr: string) {
   min-width: 20px;
   height: 20px;
   border-radius: 10px;
-  background: rgba(99, 102, 241, 0.12);
+  background: var(--color-primary-light);
   color: var(--color-primary);
   font-size: 12px;
   font-weight: 600;
@@ -772,17 +772,17 @@ function formatFullDate(dateStr: string) {
   padding: 12px;
   margin-top: 8px;
   margin-bottom: 16px;
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-danger-bg);
   border: none;
   border-radius: var(--radius-md, 12px);
-  color: #ef4444;
+  color: var(--color-danger);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 }
 .delete-btn:active {
-  background: rgba(239, 68, 68, 0.18);
+  background: var(--color-danger-bg);
   transform: scale(0.98);
 }
 </style>

@@ -263,7 +263,7 @@ async function handleToggle(todoId: number) {
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  color: #fff;
+  color: var(--color-text-inverse);
   transition: all var(--transition-fast);
 
   &.checked {
@@ -310,12 +310,12 @@ async function handleToggle(todoId: number) {
   font-weight: 500;
 
   &.status-done {
-    background: rgba(34, 197, 94, 0.1);
-    color: var(--color-success, #22c55e);
+    background: var(--color-success-bg);
+    color: var(--color-success);
   }
   &.status-pending {
-    background: rgba(245, 158, 11, 0.1);
-    color: var(--color-warning, #f59e0b);
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
   }
 }
 
@@ -326,11 +326,11 @@ async function handleToggle(todoId: number) {
   background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
 
-  &.priority-high { color: var(--color-danger); background: rgba(239, 68, 68, 0.1); }
-  &.priority-medium { color: var(--color-warning); background: rgba(245, 158, 11, 0.1); }
+  &.priority-high { color: var(--color-danger); background: var(--color-danger-bg); }
+  &.priority-medium { color: var(--color-warning); background: var(--color-warning-bg); }
   &.priority-low { color: var(--color-text-muted); }
-  &.overdue { color: var(--color-danger); background: rgba(239, 68, 68, 0.1); }
-  &.category { background: rgba(99, 102, 241, 0.1); }
+  &.overdue { color: var(--color-danger); background: var(--color-danger-bg); }
+  &.category { background: var(--color-primary-light); }
 }
 
 .todo-tags {
@@ -344,7 +344,7 @@ async function handleToggle(todoId: number) {
   font-size: 10px;
   padding: 1px 6px;
   border-radius: 4px;
-  background: rgba(99, 102, 241, 0.12);
+  background: var(--color-primary-light);
   color: var(--color-primary);
 }
 
@@ -354,7 +354,7 @@ async function handleToggle(todoId: number) {
   height: 20px;
   border-radius: 50%;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-text-inverse);
   font-size: 11px;
   display: flex;
   align-items: center;
