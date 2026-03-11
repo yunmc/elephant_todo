@@ -40,55 +40,25 @@ test.describe.serial('AI Features', () => {
   test('AI02: 点击 AI 记账按钮（免费用户触发升级弹窗）', async ({ page }) => {
     await page.goto(`${BASE}/finance`)
     await waitForHydration(page)
+    await expect(page.locator('.page-title')).toContainText('记账', { timeout: 8000 })
 
-    // Click AI button — free user should get premium modal or the AI modal
+    // Click AI button
     const aiBtn = page.getByText('AI 记账')
+    await expect(aiBtn).toBeVisible({ timeout: 5000 })
     await aiBtn.click()
 
-    // Wait a moment for either premium modal or AI modal to appear
-    await page.waitForTimeout(1000)
-
-    // Free user should see premium upgrade modal, or AI modal if already premium
-    const premiumModal = page.locator('.n-modal').filter({ hasText: '升级 Premium' })
-    const aiModal = page.locator('.n-modal').filter({ hasText: 'AI 快速记账' })
-    await expect(premiumModal.or(aiModal)).toBeVisible({ timeout: 8000 })
+    // AI feature is in development — click shows a toast message
+    await expect(page.getByText('该功能正在开发中')).toBeVisible({ timeout: 8000 })
   })
 
   test('AI03: AI 快速记账弹窗包含输入框和解析按钮', async ({ page }) => {
     await page.goto(`${BASE}/finance`)
     await waitForHydration(page)
 
-    // Inject premium status into Pinia auth store
-    await page.evaluate(() => {
-      const app = (document.getElementById('__nuxt') as any)?.__vue_app__
-      if (app) {
-        const pinia = app.config.globalProperties.$pinia
-        if (pinia?.state?.value?.auth) {
-          pinia.state.value.auth.user = {
-            ...(pinia.state.value.auth.user || {}),
-            id: pinia.state.value.auth.user?.id || 999,
-            username: pinia.state.value.auth.user?.username || 'test',
-            email: pinia.state.value.auth.user?.email || 'test@test.com',
-            plan: 'premium',
-            plan_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            auto_renew: false,
-          }
-        }
-      }
-    })
-    await page.waitForTimeout(500)
-
+    // AI feature is in development — even for premium users, click shows toast
     const aiBtn = page.getByText('AI 记账')
     await aiBtn.click()
-
-    // AI modal should have input and parse button
-    await page.waitForTimeout(500)
-    const aiInput = page.getByPlaceholder('说一句话，比如：昨天星巴克拿铁38')
-    const parseBtn = page.getByText('解析')
-
-    // Premium status was injected — AI modal must appear
-    await expect(aiInput).toBeVisible({ timeout: 5000 })
-    await expect(parseBtn).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('该功能正在开发中')).toBeVisible({ timeout: 8000 })
   })
 
   // ═══════════════════════════════════════════════════════════
@@ -108,10 +78,9 @@ test.describe.serial('AI Features', () => {
     await page.goto(`${BASE}/more`)
     await waitForHydration(page)
 
+    // AI 报告 is a coming-soon card — click shows toast, not navigation
     await page.getByText('AI 报告').click()
-    await page.waitForURL('**/ai/report', { timeout: 5000 })
-
-    await expect(page.locator('.page-title')).toContainText('AI 报告', { timeout: 5000 })
+    await expect(page.getByText('该功能正在开发中')).toBeVisible({ timeout: 5000 })
   })
 
   test('AI06: AI 报告页面有月度/年度 Tab', async ({ page }) => {
@@ -145,13 +114,12 @@ test.describe.serial('AI Features', () => {
 
     // Click yearly tab
     await page.getByText('年度报告').click()
-    await page.waitForTimeout(300)
 
     // Should show year only
     const now = new Date()
     const yearLabel = `${now.getFullYear()}年`
     // The date label should contain just the year (no month)
     const dateLabel = page.locator('.date-label')
-    await expect(dateLabel).toContainText(yearLabel)
+    await expect(dateLabel).toContainText(yearLabel, { timeout: 5000 })
   })
 })

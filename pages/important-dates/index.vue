@@ -110,6 +110,12 @@ const message = useMessage()
 const showModal = ref(false)
 const editingId = ref<number | null>(null)
 
+// Register page-specific "+" action
+useGlobalAdd(() => {
+  editingId.value = null
+  showModal.value = true
+})
+
 const iconOptions = ['📅', '🎂', '💍', '🎓', '🏠', '✈️', '❤️', '⭐', '🎄', '🌸', '👶', '🎁']
 
 const remindOptions = [

@@ -31,6 +31,10 @@ export const UserModel = {
     await getDb().update(users).set({ password: hashedPassword }).where(eq(users.id, id))
   },
 
+  async updateUsername(id: number, username: string): Promise<void> {
+    await getDb().update(users).set({ username }).where(eq(users.id, id))
+  },
+
   async getVaultSalt(id: number): Promise<string | null> {
     const rows = await getDb().select({ vault_salt: users.vault_salt }).from(users)
       .where(eq(users.id, id))

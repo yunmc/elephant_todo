@@ -6,7 +6,16 @@ import type { VaultDecryptedData } from '~/types'
  * Salt is per-user (random, stored on server) to prevent cross-user key reuse.
  */
 export function useVaultCrypto() {
-  const ITERATIONS = 100000
+  let iterations = 100000
+  try {
+    const config = useRuntimeConfig()
+    if (config.public?.pbkdf2Iterations) {
+      iterations = Number(config.public.pbkdf2Iterations)
+    }
+  } catch {
+    // Outside Nuxt context (e.g., unit tests) — use default
+  }
+  const ITERATIONS = iterations
   const KEY_LENGTH = 256
 
   /** Generate a random 16-byte salt for new users, returned as base64 */

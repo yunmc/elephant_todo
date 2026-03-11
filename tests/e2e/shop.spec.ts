@@ -184,7 +184,8 @@ test.describe.serial('Shop Flow', () => {
 
     // 筛选皮肤 tab
     await page.locator('.tab', { hasText: '皮肤' }).click()
-    await page.waitForTimeout(1000)
+    // Wait for products to load after tab switch
+    await expect(page.locator('.product-card').first()).toBeVisible({ timeout: 5000 })
 
     // 找到没有 .free-badge 和 .owned-badge 的付费商品卡
     const allCards = page.locator('.product-card')
@@ -228,7 +229,8 @@ test.describe.serial('Shop Flow', () => {
 
     // 筛选皮肤 tab
     await page.locator('.tab', { hasText: '皮肤' }).click()
-    await page.waitForTimeout(1000)
+    // Wait for products to load after tab switch
+    await expect(page.locator('.product-card').first()).toBeVisible({ timeout: 5000 })
 
     // 找到带有 .owned-badge 但不带 .free-badge 的商品卡（付费已拥有）
     // 注意：当 product.owned 为 true 时，free-badge 不会显示（v-else-if），
@@ -331,11 +333,10 @@ test.describe.serial('Shop Flow', () => {
     await waitForHydration(page)
 
     await expect(page.getByText('手帐商店')).toBeVisible({ timeout: 8000 })
-    await expect(page.getByText('我的仓库')).toBeVisible()
+    await expect(page.getByText('密码本')).toBeVisible()
 
-    // 点击"手帐商店"应导航到 /shop
+    // "手帐商店" is a coming-soon card — click shows toast, not navigation
     await page.getByText('手帐商店').click()
-    await page.waitForURL('**/shop', { timeout: 5000 })
-    await expect(page.locator('.page-title')).toContainText('手帐商店', { timeout: 5000 })
+    await expect(page.getByText('该功能正在开发中')).toBeVisible({ timeout: 5000 })
   })
 })

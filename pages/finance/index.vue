@@ -130,35 +130,18 @@
       </n-modal>
     </ClientOnly>
 
-    <!-- Category Management -->
-    <div class="section-divider">
-      <button class="manage-categories-btn" @click="showCategoryModal = true">管理分类</button>
-    </div>
-
-    <ClientOnly>
-      <n-modal v-model:show="showCategoryModal" preset="card" title="管理记账分类" :style="{ maxWidth: '500px', width: '100%' }">
-        <div class="category-form" style="margin-bottom: 16px;">
-          <n-input v-model:value="newCategoryName" placeholder="新分类名称" style="flex: 1;" />
-          <n-select v-model:value="newCategoryType" :options="[{ label: '支出', value: 'expense' }, { label: '收入', value: 'income' }]" style="width: 100px;" />
-          <n-button type="primary" :disabled="!newCategoryName.trim()" @click="handleAddCategory">添加</n-button>
-        </div>
-        <div class="categories-list">
-          <div v-for="cat in financeStore.categories" :key="cat.id" class="category-item">
-            <span>{{ cat.icon }} {{ cat.name }}</span>
-            <span class="cat-type">{{ cat.type === 'income' ? '收入' : '支出' }}</span>
-            <n-button size="tiny" quaternary type="error" @click="handleDeleteCategory(cat.id)">删除</n-button>
-          </div>
-          <n-empty v-if="financeStore.categories.length === 0" description="暂无分类" />
-        </div>
-      </n-modal>
-    </ClientOnly>
-
     <!-- AI Quick Entry -->
   </div>
 </template>
 
 <script setup lang="ts">
 const financeStore = useFinanceStore()
+
+// Register page-specific "+" action
+useGlobalAdd(() => {
+  editingRecordId.value = null
+  showAddModal.value = true
+})
 const message = useMessage()
 
 const showAiEntry = ref(false)
@@ -173,7 +156,6 @@ function handleOpenBudgetModal() {
 }
 
 const showAddModal = ref(false)
-const showCategoryModal = ref(false)
 const filterType = ref<'income' | 'expense' | undefined>(undefined)
 const editingRecordId = ref<number | null>(null)
 
@@ -220,8 +202,6 @@ const categoryOptions = computed(() =>
     .map((c) => ({ label: `${c.icon} ${c.name}`, value: c.id })),
 )
 
-const newCategoryName = ref('')
-const newCategoryType = ref<'income' | 'expense'>('expense')
 const quickCategoryName = ref('')
 
 // 预设分类图标映射，根据关键词自动匹配
@@ -422,33 +402,6 @@ async function handleDelete(id: number) {
   }
 }
 
-async function handleAddCategory() {
-  if (!newCategoryName.value.trim()) return
-  try {
-    const name = newCategoryName.value.trim()
-    const icon = matchCategoryIcon(name, newCategoryType.value)
-    await financeStore.createCategory({
-      name,
-      icon,
-      type: newCategoryType.value,
-    })
-    newCategoryName.value = ''
-    message.success('分类已添加')
-  } catch (e: any) {
-    message.error(e?.data?.message || '添加分类失败')
-  }
-}
-
-async function handleDeleteCategory(id: number) {
-  try {
-    await financeStore.deleteCategory(id)
-    await loadData()
-    message.success('分类已删除')
-  } catch {
-    message.error('删除分类失败')
-  }
-}
-
 function formatMoney(val: number) {
   return Number(val).toFixed(2)
 }
@@ -584,47 +537,4 @@ function formatDate(dateStr: string) {
 }
 .record-amount.income { color: var(--color-success); }
 .record-amount.expense { color: var(--color-danger); }
-
-.section-divider {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-border);
-  text-align: center;
-}
-.manage-categories-btn {
-  background: none;
-  border: none;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  cursor: pointer;
-  text-decoration: underline;
-  min-height: auto;
-  min-width: auto;
-}
-
-.category-form {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.categories-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.category-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--color-bg-elevated);
-  border-radius: var(--radius-sm, 8px);
-  font-size: 14px;
-  color: var(--color-text);
-}
-.cat-type {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  margin-left: auto;
-}
 </style>

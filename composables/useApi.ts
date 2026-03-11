@@ -36,6 +36,7 @@ export function useApi() {
         method: (options.method || 'GET') as any,
         headers,
         body: options.body,
+        timeout: 30000,
       })
       return response
     } catch (error: any) {
@@ -49,6 +50,7 @@ export function useApi() {
             method: (options.method || 'GET') as any,
             headers,
             body: options.body,
+            timeout: 30000,
           })
           return retryResponse
         } else {

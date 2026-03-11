@@ -23,7 +23,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: '旧密码错误' })
   }
 
-  const hashedPassword = await bcrypt.hash(newPassword, 12)
+  const { bcryptRounds } = useRuntimeConfig()
+  const hashedPassword = await bcrypt.hash(newPassword, Number(bcryptRounds))
   await UserModel.updatePassword(user.id, hashedPassword)
 
   // Issue new tokens to invalidate old sessions

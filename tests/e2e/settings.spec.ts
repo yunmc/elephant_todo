@@ -28,7 +28,11 @@ test.describe.serial('Settings', () => {
   test('S01: category CRUD — add and delete', async ({ page }) => {
     await page.goto(`${BASE}/settings`)
     await waitForHydration(page)
-    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+    await expect(page.locator('.jp-header-title')).toContainText('設置', { timeout: 8000 })
+
+    // Expand collapsed category section
+    await page.locator('.jp-card-title--toggle', { hasText: '分类管理' }).click()
+    await expect(page.getByPlaceholder('新分类名称')).toBeVisible({ timeout: 3000 })
 
     const catName = `E2E分类_${Date.now()}`
 
@@ -36,24 +40,26 @@ test.describe.serial('Settings', () => {
     await page.getByPlaceholder('新分类名称').fill(catName)
 
     // Click "添加" for category and verify API succeeds
-    const catSection = page.locator('.section-card').filter({ hasText: '分类管理' })
+    const catSection = page.locator('.jp-card').filter({ hasText: '分类管理' })
     const [catResp] = await Promise.all([
       page.waitForResponse(resp => resp.url().includes('/api/categories') && resp.request().method() === 'POST', { timeout: 10000 }),
       catSection.getByRole('button', { name: '添加' }).click(),
     ])
     expect(catResp.ok(), `Category create API failed: ${catResp.status()}`).toBe(true)
-    await page.waitForTimeout(2000)
 
     // Verify category appears in list
     await expect(catSection.getByText(catName)).toBeVisible({ timeout: 5000 })
 
     // Delete — find the list item with our category and click 删除
-    const catItem = catSection.locator('.n-list-item').filter({ hasText: catName })
+    const catItem = catSection.locator('.jp-list-row').filter({ hasText: catName })
     await catItem.getByRole('button', { name: '删除' }).click()
 
     // Confirm popconfirm
-    await page.getByRole('button', { name: '确认' }).click()
-    await page.waitForTimeout(2000)
+    const [delResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/categories') && resp.request().method() === 'DELETE', { timeout: 10000 }),
+      page.getByRole('button', { name: '确认' }).click(),
+    ])
+    expect(delResp.ok()).toBe(true)
 
     // Verify gone
     await expect(catSection.getByText(catName)).not.toBeVisible({ timeout: 5000 })
@@ -62,28 +68,38 @@ test.describe.serial('Settings', () => {
   test('S02: tag CRUD — add and delete', async ({ page }) => {
     await page.goto(`${BASE}/settings`)
     await waitForHydration(page)
-    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+    await expect(page.locator('.jp-header-title')).toContainText('設置', { timeout: 8000 })
+
+    // Expand collapsed tag section
+    await page.locator('.jp-card-title--toggle', { hasText: '标签管理' }).click()
+    await expect(page.getByPlaceholder('输入新标签')).toBeVisible({ timeout: 3000 })
 
     const tagName = `E2E标签_${Date.now()}`
 
     // Type new tag name
-    await page.getByPlaceholder('新标签名称').fill(tagName)
+    await page.getByPlaceholder('输入新标签').fill(tagName)
 
     // Click "添加" for tag
-    const tagSection = page.locator('.section-card').filter({ hasText: '标签管理' })
-    await tagSection.getByRole('button', { name: '添加' }).click()
-    await page.waitForTimeout(2000)
+    const tagSection = page.locator('.jp-card').filter({ hasText: '标签管理' })
+    const [tagResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/tags') && resp.request().method() === 'POST', { timeout: 10000 }),
+      tagSection.getByRole('button', { name: '添加' }).click(),
+    ])
+    expect(tagResp.ok()).toBe(true)
 
     // Verify tag appears
     await expect(tagSection.getByText(tagName)).toBeVisible({ timeout: 5000 })
 
     // Delete
-    const tagItem = tagSection.locator('.n-list-item').filter({ hasText: tagName })
+    const tagItem = tagSection.locator('.jp-list-row').filter({ hasText: tagName })
     await tagItem.getByRole('button', { name: '删除' }).click()
 
     // Confirm popconfirm
-    await page.getByRole('button', { name: '确认' }).click()
-    await page.waitForTimeout(2000)
+    const [delResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/tags') && resp.request().method() === 'DELETE', { timeout: 10000 }),
+      page.getByRole('button', { name: '确认' }).click(),
+    ])
+    expect(delResp.ok()).toBe(true)
 
     // Verify gone
     await expect(tagSection.getByText(tagName)).not.toBeVisible({ timeout: 5000 })
@@ -92,7 +108,11 @@ test.describe.serial('Settings', () => {
   test('S03: change password flow', async ({ page }) => {
     await page.goto(`${BASE}/settings`)
     await waitForHydration(page)
-    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+    await expect(page.locator('.jp-header-title')).toContainText('設置', { timeout: 8000 })
+
+    // Expand collapsed password section
+    await page.locator('.jp-card-title--toggle', { hasText: '修改密码' }).click()
+    await expect(page.getByPlaceholder('当前密码')).toBeVisible({ timeout: 3000 })
 
     const newPwd = 'NewPass789'
 
@@ -101,11 +121,13 @@ test.describe.serial('Settings', () => {
     await page.getByPlaceholder('新密码 (至少6位)').fill(newPwd)
     await page.getByPlaceholder('确认新密码').fill(newPwd)
 
-    // Click "修改密码"
-    await page.getByRole('button', { name: '修改密码' }).click()
-    await page.waitForTimeout(3000)
+    // Click "修改密码" and wait for API
+    const [changePwdResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/auth/change-password') && resp.request().method() === 'POST', { timeout: 15000 }),
+      page.getByRole('button', { name: '修改密码' }).click(),
+    ])
+    expect(changePwdResp.ok()).toBe(true)
 
-    // After changing password, new tokens are saved — user stays logged in
     // Clear cookies to simulate fresh login
     await page.context().clearCookies()
 
@@ -115,44 +137,43 @@ test.describe.serial('Settings', () => {
 
     await page.getByPlaceholder('请输入邮箱').fill(creds.email)
     await page.getByPlaceholder('请输入密码').fill(newPwd)
-    await page.getByRole('button', { name: '登录' }).click()
-    await page.waitForTimeout(3000)
+
+    const [loginResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/auth/login') && resp.request().method() === 'POST', { timeout: 15000 }),
+      page.getByRole('button', { name: '登录' }).click(),
+    ])
+    expect(loginResp.ok()).toBe(true)
 
     // Should end up on home page
-    expect(page.url()).not.toContain('/login')
+    await expect(page).not.toHaveURL(/\/login/, { timeout: 8000 })
   })
 
   test('S04: theme switching', async ({ page }) => {
     await page.goto(`${BASE}/settings`)
     await waitForHydration(page)
-    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+    await expect(page.locator('.jp-header-title')).toContainText('設置', { timeout: 8000 })
 
     // Click "深色"
     await page.getByRole('button', { name: '深色' }).click()
-    await page.waitForTimeout(1000)
 
     // After clicking dark, html should reflect dark theme
-    const htmlDark = await page.locator('html').getAttribute('data-theme')
-    const bodyClass = await page.locator('body').getAttribute('class') ?? ''
-    expect(
-      htmlDark === 'dark' || bodyClass.includes('dark'),
-      'Dark theme should be applied after clicking 深色'
-    ).toBe(true)
+    await expect(async () => {
+      const htmlDark = await page.locator('html').getAttribute('data-theme')
+      const bodyClass = await page.locator('body').getAttribute('class') ?? ''
+      expect(htmlDark === 'dark' || bodyClass.includes('dark')).toBe(true)
+    }).toPass({ timeout: 3000 })
 
     // Click "浅色"
     await page.getByRole('button', { name: '浅色' }).click()
-    await page.waitForTimeout(1000)
 
-    const htmlLight = await page.locator('html').getAttribute('data-theme')
-    const bodyClassLight = await page.locator('body').getAttribute('class') ?? ''
-    expect(
-      htmlLight !== 'dark' && !bodyClassLight.includes('dark'),
-      'Dark theme should be removed after clicking 浅色'
-    ).toBe(true)
+    await expect(async () => {
+      const htmlLight = await page.locator('html').getAttribute('data-theme')
+      const bodyClassLight = await page.locator('body').getAttribute('class') ?? ''
+      expect(htmlLight !== 'dark' && !bodyClassLight.includes('dark')).toBe(true)
+    }).toPass({ timeout: 3000 })
   })
 
   test('S05: account info shows username and email', async ({ page }) => {
-    // authStore.user is loaded from 'user' cookie — inject it so v-if renders
     const url = new URL(BASE)
     await page.context().addCookies([{
       name: 'user',
@@ -163,13 +184,11 @@ test.describe.serial('Settings', () => {
 
     await page.goto(`${BASE}/settings`)
     await waitForHydration(page)
-    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+    await expect(page.locator('.jp-header-title')).toContainText('設置', { timeout: 8000 })
 
-    // Account info section should show the registered user data
-    const accountSection = page.locator('.section-card').filter({ hasText: '账户信息' })
+    const accountSection = page.locator('.jp-card').filter({ hasText: '账户信息' })
     await expect(accountSection).toBeVisible({ timeout: 5000 })
 
-    // Username and email should be displayed
     await expect(accountSection.getByText(creds.username)).toBeVisible({ timeout: 5000 })
     await expect(accountSection.getByText(creds.email)).toBeVisible()
   })
@@ -177,7 +196,11 @@ test.describe.serial('Settings', () => {
   test('S06: change password with wrong current password shows error', async ({ page }) => {
     await page.goto(`${BASE}/settings`)
     await waitForHydration(page)
-    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+    await expect(page.locator('.jp-header-title')).toContainText('設置', { timeout: 8000 })
+
+    // Expand collapsed password section
+    await page.locator('.jp-card-title--toggle', { hasText: '修改密码' }).click()
+    await expect(page.getByPlaceholder('当前密码')).toBeVisible({ timeout: 3000 })
 
     // Fill with wrong current password
     await page.getByPlaceholder('当前密码').fill('WrongOldPassword999')
@@ -186,106 +209,108 @@ test.describe.serial('Settings', () => {
 
     // Click "修改密码"
     await page.getByRole('button', { name: '修改密码' }).click()
-    await page.waitForTimeout(3000)
 
     // Should still be on settings page (password change failed)
-    expect(page.url()).toContain('/settings')
-    // The page should remain functional
-    await expect(page.locator('.page-title')).toContainText('设置')
+    await expect(page).toHaveURL(/\/settings/, { timeout: 8000 })
+    await expect(page.locator('.jp-header-title')).toContainText('設置')
   })
 
   test('S07: follow system theme button', async ({ page }) => {
     await page.goto(`${BASE}/settings`)
     await waitForHydration(page)
-    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+    await expect(page.locator('.jp-header-title')).toContainText('設置', { timeout: 8000 })
 
     // Click "跟随系统" button
     await page.getByRole('button', { name: '跟随系统' }).click()
-    await page.waitForTimeout(500)
 
-    // The "跟随系统" button should be highlighted (type=primary)
+    // The "跟随系统" button should be highlighted (active)
     const systemBtn = page.getByRole('button', { name: '跟随系统' })
-    await expect(systemBtn).toHaveClass(/n-button--primary-type/, { timeout: 3000 })
+    await expect(systemBtn).toHaveClass(/active/, { timeout: 3000 })
 
-    // Other buttons should NOT be primary
     const lightBtn = page.getByRole('button', { name: '浅色' })
     const darkBtn = page.getByRole('button', { name: '深色' })
-    await expect(lightBtn).not.toHaveClass(/n-button--primary-type/)
-    await expect(darkBtn).not.toHaveClass(/n-button--primary-type/)
+    await expect(lightBtn).not.toHaveClass(/active/)
+    await expect(darkBtn).not.toHaveClass(/active/)
   })
 
   test('S09: password mismatch shows validation error', async ({ page }) => {
     await page.goto(`${BASE}/settings`)
     await waitForHydration(page)
-    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+    await expect(page.locator('.jp-header-title')).toContainText('設置', { timeout: 8000 })
 
-    // S03 changed password to 'NewPass789' — use that as current password
+    // Expand collapsed password section
+    await page.locator('.jp-card-title--toggle', { hasText: '修改密码' }).click()
+    await expect(page.getByPlaceholder('当前密码')).toBeVisible({ timeout: 3000 })
+
+    // S03 changed password to 'NewPass789'
     await page.getByPlaceholder('当前密码').fill('NewPass789')
     await page.getByPlaceholder('新密码 (至少6位)').fill('Abcdef123')
     await page.getByPlaceholder('确认新密码').fill('Mismatch999')
 
     // Click "修改密码"
     await page.getByRole('button', { name: '修改密码' }).click()
-    await page.waitForTimeout(1500)
 
-    // Front-end validation: "两次密码不一致" message should be visible
-    await expect(page.getByText('两次密码不一致')).toBeVisible({ timeout: 3000 })
-    // Should still be on settings page
+    // Front-end validation: "两次密码不一致"
+    await expect(page.getByText('两次密码不一致')).toBeVisible({ timeout: 5000 })
     expect(page.url()).toContain('/settings')
   })
 
   test('S10: password too short shows validation error', async ({ page }) => {
     await page.goto(`${BASE}/settings`)
     await waitForHydration(page)
-    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+    await expect(page.locator('.jp-header-title')).toContainText('設置', { timeout: 8000 })
 
-    // S03 changed password to 'NewPass789'
+    // Expand collapsed password section
+    await page.locator('.jp-card-title--toggle', { hasText: '修改密码' }).click()
+    await expect(page.getByPlaceholder('当前密码')).toBeVisible({ timeout: 3000 })
+
     await page.getByPlaceholder('当前密码').fill('NewPass789')
-    await page.getByPlaceholder('新密码 (至少6位)').fill('Ab1')   // too short (3 chars)
+    await page.getByPlaceholder('新密码 (至少6位)').fill('Ab1')
     await page.getByPlaceholder('确认新密码').fill('Ab1')
 
-    // Click "修改密码"
     await page.getByRole('button', { name: '修改密码' }).click()
-    await page.waitForTimeout(1500)
 
-    // Front-end validation: "新密码至少6位" message should be visible
-    await expect(page.getByText('新密码至少6位')).toBeVisible({ timeout: 3000 })
-    // Should still be on settings page
+    await expect(page.getByText('新密码至少6位')).toBeVisible({ timeout: 5000 })
     expect(page.url()).toContain('/settings')
   })
 
   test('S11: empty category name does not add', async ({ page }) => {
     await page.goto(`${BASE}/settings`)
     await waitForHydration(page)
-    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+    await expect(page.locator('.jp-header-title')).toContainText('設置', { timeout: 8000 })
 
-    const catSection = page.locator('.section-card').filter({ hasText: '分类管理' })
+    // Expand collapsed category section
+    await page.locator('.jp-card-title--toggle', { hasText: '分类管理' }).click()
+    await expect(page.getByPlaceholder('新分类名称')).toBeVisible({ timeout: 3000 })
 
-    // Count existing categories
-    const countBefore = await catSection.locator('.n-list-item').count()
+    const catSection = page.locator('.jp-card').filter({ hasText: '分类管理' })
+    const countBefore = await catSection.locator('.jp-list-row').count()
 
     // Leave category name empty and click "添加"
     await page.getByPlaceholder('新分类名称').fill('')
     await catSection.getByRole('button', { name: '添加' }).click()
-    await page.waitForTimeout(1000)
 
-    // Count should be unchanged (nothing added)
-    const countAfter = await catSection.locator('.n-list-item').count()
-    expect(countAfter).toBe(countBefore)
+    // Brief wait then verify count unchanged
+    await expect(async () => {
+      const countAfter = await catSection.locator('.jp-list-row').count()
+      expect(countAfter).toBe(countBefore)
+    }).toPass({ timeout: 3000 })
   })
 
   test('S12: empty password fields submit shows warning', async ({ page }) => {
     await page.goto(`${BASE}/settings`)
     await waitForHydration(page)
-    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+    await expect(page.locator('.jp-header-title')).toContainText('設置', { timeout: 8000 })
+
+    // Expand collapsed password section
+    await page.locator('.jp-card-title--toggle', { hasText: '修改密码' }).click()
+    await expect(page.getByPlaceholder('当前密码')).toBeVisible({ timeout: 3000 })
 
     // Don't fill any password fields — click "修改密码" directly
     await page.getByRole('button', { name: '修改密码' }).click()
-    await page.waitForTimeout(1500)
 
     // Should show warning "请填写所有字段"
     await expect(page.getByText('请填写所有字段')).toBeVisible({ timeout: 5000 })
-    // Should still be on settings page
     expect(page.url()).toContain('/settings')
   })
 })

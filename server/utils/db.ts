@@ -21,6 +21,8 @@ export function getPool(): mysql.Pool {
       connectionLimit: 10,
       queueLimit: 0,
       charset: 'utf8mb4',
+      connectTimeout: 10000,
+      enableKeepAlive: true,
     })
   }
   return _pool

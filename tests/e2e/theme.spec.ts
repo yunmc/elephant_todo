@@ -22,6 +22,14 @@ async function getHtmlTheme(page: import('@playwright/test').Page) {
   }))
 }
 
+/** Helper: wait for theme attribute to have expected value */
+async function waitForTheme(page: import('@playwright/test').Page, expected: 'dark' | 'light') {
+  await expect(async () => {
+    const theme = await getHtmlTheme(page)
+    expect(theme.dataTheme).toBe(expected)
+  }).toPass({ timeout: 3000 })
+}
+
 test.describe.serial('Theme Switching', () => {
   test.beforeAll(async () => {
     const result = await registerOnce()
@@ -38,22 +46,18 @@ test.describe.serial('Theme Switching', () => {
     await waitForHydration(page)
     await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 10000 })
 
-    // Clear theme before test
     await page.evaluate(() => localStorage.removeItem('elephant-theme'))
 
-    // Click "深色" button
     await page.click('button:has-text("深色")')
-    await page.waitForTimeout(500)
+    await waitForTheme(page, 'dark')
 
-    // Verify dark theme is applied on <html>
     const theme = await getHtmlTheme(page)
     expect(theme.dataTheme).toBe('dark')
     expect(theme.dataAppTheme).toBe('dark')
     expect(theme.hasDarkClass).toBe(true)
 
-    // Verify the "深色" button is highlighted (type=primary)
     const darkBtn = page.locator('button:has-text("深色")')
-    await expect(darkBtn).toHaveClass(/n-button--primary-type/)
+    await expect(darkBtn).toHaveClass(/active/)
   })
 
   test('TH02: switching to light theme applies light styles', async ({ page }) => {
@@ -61,23 +65,19 @@ test.describe.serial('Theme Switching', () => {
     await waitForHydration(page)
     await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 10000 })
 
-    // First switch to dark
     await page.click('button:has-text("深色")')
-    await page.waitForTimeout(300)
+    await waitForTheme(page, 'dark')
 
-    // Then switch to light
     await page.click('button:has-text("浅色")')
-    await page.waitForTimeout(500)
+    await waitForTheme(page, 'light')
 
-    // Verify light theme is applied on <html>
     const theme = await getHtmlTheme(page)
     expect(theme.dataTheme).toBe('light')
     expect(theme.dataAppTheme).toBe('light')
     expect(theme.hasDarkClass).toBe(false)
 
-    // Verify the "浅色" button is highlighted
     const lightBtn = page.locator('button:has-text("浅色")')
-    await expect(lightBtn).toHaveClass(/n-button--primary-type/)
+    await expect(lightBtn).toHaveClass(/active/)
   })
 
   test('TH03: dark theme persists after switching tabs', async ({ page }) => {
@@ -85,35 +85,29 @@ test.describe.serial('Theme Switching', () => {
     await waitForHydration(page)
     await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 10000 })
 
-    // Switch to dark
     await page.click('button:has-text("深色")')
-    await page.waitForTimeout(500)
+    await waitForTheme(page, 'dark')
 
-    // Navigate to 待办 (home tab)
-    await page.locator('.nav-item').filter({ hasText: '待办' }).dispatchEvent('click')
+    // Navigate to home tab
+    await page.evaluate(() => (document.querySelector('.nav-item') as HTMLElement)?.click())
     await page.waitForURL(/\/$/, { timeout: 5000 })
-    await page.waitForTimeout(500)
 
-    // Verify dark theme is still applied on the home page
     const homeTheme = await getHtmlTheme(page)
     expect(homeTheme.dataTheme).toBe('dark')
     expect(homeTheme.dataAppTheme).toBe('dark')
     expect(homeTheme.hasDarkClass).toBe(true)
 
-    // Navigate back to settings via more → settings
+    // Navigate back to settings
     await page.goto(`${BASE}/settings`)
     await waitForHydration(page)
     await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 5000 })
-    await page.waitForTimeout(500)
 
-    // Verify theme is still dark on settings page
     const settingsTheme = await getHtmlTheme(page)
     expect(settingsTheme.dataTheme).toBe('dark')
     expect(settingsTheme.hasDarkClass).toBe(true)
 
-    // Verify dark button is still highlighted
     const darkBtn = page.locator('button:has-text("深色")')
-    await expect(darkBtn).toHaveClass(/n-button--primary-type/)
+    await expect(darkBtn).toHaveClass(/active/)
   })
 
   test('TH04: light theme persists after switching tabs', async ({ page }) => {
@@ -121,37 +115,30 @@ test.describe.serial('Theme Switching', () => {
     await waitForHydration(page)
     await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 10000 })
 
-    // Switch to dark first, then to light
     await page.click('button:has-text("深色")')
-    await page.waitForTimeout(300)
+    await waitForTheme(page, 'dark')
     await page.click('button:has-text("浅色")')
-    await page.waitForTimeout(500)
+    await waitForTheme(page, 'light')
 
-    // Navigate to 随手记 tab
-    await page.locator('.nav-item').filter({ hasText: '随手记' }).dispatchEvent('click')
+    // Navigate to ideas tab
+    await page.evaluate(() => (document.querySelectorAll('.nav-item')[1] as HTMLElement)?.click())
     await page.waitForURL(/\/ideas/, { timeout: 5000 })
-    await page.waitForTimeout(500)
 
-    // Verify light theme on ideas page
     const ideasTheme = await getHtmlTheme(page)
     expect(ideasTheme.dataTheme).toBe('light')
     expect(ideasTheme.dataAppTheme).toBe('light')
     expect(ideasTheme.hasDarkClass).toBe(false)
 
-    // Navigate back to settings
     await page.goto(`${BASE}/settings`)
     await waitForHydration(page)
     await expect(page.locator('button:has-text("浅色")')).toBeVisible({ timeout: 5000 })
-    await page.waitForTimeout(500)
 
-    // Verify light still applied
     const settingsTheme = await getHtmlTheme(page)
     expect(settingsTheme.dataTheme).toBe('light')
     expect(settingsTheme.hasDarkClass).toBe(false)
 
-    // Verify light button highlighted
     const lightBtn = page.locator('button:has-text("浅色")')
-    await expect(lightBtn).toHaveClass(/n-button--primary-type/)
+    await expect(lightBtn).toHaveClass(/active/)
   })
 
   test('TH05: dark theme persists after re-tapping the same tab', async ({ page }) => {
@@ -159,25 +146,22 @@ test.describe.serial('Theme Switching', () => {
     await waitForHydration(page)
     await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 10000 })
 
-    // Switch to dark
     await page.click('button:has-text("深色")')
-    await page.waitForTimeout(500)
+    await waitForTheme(page, 'dark')
 
     // Navigate to 待办
-    await page.locator('.nav-item').filter({ hasText: '待办' }).dispatchEvent('click')
+    await page.evaluate(() => (document.querySelector('.nav-item') as HTMLElement)?.click())
     await page.waitForURL(/\/$/, { timeout: 5000 })
-    await page.waitForTimeout(500)
 
-    // Verify dark on 待办
     let theme = await getHtmlTheme(page)
     expect(theme.dataTheme).toBe('dark')
     expect(theme.hasDarkClass).toBe(true)
 
-    // Re-tap the same 待办 tab (same-route click)
-    await page.locator('.nav-item').filter({ hasText: '待办' }).dispatchEvent('click')
-    await page.waitForTimeout(1000)
+    // Re-tap the same tab
+    await page.evaluate(() => (document.querySelector('.nav-item') as HTMLElement)?.click())
 
-    // Verify dark theme is STILL correct after same-tab re-tap
+    // Verify dark theme is STILL correct
+    await waitForTheme(page, 'dark')
     theme = await getHtmlTheme(page)
     expect(theme.dataTheme).toBe('dark')
     expect(theme.dataAppTheme).toBe('dark')
@@ -189,11 +173,9 @@ test.describe.serial('Theme Switching', () => {
     await waitForHydration(page)
     await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 10000 })
 
-    // Switch to dark
     await page.click('button:has-text("深色")')
-    await page.waitForTimeout(500)
+    await waitForTheme(page, 'dark')
 
-    // Verify dark theme is applied
     let theme = await getHtmlTheme(page)
     expect(theme.dataTheme).toBe('dark')
 
@@ -201,16 +183,15 @@ test.describe.serial('Theme Switching', () => {
     await page.reload()
     await waitForHydration(page)
     await expect(page.locator('button:has-text("深色")')).toBeVisible({ timeout: 10000 })
-    await page.waitForTimeout(500)
 
     // Verify dark theme persists after reload
+    await waitForTheme(page, 'dark')
     theme = await getHtmlTheme(page)
     expect(theme.dataTheme).toBe('dark')
     expect(theme.dataAppTheme).toBe('dark')
     expect(theme.hasDarkClass).toBe(true)
 
-    // Verify dark button is still highlighted
     const darkBtn = page.locator('button:has-text("深色")')
-    await expect(darkBtn).toHaveClass(/n-button--primary-type/)
+    await expect(darkBtn).toHaveClass(/active/)
   })
 })

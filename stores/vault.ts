@@ -23,9 +23,18 @@ export const useVaultStore = defineStore('vault', () => {
   /** Initialize vault salt for a new user (first vault usage) */
   async function initVaultSalt(): Promise<string> {
     const salt = generateSalt()
-    await api.post('/vault/salt', { salt })
-    vaultSalt.value = salt
-    return salt
+    try {
+      await api.post('/vault/salt', { salt })
+      vaultSalt.value = salt
+      return salt
+    } catch (e: any) {
+      // 409 = salt already exists (race condition); re-fetch instead
+      if (e?.statusCode === 409 || e?.response?.status === 409) {
+        const existing = await fetchVaultSalt()
+        if (existing) return existing
+      }
+      throw e
+    }
   }
 
   /** Ensure salt is available; fetch or create if needed */

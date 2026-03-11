@@ -194,16 +194,20 @@ async function handleUnlock() {
   try {
     // Ensure salt is available (creates one for new users)
     await vaultStore.ensureSalt()
-    await vaultStore.fetchGroups()
-    await vaultStore.fetchEntries()
+    await Promise.all([vaultStore.fetchGroups(), vaultStore.fetchEntries()])
     // Try decrypting first entry to verify master password
     // If no entries exist, store a verification ciphertext to validate later
     if (vaultStore.entries.length) {
       await vaultStore.decryptEntry(vaultStore.entries[0], masterPassword.value)
     }
     unlocked.value = true
-  } catch {
-    message.error('主密码错误')
+  } catch (e: any) {
+    // Distinguish decryption failure from network/server errors
+    if (e?.name === 'OperationError') {
+      message.error('主密码错误')
+    } else {
+      message.error('解锁失败，请重试')
+    }
   } finally {
     unlocking.value = false
   }
@@ -296,6 +300,12 @@ async function copyToClipboard(text: string) {
 // === Add/Edit Entry ===
 const showAddEntry = ref(false)
 const editingEntryId = ref<number | null>(null)
+
+// Register page-specific "+" action
+useGlobalAdd(() => {
+  editingEntryId.value = null
+  showAddEntry.value = true
+})
 const saving = ref(false)
 const entryForm = reactive({
   name: '',

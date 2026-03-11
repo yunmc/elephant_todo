@@ -16,7 +16,19 @@
         <template v-if="authStore.user">
           <div class="jp-info-row">
             <span class="jp-label">用户名</span>
-            <span class="jp-value">{{ authStore.user.username }}</span>
+            <span class="jp-value jp-value--editable" v-if="!editingUsername" @click="startEditUsername">
+              {{ authStore.user.username }}
+            </span>
+            <input
+              v-else
+              ref="usernameInputRef"
+              v-model="editUsernameVal"
+              class="jp-inline-input"
+              maxlength="20"
+              @keyup.enter="handleSaveUsername"
+              @keyup.escape="editingUsername = false"
+              @blur="handleSaveUsername"
+            />
           </div>
           <div class="jp-info-row">
             <span class="jp-label">邮箱</span>
@@ -35,72 +47,99 @@
     </section>
 
     <!-- ====== 分类管理 ====== -->
-    <section class="jp-section">
+    <section class="jp-section" :class="{ 'jp-section--sticky': categoryExpanded }" ref="categorySectionRef">
       <div class="jp-card">
-        <h3 class="jp-card-title"><i>🍃</i> 分类管理</h3>
-        <n-spin v-if="categoriesStore.loading" style="display: flex; justify-content: center; padding: 16px 0;" />
-        <template v-else>
-          <div v-for="cat in categoriesStore.categories" :key="cat.id" class="jp-list-row">
-            <div class="jp-list-left">
-              <span class="jp-dot" :style="{ background: cat.color }"></span>
-              <span>{{ cat.name }}</span>
-            </div>
-            <n-popconfirm positive-text="确认" negative-text="取消" @positive-click="handleDeleteCategory(cat.id)">
-              <template #trigger>
-                <button class="jp-del">删除</button>
-              </template>
-              删除分类「{{ cat.name }}」？
-            </n-popconfirm>
+        <h3 class="jp-card-title jp-card-title--toggle" @click="toggleCategory">
+          <span><i>🍃</i> 分类管理</span>
+          <span class="jp-toggle-meta">
+            <span class="jp-toggle-count">{{ categoriesStore.categories.length }}项</span>
+            <span class="jp-toggle-arrow" :class="{ 'jp-toggle-arrow--open': categoryExpanded }">▸</span>
+          </span>
+        </h3>
+        <Transition name="jp-collapse">
+          <div v-show="categoryExpanded" class="jp-collapse-body">
+            <n-spin v-if="categoriesStore.loading" style="display: flex; justify-content: center; padding: 16px 0;" />
+            <template v-else>
+              <div v-for="cat in categoriesStore.categories" :key="cat.id" class="jp-list-row">
+                <div class="jp-list-left">
+                  <span class="jp-dot" :style="{ background: cat.color }"></span>
+                  <span>{{ cat.name }}</span>
+                </div>
+                <n-popconfirm positive-text="确认" negative-text="取消" @positive-click="handleDeleteCategory(cat.id)">
+                  <template #trigger>
+                    <button class="jp-del">删除</button>
+                  </template>
+                  删除分类「{{ cat.name }}」？
+                </n-popconfirm>
+              </div>
+              <div class="jp-add-row">
+                <n-input v-model:value="newCategoryName" placeholder="新分类名称" size="medium" style="flex: 1; min-width: 0;" @keyup.enter="handleAddCategory" />
+                <input type="color" v-model="newCategoryColor" class="color-input" />
+                <button class="jp-btn" @click="handleAddCategory">添加</button>
+              </div>
+            </template>
           </div>
-          <div class="jp-add-row">
-            <n-input v-model:value="newCategoryName" placeholder="新分类名称" size="medium" style="flex: 1; min-width: 0;" @keyup.enter="handleAddCategory" />
-            <input type="color" v-model="newCategoryColor" class="color-input" />
-            <button class="jp-btn" @click="handleAddCategory">添加</button>
-          </div>
-        </template>
+        </Transition>
       </div>
     </section>
 
     <!-- ====== 标签管理 ====== -->
-    <section class="jp-section">
+    <section class="jp-section" :class="{ 'jp-section--sticky': tagExpanded }" ref="tagSectionRef">
       <div class="jp-card">
-        <h3 class="jp-card-title"><i>🏷️</i> 标签管理</h3>
-        <n-spin v-if="tagsStore.loading" style="display: flex; justify-content: center; padding: 16px 0;" />
-        <template v-else>
-          <div v-for="tag in tagsStore.tags" :key="tag.id" class="jp-list-row">
-            <div class="jp-list-left">
-              <span class="jp-dot" :style="{ background: tag.color || 'var(--color-text-muted)' }"></span>
-              <span>{{ tag.name }}</span>
-            </div>
-            <n-popconfirm positive-text="确认" negative-text="取消" @positive-click="handleDeleteTag(tag.id)">
-              <template #trigger>
-                <button class="jp-del">删除</button>
-              </template>
-              删除标签「{{ tag.name }}」？
-            </n-popconfirm>
+        <h3 class="jp-card-title jp-card-title--toggle" @click="toggleTag">
+          <span><i>🏷️</i> 标签管理</span>
+          <span class="jp-toggle-meta">
+            <span class="jp-toggle-count">{{ tagsStore.tags.length }}项</span>
+            <span class="jp-toggle-arrow" :class="{ 'jp-toggle-arrow--open': tagExpanded }">▸</span>
+          </span>
+        </h3>
+        <Transition name="jp-collapse">
+          <div v-show="tagExpanded" class="jp-collapse-body">
+            <n-spin v-if="tagsStore.loading" style="display: flex; justify-content: center; padding: 16px 0;" />
+            <template v-else>
+              <div v-for="tag in tagsStore.tags" :key="tag.id" class="jp-list-row">
+                <div class="jp-list-left">
+                  <span class="jp-dot" :style="{ background: tag.color || 'var(--color-text-muted)' }"></span>
+                  <span>{{ tag.name }}</span>
+                </div>
+                <n-popconfirm positive-text="确认" negative-text="取消" @positive-click="handleDeleteTag(tag.id)">
+                  <template #trigger>
+                    <button class="jp-del">删除</button>
+                  </template>
+                  删除标签「{{ tag.name }}」？
+                </n-popconfirm>
+              </div>
+              <div class="jp-add-row">
+                <n-input v-model:value="newTagName" placeholder="输入新标签" size="medium" style="flex: 1;" @keyup.enter="handleAddTag" />
+                <input type="color" v-model="newTagColor" class="color-input" />
+                <button class="jp-btn" @click="handleAddTag">添加</button>
+              </div>
+            </template>
           </div>
-          <div class="jp-add-row">
-            <n-input v-model:value="newTagName" placeholder="输入新标签" size="medium" style="flex: 1;" @keyup.enter="handleAddTag" />
-            <input type="color" v-model="newTagColor" class="color-input" />
-            <button class="jp-btn" @click="handleAddTag">添加</button>
-          </div>
-        </template>
+        </Transition>
       </div>
     </section>
 
     <!-- ====== 修改密码 ====== -->
-    <section class="jp-section">
+    <section class="jp-section" ref="pwdSectionRef">
       <div class="jp-card">
-        <h3 class="jp-card-title"><i>🔑</i> 修改密码</h3>
-        <div class="jp-form-col">
-          <n-input v-model:value="pwdForm.currentPassword" type="password" show-password-on="click" placeholder="当前密码" />
-          <n-input v-model:value="pwdForm.newPassword" type="password" show-password-on="click" placeholder="新密码 (至少6位)" />
-          <n-input v-model:value="pwdForm.confirmPassword" type="password" show-password-on="click" placeholder="确认新密码" />
-        </div>
-        <p class="jp-hint">⚠ 修改密码后，密码本将使用新密码重新加密。确保记住新密码。</p>
-        <button class="jp-btn-primary" :disabled="changingPwd" @click="handleChangePassword">
-          {{ changingPwd ? '修改中...' : '修改密码' }}
-        </button>
+        <h3 class="jp-card-title jp-card-title--toggle" @click="togglePwd">
+          <span><i>🔑</i> 修改密码</span>
+          <span class="jp-toggle-arrow" :class="{ 'jp-toggle-arrow--open': pwdExpanded }">▸</span>
+        </h3>
+        <Transition name="jp-collapse">
+          <div v-show="pwdExpanded" class="jp-collapse-body">
+            <div class="jp-form-col">
+              <n-input v-model:value="pwdForm.currentPassword" type="password" show-password-on="click" placeholder="当前密码" />
+              <n-input v-model:value="pwdForm.newPassword" type="password" show-password-on="click" placeholder="新密码 (至少6位)" />
+              <n-input v-model:value="pwdForm.confirmPassword" type="password" show-password-on="click" placeholder="确认新密码" />
+            </div>
+            <p class="jp-hint">⚠ 修改密码后，密码本将使用新密码重新加密。确保记住新密码。</p>
+            <button class="jp-btn-primary" :disabled="changingPwd" @click="handleChangePassword">
+              {{ changingPwd ? '修改中...' : '修改密码' }}
+            </button>
+          </div>
+        </Transition>
       </div>
     </section>
 
@@ -142,6 +181,75 @@ await useAsyncData('settings-data', async () => {
   ])
   return true
 })
+
+// === Collapsible sections ===
+const categoryExpanded = ref(false)
+const tagExpanded = ref(false)
+
+// === Username edit ===
+const editingUsername = ref(false)
+const editUsernameVal = ref('')
+const savingUsername = ref(false)
+const usernameInputRef = ref<HTMLInputElement | null>(null)
+
+function startEditUsername() {
+  editUsernameVal.value = authStore.user?.username || ''
+  editingUsername.value = true
+  nextTick(() => {
+    usernameInputRef.value?.focus()
+    usernameInputRef.value?.select()
+  })
+}
+
+async function handleSaveUsername() {
+  if (!editingUsername.value) return
+  const val = editUsernameVal.value.trim()
+  if (!val || val === authStore.user?.username) { editingUsername.value = false; return }
+  if (val.length < 2 || val.length > 20) { message.warning('用户名长度需在2-20个字符之间'); return }
+
+  savingUsername.value = true
+  try {
+    const res = await api.put('/user/profile', { username: val })
+    authStore.saveUser(res.data)
+    message.success('用户名已更新')
+    editingUsername.value = false
+  } catch (e: any) {
+    message.error(e?.data?.message || '修改用户名失败')
+  } finally {
+    savingUsername.value = false
+  }
+}
+const categorySectionRef = ref<HTMLElement | null>(null)
+const tagSectionRef = ref<HTMLElement | null>(null)
+const pwdExpanded = ref(false)
+
+function toggleCategory() {
+  categoryExpanded.value = !categoryExpanded.value
+  if (categoryExpanded.value) {
+    tagExpanded.value = false
+    pwdExpanded.value = false
+    nextTick(() => categorySectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+}
+
+function toggleTag() {
+  tagExpanded.value = !tagExpanded.value
+  if (tagExpanded.value) {
+    categoryExpanded.value = false
+    pwdExpanded.value = false
+    nextTick(() => tagSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+}
+
+const pwdSectionRef = ref<HTMLElement | null>(null)
+function togglePwd() {
+  pwdExpanded.value = !pwdExpanded.value
+  if (pwdExpanded.value) {
+    categoryExpanded.value = false
+    tagExpanded.value = false
+    nextTick(() => pwdSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+}
 
 // === Category ===
 const newCategoryName = ref('')
@@ -274,6 +382,30 @@ function handleLogout() {
 /* ========== Settings 页面 — 仅保留页面特有样式 ========== */
 /* 通用组件样式(jp-card/jp-btn/jp-list-row等)已沉淀到 main.scss */
 
+/* ========== Username Edit ========== */
+.jp-value--editable {
+  cursor: pointer;
+  border-bottom: 1px dashed var(--color-border);
+  padding-bottom: 1px;
+  transition: border-color var(--transition-fast);
+  &:hover {
+    border-color: var(--color-accent);
+  }
+}
+.jp-inline-input {
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-accent);
+  outline: none;
+  padding: 0 0 1px;
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+}
+
 /* ========== Header ========== */
 .jp-header {
   text-align: center;
@@ -364,6 +496,65 @@ function handleLogout() {
     color: var(--color-text-inverse);
     border-color: var(--color-pill-active);
   }
+}
+
+/* Collapsible section */
+.jp-section--sticky {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.jp-card-title--toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 0;
+}
+
+.jp-toggle-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.jp-toggle-count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.jp-toggle-arrow {
+  display: inline-block;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  transition: transform 0.25s ease;
+}
+.jp-toggle-arrow--open {
+  transform: rotate(90deg);
+}
+
+.jp-collapse-body {
+  margin-top: 10px;
+}
+
+/* Collapse transition */
+.jp-collapse-enter-active,
+.jp-collapse-leave-active {
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+.jp-collapse-enter-from,
+.jp-collapse-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+.jp-collapse-enter-to,
+.jp-collapse-leave-from {
+  opacity: 1;
+  max-height: 2000px;
 }
 
 /* Logout */

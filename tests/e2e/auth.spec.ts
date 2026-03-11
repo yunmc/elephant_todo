@@ -27,10 +27,8 @@ test.describe('Auth — Public Pages', () => {
     await page.getByPlaceholder('请输入邮箱').fill('nobody@test.com')
     await page.getByPlaceholder('请输入密码').fill('WrongPassword123')
     await page.getByRole('button', { name: '登录' }).click()
-    // NaiveUI message appears or URL stays on /login
-    await page.waitForTimeout(3000)
     // Should still be on login page (wrong password)
-    expect(page.url()).toContain('/login')
+    await expect(page).toHaveURL(/\/login/, { timeout: 10000 })
   })
 
   test('A04: register page shows user/email/password inputs', async ({ page }) => {
@@ -49,7 +47,7 @@ test.describe('Auth — Public Pages', () => {
     await page.getByPlaceholder('请输入密码（至少6位）').fill('Test123456')
     await page.getByPlaceholder('请再次输入密码').fill('Test123456')
     const [registerResp] = await Promise.all([
-      page.waitForResponse(resp => resp.url().includes('/api/auth/register') && resp.request().method() === 'POST', { timeout: 15000 }),
+      page.waitForResponse(resp => resp.url().includes('/api/auth/register') && resp.request().method() === 'POST', { timeout: 30000 }),
       page.getByRole('button', { name: '注册' }).click(),
     ])
     expect(registerResp.ok(), `Register API failed: ${registerResp.status()}`).toBe(true)
@@ -91,10 +89,9 @@ test.describe('Auth — Public Pages', () => {
     await page.getByPlaceholder('请输入密码（至少6位）').fill('Test123456')
     await page.getByPlaceholder('请再次输入密码').fill('DifferentPassword789')
     await page.getByRole('button', { name: '注册' }).click()
-    await page.waitForTimeout(2000)
 
     // Should stay on register page (passwords don't match)
-    expect(page.url()).toContain('/register')
+    await expect(page).toHaveURL(/\/register/, { timeout: 5000 })
   })
 
   test('A10: reset password page without token shows error', async ({ page }) => {
@@ -120,10 +117,9 @@ test.describe('Auth — Public Pages', () => {
     await page.getByPlaceholder('请输入新密码（至少6位）').fill('NewPass123')
     await page.getByPlaceholder('请再次输入新密码').fill('Different456')
     await page.getByRole('button', { name: '重置密码' }).click()
-    await page.waitForTimeout(1000)
 
     // Should still be on reset-password page (validation failed)
-    expect(page.url()).toContain('/reset-password')
+    await expect(page).toHaveURL(/\/reset-password/, { timeout: 5000 })
   })
 
   test('A12: forgot password empty submit shows warning', async ({ page }) => {
@@ -133,10 +129,9 @@ test.describe('Auth — Public Pages', () => {
 
     // Click submit without entering email
     await page.getByRole('button', { name: '发送重置链接' }).click()
-    await page.waitForTimeout(1000)
 
     // Should still be on forgot-password page (not showing success)
-    expect(page.url()).toContain('/forgot-password')
+    await expect(page).toHaveURL(/\/forgot-password/, { timeout: 5000 })
     // The success state "邮件已发送" should NOT be visible
     await expect(page.getByText('邮件已发送')).not.toBeVisible({ timeout: 2000 })
   })
@@ -178,10 +173,9 @@ test.describe('Auth — Public Pages', () => {
 
     // Click login without filling any field
     await page.getByRole('button', { name: '登录' }).click()
-    await page.waitForTimeout(2000)
 
     // Should still be on login page (NaiveUI form validation prevents submit)
-    expect(page.url()).toContain('/login')
+    await expect(page).toHaveURL(/\/login/, { timeout: 5000 })
   })
 
   test('A15: register with duplicate email shows error', async ({ page }) => {
@@ -210,10 +204,9 @@ test.describe('Auth — Public Pages', () => {
     await page.getByPlaceholder('请输入密码（至少6位）').fill('Test123456')
     await page.getByPlaceholder('请再次输入密码').fill('Test123456')
     await page.getByRole('button', { name: '注册' }).click()
-    await page.waitForTimeout(3000)
 
     // Should stay on register page (duplicate email error)
-    expect(page.url()).toContain('/register')
+    await expect(page).toHaveURL(/\/register/, { timeout: 10000 })
   })
 
   test('A18: register with short password shows validation', async ({ page }) => {
@@ -222,7 +215,6 @@ test.describe('Auth — Public Pages', () => {
     await page.getByPlaceholder('请输入密码（至少6位）').fill('Ab1')
     // Blur to trigger NaiveUI validation
     await page.getByPlaceholder('请输入用户名').click()
-    await page.waitForTimeout(1000)
     await expect(page.getByText('密码长度不能少于6位')).toBeVisible({ timeout: 10000 })
   })
 
@@ -230,10 +222,9 @@ test.describe('Auth — Public Pages', () => {
     await page.goto(`${BASE}/register`)
     await waitForHydration(page)
     await page.getByPlaceholder('请输入邮箱').fill('not-an-email')
-    // Blur to trigger validation
-    await page.getByPlaceholder('请输入用户名').click()
-    await page.waitForTimeout(1000)
-    await expect(page.getByText('请输入有效的邮箱地址')).toBeVisible({ timeout: 10000 })
+    // Blur to trigger validation — click another field
+    await page.getByPlaceholder('请输入密码（至少6位）').click()
+    await expect(page.getByText('请输入有效的邮箱地址')).toBeVisible({ timeout: 15000 })
   })
 
   test('A20: forgot password with valid email submits', async ({ page }) => {
@@ -267,8 +258,7 @@ test.describe('Auth — Public Pages', () => {
 
     // Navigate to /login — should be redirected to home
     await page.goto(`${BASE}/login`)
-    await page.waitForTimeout(3000)
-    expect(page.url()).not.toContain('/login')
+    await expect(page).not.toHaveURL(/\/login/, { timeout: 10000 })
   })
 })
 
@@ -276,9 +266,10 @@ authedTest.describe('Auth — Logout', () => {
   authedTest('A07: logout redirects to /login', async ({ authedPage }) => {
     // Navigate to settings
     await authedPage.goto(`${BASE}/settings`)
-    await authedExpect(authedPage.locator('.page-title')).toContainText('设置', { timeout: 8000 })
-    // Click logout button
-    await authedPage.getByRole('button', { name: '退出登录' }).click()
+    await waitForHydration(authedPage)
+    await authedExpect(authedPage.locator('.jp-header-title')).toContainText('設置', { timeout: 8000 })
+    // Click logout
+    await authedPage.locator('.jp-logout').click()
     // Should redirect to login page
     await authedExpect(authedPage).toHaveURL(/\/login/, { timeout: 10000 })
   })

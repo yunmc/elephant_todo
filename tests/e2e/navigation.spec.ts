@@ -13,7 +13,6 @@ test.describe('Navigation', () => {
   test('N01: bottom nav tabs navigate correctly', async ({ authedPage: page }) => {
     await page.goto(BASE)
     await waitForHydration(page)
-    await page.waitForTimeout(2000)
 
     // Navigate to 随手记
     await page.locator('.bottom-nav').getByText('随手记').click()
@@ -41,33 +40,28 @@ test.describe('Navigation', () => {
     await waitForHydration(page)
     await expect(page.getByText('更多功能')).toBeVisible({ timeout: 8000 })
 
-    // Check all 7 feature cards are visible
-    await expect(page.locator('.feature-card').filter({ hasText: '手帐商店' })).toBeVisible()
-    await expect(page.locator('.feature-card').filter({ hasText: '我的仓库' })).toBeVisible()
     await expect(page.locator('.feature-card').filter({ hasText: '密码本' })).toBeVisible()
     await expect(page.locator('.feature-card').filter({ hasText: '重要日期' })).toBeVisible()
     await expect(page.locator('.feature-card').filter({ hasText: '经期追踪' })).toBeVisible()
-    await expect(page.locator('.feature-card').filter({ hasText: 'AI 报告' })).toBeVisible()
+    await expect(page.locator('.feature-card').filter({ hasText: '每日打卡' })).toBeVisible()
     await expect(page.locator('.feature-card').filter({ hasText: '设置' })).toBeVisible()
+    await expect(page.locator('.feature-card').filter({ hasText: '手帐商店' })).toBeVisible()
+    await expect(page.locator('.feature-card').filter({ hasText: 'AI 报告' })).toBeVisible()
 
-    // Click "密码本" → /vault
     await page.locator('.feature-card').filter({ hasText: '密码本' }).click()
     await page.waitForURL('**/vault')
     expect(page.url()).toContain('/vault')
 
-    // Go back and click "重要日期" → /important-dates
     await page.goto(`${BASE}/more`)
     await page.locator('.feature-card').filter({ hasText: '重要日期' }).click()
     await page.waitForURL('**/important-dates')
     expect(page.url()).toContain('/important-dates')
 
-    // Go back and click "经期追踪" → /period
     await page.goto(`${BASE}/more`)
     await page.locator('.feature-card').filter({ hasText: '经期追踪' }).click()
     await page.waitForURL('**/period')
     expect(page.url()).toContain('/period')
 
-    // Go back and click "设置" → /settings
     await page.goto(`${BASE}/more`)
     await page.locator('.feature-card').filter({ hasText: '设置' }).click()
     await page.waitForURL('**/settings')
@@ -77,37 +71,27 @@ test.describe('Navigation', () => {
   test('N03: quick-add FAB opens modal', async ({ authedPage: page }) => {
     await page.goto(BASE)
     await waitForHydration(page)
-    await page.waitForTimeout(2000)
 
-    // Click the center "+" FAB (dispatchEvent bypasses DevTools overlay)
-    await page.locator('.nav-add-icon').dispatchEvent('click')
-    // Wait for modal content to appear
+    // Click the center "+" FAB
+    await expect(page.locator('.page-title')).toContainText('待办事项', { timeout: 8000 })
+    await page.keyboard.press('Escape')
+    await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
     await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
 
-    // Modal should have the textarea
-    await expect(page.getByPlaceholder('输入内容...')).toBeVisible()
-
-    // And both action buttons
     await expect(page.getByRole('button', { name: '新建待办' })).toBeVisible()
     await expect(page.getByRole('button', { name: '保存为随手记' })).toBeVisible()
   })
 
   test('N04: active tab is highlighted', async ({ authedPage: page }) => {
-    // Navigate to 随手记
     await page.goto(`${BASE}/ideas`)
     await waitForHydration(page)
-    await page.waitForTimeout(1500)
 
-    // The 随手记 nav item should have .active class
     const ideasNavItem = page.locator('.nav-item').filter({ hasText: '随手记' })
     await expect(ideasNavItem).toHaveClass(/active/, { timeout: 5000 })
 
-    // Navigate to 待办
     await page.goto(BASE)
     await waitForHydration(page)
-    await page.waitForTimeout(1500)
 
-    // The 待办 nav item should have .active class
     const todoNavItem = page.locator('.nav-item').filter({ hasText: '待办' })
     await expect(todoNavItem).toHaveClass(/active/, { timeout: 5000 })
   })
@@ -115,22 +99,22 @@ test.describe('Navigation', () => {
   test('N05: quick-add saves content as idea', async ({ authedPage: page }) => {
     await page.goto(BASE)
     await waitForHydration(page)
-    await page.waitForTimeout(2000)
 
     const ideaText = `E2E QuickIdea ${Date.now()}`
 
-    // Open quick-add modal
-    await page.locator('.nav-add-icon').dispatchEvent('click')
+    await expect(page.locator('.page-title')).toContainText('待办事项', { timeout: 8000 })
+    await page.keyboard.press('Escape')
+    await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
     await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
 
-    // Type content
     await page.getByPlaceholder('输入内容...').fill(ideaText)
 
-    // Click "保存为随手记"
-    await page.getByRole('button', { name: '保存为随手记' }).click()
-    await page.waitForTimeout(2000)
+    const [saveResp] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/ideas') && resp.request().method() === 'POST', { timeout: 10000 }),
+      page.getByRole('button', { name: '保存为随手记' }).click(),
+    ])
+    expect(saveResp.ok()).toBe(true)
 
-    // Navigate to ideas page to verify
     await page.goto(`${BASE}/ideas`)
     await waitForHydration(page)
     await expect(page.getByText(ideaText)).toBeVisible({ timeout: 8000 })
@@ -139,13 +123,12 @@ test.describe('Navigation', () => {
   test('N06: quick-add buttons disabled when input empty', async ({ authedPage: page }) => {
     await page.goto(BASE)
     await waitForHydration(page)
-    await page.waitForTimeout(2000)
 
-    // Open quick-add modal
-    await page.locator('.nav-add-icon').dispatchEvent('click')
+    await expect(page.locator('.page-title')).toContainText('待办事项', { timeout: 8000 })
+    await page.keyboard.press('Escape')
+    await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
     await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
 
-    // With empty input, both buttons should be disabled
     const todoBtn = page.getByRole('button', { name: '新建待办' })
     const ideaBtn = page.getByRole('button', { name: '保存为随手记' })
     await expect(todoBtn).toBeDisabled({ timeout: 3000 })
@@ -153,17 +136,14 @@ test.describe('Navigation', () => {
 
     // Type something — buttons should become enabled
     await page.getByPlaceholder('输入内容...').fill('test content')
-    await page.waitForTimeout(500)
     await expect(todoBtn).toBeEnabled({ timeout: 3000 })
     await expect(ideaBtn).toBeEnabled({ timeout: 3000 })
 
     // Clear input — buttons should be disabled again
     await page.getByPlaceholder('输入内容...').fill('')
-    await page.waitForTimeout(500)
     await expect(todoBtn).toBeDisabled({ timeout: 3000 })
     await expect(ideaBtn).toBeDisabled({ timeout: 3000 })
 
-    // Close modal
     await page.keyboard.press('Escape')
   })
 })

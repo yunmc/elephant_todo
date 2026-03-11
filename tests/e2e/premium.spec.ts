@@ -28,10 +28,10 @@ test.describe.serial('Premium', () => {
   test('P01: 免费用户设置页显示升级卡片', async ({ page }) => {
     await page.goto(`${BASE}/settings`)
     await waitForHydration(page)
-    await expect(page.locator('.page-title')).toContainText('设置', { timeout: 8000 })
+    await expect(page.locator('.jp-header-title')).toContainText('設置', { timeout: 8000 })
 
-    // 免费用户应看到"升级 Premium"卡片
-    const upgradeCard = page.locator('.premium-card').filter({ hasText: '升级 Premium' })
+    // 免费用户应看到"高级功能"卡片
+    const upgradeCard = page.locator('.jp-card--premium').filter({ hasText: '高级功能' })
     await expect(upgradeCard).toBeVisible({ timeout: 5000 })
   })
 
@@ -58,11 +58,8 @@ test.describe.serial('Premium', () => {
       }
     })
 
-    // Wait for Vue reactivity to update the UI
-    await page.waitForTimeout(500)
-
-    // Premium 用户应看到"Premium 会员"卡片
-    const premiumCard = page.locator('.premium-card').filter({ hasText: 'Premium 会员' })
+    // Premium 用户应看到"高级功能"卡片
+    const premiumCard = page.locator('.jp-card--premium').filter({ hasText: '高级功能' })
     await expect(premiumCard).toBeVisible({ timeout: 5000 })
   })
 

@@ -67,6 +67,9 @@
 const store = useChecklistStore()
 const todayItems = computed(() => store.todayItems)
 
+// Register page-specific "+" action
+useGlobalAdd(() => navigateTo('/checklist/manage'))
+
 const checkedCount = computed(() => todayItems.value.filter(i => i.checked).length)
 const progressPercent = computed(() => {
   if (todayItems.value.length === 0) return 0

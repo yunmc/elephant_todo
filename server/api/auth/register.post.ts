@@ -26,7 +26,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, message: '该用户名已被占用' })
   }
 
-  const hashedPassword = await bcrypt.hash(password, 12)
+  const { bcryptRounds } = useRuntimeConfig()
+  const hashedPassword = await bcrypt.hash(password, Number(bcryptRounds))
 
   let userId: number
   try {

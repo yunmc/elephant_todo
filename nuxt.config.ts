@@ -142,8 +142,12 @@ export default defineNuxtConfig({
     resetPasswordUrl: process.env.RESET_PASSWORD_URL || 'http://localhost:3001/reset-password',
     resetTokenExpiresIn: process.env.RESET_TOKEN_EXPIRES_IN || '3600000',
 
+    bcryptRounds: Number(process.env.BCRYPT_ROUNDS) || 12,
+
     // ---- 客户端公开 ----
-    public: {},
+    public: {
+      pbkdf2Iterations: Number(process.env.NUXT_PUBLIC_PBKDF2_ITERATIONS) || 100000,
+    },
   },
 
   app: {

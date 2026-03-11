@@ -95,6 +95,9 @@ const message = useMessage()
 const todosStore = useTodosStore()
 const ideasStore = useIdeasStore()
 
+// Global "+" button context system
+const globalAdd = provideGlobalAdd()
+
 const showAddModal = ref(false)
 const inputText = ref('')
 const similarTodos = ref<SimilarTodo[]>([])
@@ -111,7 +114,10 @@ watch(() => voiceInput.transcript.value, (val) => {
 })
 
 function openAddModal() {
-  showAddModal.value = true
+  // If a page registered a custom handler, use it; otherwise open default quick-add
+  if (!globalAdd.invoke()) {
+    showAddModal.value = true
+  }
 }
 
 // Watch input for LLM smart suggest (debounce 1200ms)

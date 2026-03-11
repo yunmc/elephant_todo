@@ -23,7 +23,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: '重置令牌已过期' })
   }
 
-  const hashedPassword = await bcrypt.hash(password, 12)
+  const { bcryptRounds } = useRuntimeConfig()
+  const hashedPassword = await bcrypt.hash(password, Number(bcryptRounds))
   await UserModel.updatePassword(resetToken.user_id, hashedPassword)
   await UserModel.markResetTokenUsed(resetToken.id)
 
