@@ -1,5 +1,5 @@
 # Build stage — 基于 base 镜像（已含 node_modules）
-FROM registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo-base:latest AS builder
+FROM --platform=linux/amd64 registry.cn-shanghai.aliyuncs.com/sigmalove/elephant-todo-base:latest AS builder
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ COPY . .
 RUN npm run build
 
 # Production stage — 干净的 node:20-alpine（已推到自己的阿里云仓库）
-FROM registry.cn-shanghai.aliyuncs.com/sigmalove/node:20-alpine AS runner
+FROM --platform=linux/amd64 registry.cn-shanghai.aliyuncs.com/sigmalove/node:20-alpine AS runner
 
 WORKDIR /app
 
