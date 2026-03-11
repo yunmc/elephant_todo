@@ -100,7 +100,7 @@ function onClose() {
 .plan-card {
   flex: 1;
   padding: 16px;
-  border: 2px solid var(--color-border);
+  border: 2px solid var(--color-text-muted);
   border-radius: 12px;
   text-align: center;
   cursor: pointer;

@@ -258,7 +258,7 @@ async function handleToggle(todoId: number) {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 2px solid var(--color-border);
+  border: 2px solid var(--color-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;

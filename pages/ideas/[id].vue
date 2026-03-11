@@ -183,7 +183,7 @@ function formatDate(dateStr: string) {
 }
 .action-btn {
   background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-text-muted);
   border-radius: var(--radius-sm, 8px);
   padding: 6px 14px;
   font-size: 13px;
@@ -280,7 +280,7 @@ function formatDate(dateStr: string) {
 }
 .unlink-btn {
   background: none;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-text-muted);
   border-radius: 6px;
   padding: 2px 8px;
   font-size: 12px;
@@ -300,7 +300,7 @@ function formatDate(dateStr: string) {
 .link-action-btn {
   flex: 1;
   padding: 10px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-text-muted);
   border-radius: var(--radius-sm, 8px);
   background: transparent;
   color: var(--color-text-secondary);

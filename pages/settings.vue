@@ -484,7 +484,7 @@ function handleLogout() {
   cursor: pointer;
   color: var(--color-text-secondary);
   background: transparent;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-text-muted);
   min-height: 0 !important;
   min-width: 0 !important;
   line-height: 1.4;

@@ -26,17 +26,17 @@
     </div>
 
     <!-- Add Record Button -->
-    <div style="margin-bottom: 12px; display: flex; gap: 8px;">
+    <div style="margin-bottom: 12px;">
       <n-button type="primary" block @click="showAddModal = true">+ 记一笔</n-button>
-      <n-button block @click="handleAiQuickEntry">💡 AI 记账 <n-tag size="tiny" type="info" style="margin-left: 4px;">敬请期待</n-tag></n-button>
     </div>
 
-    <!-- Budget Card -->
-    <BudgetCard
-      :budget-progress="financeStore.budgetProgress"
-      :month-label="currentMonth"
-      @edit="handleOpenBudgetModal"
-    />
+    <div style="margin-bottom: 12px; padding: 14px 16px; background: var(--color-bg-card); border-radius: var(--radius-md, 12px); display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 20px;">💡</span>
+      <div>
+        <div style="font-size: 14px; font-weight: 500;">AI 记账</div>
+        <div style="font-size: 12px; color: var(--color-text-tertiary, #999); margin-top: 2px;">语音/文字快速记账，智能识别金额与分类 · 即将上线</div>
+      </div>
+    </div>
 
     <!-- Filter Tabs -->
     <div class="filter-tabs">
@@ -472,7 +472,7 @@ function formatDate(dateStr: string) {
 .tab {
   flex: 1;
   padding: 8px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-text-muted);
   border-radius: var(--radius-sm, 8px);
   background: transparent;
   color: var(--color-text-secondary);

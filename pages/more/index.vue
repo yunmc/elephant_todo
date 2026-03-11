@@ -49,6 +49,13 @@
         <span class="feature-desc">月度·年度智能分析</span>
         <span class="coming-soon-badge">敬请期待</span>
       </div>
+
+      <div class="feature-card coming-soon" @click="comingSoon">
+        <span class="feature-icon">📊</span>
+        <span class="feature-name">预算管理</span>
+        <span class="feature-desc">月度预算·分类管控</span>
+        <span class="coming-soon-badge">敬请期待</span>
+      </div>
     </div>
   </div>
 </template>

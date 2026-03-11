@@ -219,7 +219,7 @@ await useAsyncData('checklist-today', async () => {
 .check-box {
   width: 24px;
   height: 24px;
-  border: 2px solid var(--color-border);
+  border: 2px solid var(--color-text-muted);
   border-radius: 6px;
   flex-shrink: 0;
   display: flex;

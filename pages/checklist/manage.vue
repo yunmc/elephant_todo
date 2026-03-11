@@ -204,7 +204,7 @@ async function moveDown(idx: number) {
 .emoji-btn {
   width: 40px;
   height: 40px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-text-muted);
   border-radius: 8px;
   background: var(--color-bg-card);
   font-size: 20px;
@@ -241,7 +241,7 @@ async function moveDown(idx: number) {
 .icon-btn {
   width: 38px;
   height: 38px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-text-muted);
   border-radius: 8px;
   background: transparent;
   font-size: 20px;

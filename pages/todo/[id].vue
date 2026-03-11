@@ -405,7 +405,7 @@ function formatFullDate(dateStr: string) {
 }
 .action-btn {
   background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-text-muted);
   border-radius: var(--radius-sm, 8px);
   padding: 6px 14px;
   font-size: 13px;
@@ -613,7 +613,7 @@ function formatFullDate(dateStr: string) {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 2px solid var(--color-border);
+  border: 2px solid var(--color-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
