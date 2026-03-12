@@ -144,6 +144,12 @@ export default defineNuxtConfig({
 
     bcryptRounds: Number(process.env.BCRYPT_ROUNDS) || 12,
 
+    // 阿里云 OSS
+    aliyunOssRegion: process.env.ALIYUN_OSS_REGION || 'oss-cn-beijing',
+    aliyunOssBucket: process.env.ALIYUN_OSS_BUCKET || '',
+    aliyunOssAccessKeyId: process.env.ALIYUN_OSS_ACCESS_KEY_ID || '',
+    aliyunOssAccessKeySecret: process.env.ALIYUN_OSS_ACCESS_KEY_SECRET || '',
+
     // ---- 客户端公开 ----
     public: {
       pbkdf2Iterations: Number(process.env.NUXT_PUBLIC_PBKDF2_ITERATIONS) || 100000,

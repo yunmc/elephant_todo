@@ -1,9 +1,6 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
-      <NuxtLink to="/checklist" class="back-btn">‹ 返回</NuxtLink>
-      <h1 class="page-title-inline">打卡统计</h1>
-    </div>
+    <h1 class="page-title">打卡统计</h1>
 
     <!-- Time Range Tabs -->
     <div class="range-tabs">
@@ -142,25 +139,7 @@ await useAsyncData('checklist-stats', async () => {
 </script>
 
 <style scoped>
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.back-btn {
-  font-size: 18px;
-  color: var(--color-primary);
-  text-decoration: none;
-  padding: 4px 8px;
-  -webkit-tap-highlight-color: transparent;
-}
-.page-title-inline {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--color-text);
-  margin: 0;
-}
+
 
 .range-tabs {
   display: flex;

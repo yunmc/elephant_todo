@@ -1,23 +1,14 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
-      <NuxtLink to="/checklist" class="back-btn">‹ 返回</NuxtLink>
-      <h1 class="page-title-inline">管理习惯</h1>
-    </div>
+    <h1 class="page-title">管理习惯</h1>
 
     <!-- Add New -->
     <div class="add-section">
-      <div class="add-row">
-        <button class="emoji-btn" @click="showIconPicker = !showIconPicker">{{ newIcon }}</button>
-        <input
-          v-model="newTitle"
-          class="add-input"
-          placeholder="添加新习惯"
-          maxlength="100"
-          @keyup.enter="handleAdd"
-        />
-        <n-button type="primary" :disabled="!newTitle.trim()" size="small" @click="handleAdd">添加</n-button>
-      </div>
+      <JpAddRow v-model="newTitle" placeholder="添加新习惯" @submit="handleAdd">
+        <template #prepend>
+          <button class="jp-emoji-btn" @click="showIconPicker = !showIconPicker">{{ newIcon }}</button>
+        </template>
+      </JpAddRow>
       <div v-if="showIconPicker" class="icon-picker">
         <button
           v-for="emoji in iconOptions"
@@ -173,60 +164,10 @@ async function moveDown(idx: number) {
 </script>
 
 <style scoped>
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.back-btn {
-  font-size: 18px;
-  color: var(--color-primary);
-  text-decoration: none;
-  padding: 4px 8px;
-  -webkit-tap-highlight-color: transparent;
-}
-.page-title-inline {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--color-text);
-  margin: 0;
-}
+
 
 .add-section {
   margin-bottom: 20px;
-}
-.add-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.emoji-btn {
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--color-text-muted);
-  border-radius: 8px;
-  background: var(--color-bg-card);
-  font-size: 20px;
-  cursor: pointer;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.add-input {
-  flex: 1;
-  height: 40px;
-  padding: 0 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-bg-card);
-  color: var(--color-text);
-  font-size: 14px;
-  outline: none;
-}
-.add-input:focus {
-  border-color: var(--color-primary);
 }
 
 .icon-picker {
@@ -307,18 +248,22 @@ async function moveDown(idx: number) {
 .edit-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 .edit-input {
   flex: 1;
-  height: 32px;
-  padding: 0 8px;
-  border: 1px solid var(--color-primary);
-  border-radius: 6px;
-  background: transparent;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-input);
   color: var(--color-text);
   font-size: 14px;
   outline: none;
+  box-sizing: border-box;
+}
+.edit-input:focus {
+  border-color: var(--color-primary);
 }
 .mini-btn {
   width: 28px;

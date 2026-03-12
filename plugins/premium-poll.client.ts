@@ -23,6 +23,11 @@ export default defineNuxtPlugin(() => {
     }
   })
 
+  // 应用启动时立即刷新一次用户数据（确保 cookie 中的会员状态是最新的）
+  if (authStore.user) {
+    authStore.fetchMe().catch(() => {})
+  }
+
   // 登录后开始轮询
   watch(() => authStore.user, (user) => {
     user ? start() : stop()

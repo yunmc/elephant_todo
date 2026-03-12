@@ -197,31 +197,28 @@ export const AdminUserMgmtModel = {
 
   async updatePlan(userId: number, plan: 'free' | 'premium', expiresAt: string | null): Promise<void> {
     const pool = getPool()
+    // Convert ISO 8601 to MySQL DATETIME format
+    let mysqlDate: string | null = null
+    if (expiresAt) {
+      const d = new Date(expiresAt)
+      mysqlDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`
+    }
     await pool.query(
       'UPDATE users SET plan = ?, plan_expires_at = ? WHERE id = ?',
-      [plan, expiresAt, userId]
+      [plan, mysqlDate, userId]
     )
   },
 
   async grantCoins(userId: number, amount: number, adminId: number): Promise<void> {
-    const pool = getPool()
-
     // Ensure wallet exists
-    await pool.query(
-      'INSERT INTO wallets (user_id, balance) VALUES (?, 0) ON DUPLICATE KEY UPDATE user_id = user_id',
-      [userId]
-    )
+    await WalletModel.getOrCreate(userId)
 
-    // Add balance
-    await pool.query(
-      'UPDATE wallets SET balance = balance + ? WHERE user_id = ?',
-      [amount, userId]
-    )
-
-    // Record transaction
-    await pool.query(
-      "INSERT INTO wallet_transactions (user_id, type, amount, description) VALUES (?, 'admin_grant', ?, ?)",
-      [userId, amount, `管理员(ID:${adminId})手动发放`]
+    // Add coins via WalletModel (handles transaction, balance_after, etc.)
+    await WalletModel.addCoins(
+      userId,
+      amount,
+      'reward',
+      `管理员(ID:${adminId})手动发放`,
     )
   },
 }

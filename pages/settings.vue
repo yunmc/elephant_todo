@@ -38,11 +38,32 @@
       </div>
     </section>
 
-    <!-- ====== 高级功能 ====== -->
+    <!-- ====== 会员状态 ====== -->
     <section class="jp-section">
-      <div class="jp-card jp-card--premium">
-        <div class="jp-card-title"><i>🍵</i> 高级功能 <span class="jp-premium-badge">敬请期待</span></div>
-        <p class="jp-muted">更多高级功能正在开发中，敬请期待</p>
+      <div class="jp-card" :class="isPremium ? 'jp-card--premium-active' : 'jp-card--premium'">
+        <div class="jp-card-title">
+          <i>{{ isPremium ? '✨' : '🍵' }}</i>
+          {{ isPremium ? 'Premium 会员' : '高级功能' }}
+          <span v-if="isPremium" class="jp-premium-active-badge">已开通</span>
+          <span v-else class="jp-premium-badge" @click="guardPremium()">升级会员</span>
+        </div>
+        <template v-if="isPremium">
+          <div class="jp-premium-features">
+            <span class="jp-premium-feature">🤖 AI 智能助手</span>
+            <span class="jp-premium-feature">📊 预算管理</span>
+            <span class="jp-premium-feature">📸 图片附件</span>
+          </div>
+          <div class="jp-premium-meta">
+            <template v-if="authStore.user?.plan_expires_at">
+              <span v-if="daysRemaining > 0">到期时间：{{ formatExpireDate() }}（剩余 {{ daysRemaining }} 天）</span>
+              <span v-else-if="isAutoRenew" style="color: var(--color-warning);">续费处理中</span>
+            </template>
+            <span v-else>永久会员</span>
+          </div>
+        </template>
+        <template v-else>
+          <p class="jp-muted">升级 Premium 解锁 AI 助手、预算管理、图片附件等高级功能</p>
+        </template>
       </div>
     </section>
 
@@ -72,11 +93,11 @@
                   删除分类「{{ cat.name }}」？
                 </n-popconfirm>
               </div>
-              <div class="jp-add-row">
-                <n-input v-model:value="newCategoryName" placeholder="新分类名称" size="medium" style="flex: 1; min-width: 0;" @keyup.enter="handleAddCategory" />
-                <input type="color" v-model="newCategoryColor" class="color-input" />
-                <button class="jp-btn" @click="handleAddCategory">添加</button>
-              </div>
+              <JpAddRow v-model="newCategoryName" placeholder="新分类名称" @submit="handleAddCategory">
+                <template #append>
+                  <input type="color" v-model="newCategoryColor" class="color-input" />
+                </template>
+              </JpAddRow>
             </template>
           </div>
         </Transition>
@@ -109,11 +130,11 @@
                   删除标签「{{ tag.name }}」？
                 </n-popconfirm>
               </div>
-              <div class="jp-add-row">
-                <n-input v-model:value="newTagName" placeholder="输入新标签" size="medium" style="flex: 1;" @keyup.enter="handleAddTag" />
-                <input type="color" v-model="newTagColor" class="color-input" />
-                <button class="jp-btn" @click="handleAddTag">添加</button>
-              </div>
+              <JpAddRow v-model="newTagName" placeholder="输入新标签" @submit="handleAddTag">
+                <template #append>
+                  <input type="color" v-model="newTagColor" class="color-input" />
+                </template>
+              </JpAddRow>
             </template>
           </div>
         </Transition>
@@ -172,6 +193,14 @@ const categoriesStore = useCategoriesStore()
 const tagsStore = useTagsStore()
 const api = useApi()
 const message = useMessage()
+const { isPremium, isAutoRenew, daysRemaining, guardPremium } = usePremium()
+
+function formatExpireDate() {
+  const d = authStore.user?.plan_expires_at
+  if (!d) return ''
+  const date = new Date(d)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
 
 // Load data
 await useAsyncData('settings-data', async () => {
@@ -434,7 +463,7 @@ function handleLogout() {
   margin: 4px 0 0;
 }
 
-/* Premium card */
+/* Premium card — free user */
 .jp-card--premium {
   background: var(--color-bg-elevated);
   opacity: 0.8;
@@ -442,8 +471,43 @@ function handleLogout() {
 .jp-premium-badge {
   font-size: 11px;
   margin-left: auto;
+  color: var(--color-accent);
+  font-weight: 500;
+  cursor: pointer;
+  &:active { opacity: 0.7; }
+}
+
+/* Premium card — active member */
+.jp-card--premium-active {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(255, 165, 0, 0.06));
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+.jp-premium-active-badge {
+  font-size: 11px;
+  margin-left: auto;
+  color: #e6a700;
+  font-weight: 500;
+  background: rgba(255, 215, 0, 0.15);
+  padding: 1px 8px;
+  border-radius: 8px;
+}
+.jp-premium-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+.jp-premium-feature {
+  font-size: 12px;
   color: var(--color-text-secondary);
-  font-weight: 400;
+  background: var(--color-bg-elevated);
+  padding: 3px 10px;
+  border-radius: 10px;
+}
+.jp-premium-meta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
 }
 
 /* Form column */

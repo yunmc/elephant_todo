@@ -134,7 +134,7 @@ export async function waitForHydration(page: Page) {
       const el = document.getElementById('__nuxt')
       return el && (el as any).__vue_app__
     },
-    { timeout: 30000 },
+    { timeout: 10000 },
   )
   // Remove DevTools container after hydration — it intercepts pointer events
   await page.evaluate(() => {

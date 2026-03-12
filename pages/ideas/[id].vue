@@ -37,6 +37,9 @@
         </div>
       </div>
 
+      <!-- Attachments -->
+      <AttachmentSection target-type="idea" :target-id="ideaId" />
+
       <!-- Delete -->
       <button class="delete-btn" @click="confirmDelete = true">删除这条随手记</button>
     </template>

@@ -184,6 +184,13 @@ export interface FinanceStatistics {
   by_category: { category_id: number | null; category_name: string; category_icon: string; type: string; total: number }[]
 }
 
+export interface FinanceTrendItem {
+  month: string
+  income: number
+  expense: number
+  balance: number
+}
+
 // ==================== Important Date ====================
 export interface ImportantDate {
   id: number
@@ -411,6 +418,21 @@ export interface ChecklistStats {
 export interface ChecklistDayRecord {
   date: string
   items: { item_id: number; title: string; icon: string; checked: boolean }[]
+}
+
+// ==================== Attachment ====================
+export interface Attachment {
+  id: number
+  user_id: number
+  target_type: 'finance_record' | 'idea' | 'todo'
+  target_id: number
+  filename: string
+  oss_key: string
+  url: string
+  file_size: number
+  mime_type: string
+  sort_order: number
+  created_at: string
 }
 
 // ==================== API Response ====================

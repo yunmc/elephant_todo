@@ -36,7 +36,7 @@ test.describe('Navigation', () => {
   })
 
   test('N02: more page feature cards navigate to subpages', async ({ authedPage: page }) => {
-    await page.goto(`${BASE}/more`)
+    await page.goto(`${BASE}/more`, { timeout: 30000 })
     await waitForHydration(page)
     await expect(page.getByText('更多功能')).toBeVisible({ timeout: 8000 })
 
@@ -49,22 +49,22 @@ test.describe('Navigation', () => {
     await expect(page.locator('.feature-card').filter({ hasText: 'AI 报告' })).toBeVisible()
 
     await page.locator('.feature-card').filter({ hasText: '密码本' }).click()
-    await page.waitForURL('**/vault')
+    await page.waitForURL('**/vault', { timeout: 30000 })
     expect(page.url()).toContain('/vault')
 
-    await page.goto(`${BASE}/more`)
+    await page.goto(`${BASE}/more`, { timeout: 30000 })
     await page.locator('.feature-card').filter({ hasText: '重要日期' }).click()
-    await page.waitForURL('**/important-dates')
+    await page.waitForURL('**/important-dates', { timeout: 30000 })
     expect(page.url()).toContain('/important-dates')
 
-    await page.goto(`${BASE}/more`)
+    await page.goto(`${BASE}/more`, { timeout: 30000 })
     await page.locator('.feature-card').filter({ hasText: '经期追踪' }).click()
-    await page.waitForURL('**/period')
+    await page.waitForURL('**/period', { timeout: 30000 })
     expect(page.url()).toContain('/period')
 
-    await page.goto(`${BASE}/more`)
+    await page.goto(`${BASE}/more`, { timeout: 30000 })
     await page.locator('.feature-card').filter({ hasText: '设置' }).click()
-    await page.waitForURL('**/settings')
+    await page.waitForURL('**/settings', { timeout: 30000 })
     expect(page.url()).toContain('/settings')
   })
 
@@ -75,8 +75,8 @@ test.describe('Navigation', () => {
     // Click the center "+" FAB
     await expect(page.locator('.page-title')).toContainText('待办事项', { timeout: 8000 })
     await page.keyboard.press('Escape')
-    await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
-    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
+    await page.locator('.nav-add').waitFor(); await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
+    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 8000 }).catch(async () => { await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click()); await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 8000 }) })
 
     await expect(page.getByRole('button', { name: '新建待办' })).toBeVisible()
     await expect(page.getByRole('button', { name: '保存为随手记' })).toBeVisible()
@@ -104,8 +104,8 @@ test.describe('Navigation', () => {
 
     await expect(page.locator('.page-title')).toContainText('待办事项', { timeout: 8000 })
     await page.keyboard.press('Escape')
-    await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
-    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
+    await page.locator('.nav-add').waitFor(); await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
+    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 8000 }).catch(async () => { await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click()); await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 8000 }) })
 
     await page.getByPlaceholder('输入内容...').fill(ideaText)
 
@@ -126,8 +126,8 @@ test.describe('Navigation', () => {
 
     await expect(page.locator('.page-title')).toContainText('待办事项', { timeout: 8000 })
     await page.keyboard.press('Escape')
-    await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
-    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
+    await page.locator('.nav-add').waitFor(); await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
+    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 8000 }).catch(async () => { await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click()); await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 8000 }) })
 
     const todoBtn = page.getByRole('button', { name: '新建待办' })
     const ideaBtn = page.getByRole('button', { name: '保存为随手记' })

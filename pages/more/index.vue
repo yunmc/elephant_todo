@@ -34,26 +34,36 @@
       </NuxtLink>
     </div>
 
-    <h2 class="section-subtitle">即将上线</h2>
+    <!-- Premium Features -->
+    <h2 class="section-subtitle">高级功能 <span v-if="isPremium" class="premium-tag">✨ Premium</span></h2>
     <div class="feature-grid">
-      <div class="feature-card coming-soon" @click="comingSoon">
-        <span class="feature-icon">🏪</span>
-        <span class="feature-name">手帐商店</span>
-        <span class="feature-desc">皮肤·贴纸·字体</span>
-        <span class="coming-soon-badge">敬请期待</span>
-      </div>
-
-      <div class="feature-card coming-soon" @click="comingSoon">
+      <div class="feature-card coming-soon" @click="message.info('该功能正在开发中...')">
         <span class="feature-icon">🤖</span>
         <span class="feature-name">AI 报告</span>
         <span class="feature-desc">月度·年度智能分析</span>
         <span class="coming-soon-badge">敬请期待</span>
       </div>
 
-      <div class="feature-card coming-soon" @click="comingSoon">
+      <div class="feature-card coming-soon" @click="handlePremiumFeature" v-if="!isPremium">
         <span class="feature-icon">📊</span>
         <span class="feature-name">预算管理</span>
         <span class="feature-desc">月度预算·分类管控</span>
+        <span class="coming-soon-badge">Premium</span>
+      </div>
+      <div v-else class="feature-card coming-soon" @click="comingSoon">
+        <span class="feature-icon">📊</span>
+        <span class="feature-name">预算管理</span>
+        <span class="feature-desc">月度预算·分类管控</span>
+        <span class="coming-soon-badge">敬请期待</span>
+      </div>
+    </div>
+
+    <h2 class="section-subtitle">即将上线</h2>
+    <div class="feature-grid">
+      <div class="feature-card coming-soon" @click="comingSoon">
+        <span class="feature-icon">🏪</span>
+        <span class="feature-name">手帐商店</span>
+        <span class="feature-desc">皮肤·贴纸·字体</span>
         <span class="coming-soon-badge">敬请期待</span>
       </div>
     </div>
@@ -115,6 +125,12 @@
   opacity: 0.65;
 }
 
+.premium-tag {
+  font-size: 11px;
+  color: #e6a700;
+  font-weight: 500;
+}
+
 .coming-soon-badge {
   font-size: 10px;
   color: var(--color-primary);
@@ -127,8 +143,13 @@
 
 <script setup lang="ts">
 const message = useMessage()
+const { isPremium, guardPremium } = usePremium()
 
 function comingSoon() {
   message.info('该功能正在开发中，敬请期待 🐘')
+}
+
+function handlePremiumFeature() {
+  guardPremium()
 }
 </script>

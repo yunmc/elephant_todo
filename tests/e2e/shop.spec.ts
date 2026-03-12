@@ -110,10 +110,8 @@ test.describe.serial('Shop Flow', () => {
     await page.locator('.product-card').first().click()
     await page.waitForURL('**/shop/product/**', { timeout: 5000 })
 
-    // 详情页应有产品名称和按钮
+    // 详情页应有产品名称
     await expect(page.locator('.product-title')).toBeVisible({ timeout: 5000 })
-    // 应有"返回"按钮
-    await expect(page.getByText('← 返回')).toBeVisible()
   })
 
   // ─── S05: 免费商品详情 → 装扮按钮 ────────────────────────
@@ -336,7 +334,12 @@ test.describe.serial('Shop Flow', () => {
     await expect(page.getByText('密码本')).toBeVisible()
 
     // "手帐商店" is a coming-soon card — click shows toast, not navigation
-    await page.getByText('手帐商店').click()
+    await page.evaluate(() => {
+      const els = document.querySelectorAll('.feature-card.coming-soon')
+      for (const el of els) {
+        if (el.textContent?.includes('手帐商店')) { (el as HTMLElement).dispatchEvent(new MouseEvent('click', { bubbles: true })); break }
+      }
+    })
     await expect(page.getByText('该功能正在开发中')).toBeVisible({ timeout: 5000 })
   })
 })

@@ -515,3 +515,20 @@ export interface AiReportRow extends RowDataPacket {
   content: Record<string, any>  // mysql2 对 JSON 列自动解析为对象
   created_at: string
 }
+
+// ==================== Attachment ====================
+export type AttachmentTargetType = 'finance_record' | 'idea' | 'todo'
+
+export interface AttachmentRow extends RowDataPacket {
+  id: number
+  user_id: number
+  target_type: AttachmentTargetType
+  target_id: number
+  filename: string
+  oss_key: string
+  url: string
+  file_size: number
+  mime_type: string
+  sort_order: number
+  created_at: string
+}

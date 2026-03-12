@@ -1,11 +1,6 @@
 <template>
   <div class="page-container">
-    <!-- Back Button -->
-    <div class="detail-header">
-      <n-button text @click="router.back()">
-        ← 返回
-      </n-button>
-    </div>
+
 
     <n-spin v-if="loading" style="display: flex; justify-content: center; padding: 48px 0;" />
 

@@ -25,18 +25,18 @@
       </div>
     </div>
 
-    <!-- Add Record Button -->
-    <div style="margin-bottom: 12px;">
-      <n-button type="primary" block @click="showAddModal = true">+ 记一笔</n-button>
-    </div>
-
-    <div style="margin-bottom: 12px; padding: 14px 16px; background: var(--color-bg-card); border-radius: var(--radius-md, 12px); display: flex; align-items: center; gap: 10px;">
-      <span style="font-size: 20px;">💡</span>
+    <div
+      style="margin-bottom: 12px; padding: 14px 16px; background: var(--color-bg-card); border-radius: var(--radius-md, 12px); display: flex; align-items: center; gap: 10px; cursor: pointer;"
+      @click="navigateTo('/finance/charts')"
+    >
+      <span style="font-size: 20px;">📊</span>
       <div>
-        <div style="font-size: 14px; font-weight: 500;">AI 记账</div>
-        <div style="font-size: 12px; color: var(--color-text-tertiary, #999); margin-top: 2px;">语音/文字快速记账，智能识别金额与分类 · 即将上线</div>
+        <div style="font-size: 14px; font-weight: 500;">图表分析</div>
+        <div style="font-size: 12px; color: var(--color-text-tertiary, #999); margin-top: 2px;">查看收支趋势与分类占比</div>
       </div>
     </div>
+
+
 
     <!-- Filter Tabs -->
     <div class="filter-tabs">
@@ -110,10 +110,7 @@
               filterable
             >
               <template #action>
-                <div style="display: flex; gap: 6px; padding: 4px 0;">
-                  <n-input v-model:value="quickCategoryName" placeholder="输入新分类名" @keyup.enter="handleQuickAddCategory" />
-                  <n-button type="primary" :disabled="!quickCategoryName.trim()" @click="handleQuickAddCategory">添加</n-button>
-                </div>
+                <JpSelectCreate v-model="quickCategoryName" placeholder="输入新分类名" @submit="handleQuickAddCategory" />
               </template>
             </n-select>
           </n-form-item>
@@ -124,13 +121,35 @@
             <n-input v-model:value="form.note" placeholder="可选备注" />
           </n-form-item>
         </n-form>
+        <!-- Attachments (only when editing existing record) -->
+        <AttachmentSection v-if="editingRecordId" target-type="finance_record" :target-id="editingRecordId" />
+        <!-- AI voice status -->
+        <div v-if="aiParsing" class="ai-voice-status">
+          <n-spin size="small" /> <span style="margin-left: 6px;">AI 识别中...</span>
+        </div>
         <template #action>
-          <n-button type="primary" :disabled="!form.amount || form.amount <= 0" @click="editingRecordId ? handleUpdate() : handleAdd()">保存</n-button>
+          <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+            <n-button type="primary" :disabled="!form.amount || form.amount <= 0" @click="editingRecordId ? handleUpdate() : handleAdd()">保存</n-button>
+            <n-tooltip v-if="!editingRecordId" trigger="hover">
+              <template #trigger>
+                <button
+                  class="voice-btn" 
+                  :class="{ 'voice-active': voiceInput.isListening.value }"
+                  :disabled="aiParsing"
+                  @click="toggleVoice"
+                >
+                  {{ voiceInput.isListening.value ? '⏹' : '🎤' }}
+                </button>
+              </template>
+              {{ voiceInput.isListening.value ? '停止录音' : '语音记账（说完自动识别）' }}
+            </n-tooltip>
+            <span v-if="voiceInput.isListening.value" class="voice-hint">正在听...</span>
+          </div>
         </template>
       </n-modal>
     </ClientOnly>
 
-    <!-- AI Quick Entry -->
+
   </div>
 </template>
 
@@ -144,11 +163,66 @@ useGlobalAdd(() => {
 })
 const message = useMessage()
 
-const showAiEntry = ref(false)
+const { isPremium } = usePremium()
 const showBudgetModal = ref(false)
 
-function handleAiQuickEntry() {
-  message.info('该功能正在开发中，敬请期待 🐘')
+// AI voice input
+const aiParsing = ref(false)
+const aiError = ref('')
+const api = useApi()
+const voiceInput = useVoiceInput()
+
+function toggleVoice() {
+  if (!isPremium.value) {
+    message.info('语音记账为会员功能，敬请期待')
+    return
+  }
+  if (voiceInput.isListening.value) {
+    voiceInput.stop()
+  } else {
+    voiceInput.start()
+  }
+}
+
+// Watch voice transcript → auto AI parse
+watch(() => voiceInput.transcript.value, (val) => {
+  if (val && !voiceInput.isListening.value) {
+    handleAiParse(val)
+  }
+})
+watch(() => voiceInput.isListening.value, (listening) => {
+  if (!listening && voiceInput.transcript.value) {
+    handleAiParse(voiceInput.transcript.value)
+  }
+})
+
+async function handleAiParse(text: string) {
+  if (!text.trim() || aiParsing.value) return
+
+  aiParsing.value = true
+  aiError.value = ''
+  try {
+    const res = await api.post<import('~/types').AiQuickEntryResult>('/ai/quick-entry', { text: text.trim() })
+    const parsed = (res as any).amount !== undefined ? res as any : res.data
+    if (parsed) {
+      form.type = parsed.type || 'expense'
+      form.amount = parsed.amount
+      form.note = parsed.note || ''
+      if (parsed.date) {
+        const parts = parsed.date.split('-')
+        form.record_date_ts = new Date(+parts[0], +parts[1] - 1, +parts[2]).getTime()
+      }
+      const matchCat = financeStore.categories.find(
+        (c) => c.name === parsed.category_name && c.type === parsed.type,
+      )
+      form.category_id = matchCat?.id ?? null
+      message.success('AI 识别成功，请确认后保存')
+    }
+  } catch (err: any) {
+    message.error(err?.response?._data?.message || err?.data?.message || 'AI 解析失败')
+  } finally {
+    aiParsing.value = false
+  }
 }
 
 function handleOpenBudgetModal() {
@@ -193,6 +267,7 @@ watch(showAddModal, (show) => {
   }
   if (!show) {
     editingRecordId.value = null
+    aiError.value = ''
   }
 })
 
@@ -414,6 +489,49 @@ function formatDate(dateStr: string) {
 </script>
 
 <style scoped>
+
+.voice-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border, #e0e0e0);
+  background: var(--color-bg-card, #fff);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.voice-btn:hover {
+  background: var(--color-bg-hover, #f5f5f5);
+}
+.voice-btn.voice-active {
+  background: #ff4d4f;
+  border-color: #ff4d4f;
+  animation: voice-pulse 1s ease-in-out infinite;
+}
+.voice-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.voice-hint {
+  font-size: 12px;
+  color: #ff4d4f;
+  animation: voice-pulse 1s ease-in-out infinite;
+}
+.ai-voice-status {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--color-text-secondary, #666);
+  margin-top: 8px;
+}
+@keyframes voice-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
 .month-selector {
   display: flex;
   align-items: center;

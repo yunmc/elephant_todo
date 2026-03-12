@@ -11,6 +11,42 @@ const BASE = process.env.BASE_URL || 'http://localhost:3001'
 const TITLE = `E2E Todo ${Date.now()}`
 const CATEGORY_NAME = `E2E Cat ${Date.now()}`
 
+type TestPage = import('@playwright/test').Page
+
+/** Fill search box reliably — pressSequentially triggers NaiveUI @update:value */
+async function searchTodos(page: TestPage, text: string) {
+  const input = page.getByPlaceholder('搜索待办...')
+  await input.click()
+  await input.fill('')
+  if (text) {
+    await input.pressSequentially(text, { delay: 10 })
+  }
+  // Wait for debounce (400ms) + API response
+  await page.waitForResponse(
+    resp => resp.url().includes('/api/todos') && resp.request().method() === 'GET',
+    { timeout: 8000 }
+  )
+}
+
+/** Click filter button reliably — with evaluate fallback for Mobile Chrome */
+async function openFilters(page: TestPage) {
+  const filterBtn = page.getByRole('button', { name: /筛选/ })
+  await filterBtn.click()
+  const opened = await page.locator('.n-select').first().waitFor({ state: 'visible', timeout: 2000 }).then(() => true).catch(() => false)
+  if (!opened) {
+    await page.evaluate(() => {
+      const btns = document.querySelectorAll('button')
+      for (const b of btns) {
+        if (b.textContent?.includes('筛选')) {
+          b.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+          break
+        }
+      }
+    })
+  }
+  await expect(page.locator('.n-select').first()).toBeVisible({ timeout: 3000 })
+}
+
 let tokens: { accessToken: string; refreshToken: string }
 
 test.describe.serial('Todo Flow', () => {
@@ -34,7 +70,7 @@ test.describe.serial('Todo Flow', () => {
 
     // Open quick-add modal via ＋ button
     await page.keyboard.press('Escape')
-    await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
+    await page.locator('.nav-add').waitFor(); await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
     await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
 
     // Type content and click "新建待办" — verify API succeeds
@@ -117,10 +153,10 @@ test.describe.serial('Todo Flow', () => {
     await waitForHydration(page)
     await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 8000 })
 
-    await page.getByPlaceholder('搜索待办...').fill('E2E Todo')
+    await searchTodos(page, 'E2E Todo')
     await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 5000 })
 
-    await page.getByPlaceholder('搜索待办...').fill('ZZZZNOTEXIST')
+    await searchTodos(page, 'ZZZZNOTEXIST')
     await expect(page.getByText(`${TITLE} Updated`)).not.toBeVisible({ timeout: 3000 })
   })
 
@@ -195,8 +231,7 @@ test.describe.serial('Todo Flow', () => {
     await page.getByPlaceholder('搜索待办...').fill('')
     await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 8000 })
 
-    await page.getByRole('button', { name: /筛选/ }).click()
-    await expect(page.locator('.n-select').first()).toBeVisible({ timeout: 3000 })
+    await openFilters(page)
 
     const prioritySelect = page.locator('.n-select').first()
     await prioritySelect.click()
@@ -290,8 +325,7 @@ test.describe.serial('Todo Flow', () => {
     await page.getByPlaceholder('搜索待办...').fill('')
     await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 8000 })
 
-    await page.getByRole('button', { name: /筛选/ }).click()
-    await expect(page.locator('.n-select').first()).toBeVisible({ timeout: 3000 })
+    await openFilters(page)
 
     const categorySelect = page.locator('.n-select').nth(2)
     await categorySelect.click()
@@ -314,10 +348,22 @@ test.describe.serial('Todo Flow', () => {
     await waitForHydration(page)
     await expect(page.locator('.page-title')).toContainText('待办事项', { timeout: 8000 })
 
+    // Open quick-add modal via FAB button
     await page.keyboard.press('Escape')
-    await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
-    await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
-    await page.getByPlaceholder('输入内容...').fill(tmpTitle)
+    await page.locator('.nav-add').waitFor(); await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
+    const placeholder = page.getByPlaceholder('输入内容...')
+    // Retry with evaluate if modal didn't open
+    if (!await placeholder.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await page.locator('.nav-add').waitFor(); await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
+    }
+    if (!await placeholder.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await page.evaluate(() => {
+        const btn = document.querySelector('.nav-add') as HTMLElement
+        btn?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      })
+    }
+    await expect(placeholder).toBeVisible({ timeout: 10000 })
+    await placeholder.fill(tmpTitle)
     await page.getByRole('button', { name: '新建待办' }).click()
     await expect(page).toHaveURL(/\/$/, { timeout: 10000 })
     await expect(page.getByText(tmpTitle)).toBeVisible({ timeout: 5000 })
@@ -334,9 +380,7 @@ test.describe.serial('Todo Flow', () => {
     await page.getByPlaceholder('搜索待办...').fill('')
     await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 8000 })
 
-    const filterBtn = page.getByRole('button', { name: /筛选/ })
-    await filterBtn.click()
-    await expect(page.locator('.n-select').first()).toBeVisible({ timeout: 3000 })
+    await openFilters(page)
 
     await expect(page.getByText('重置全部筛选')).not.toBeVisible({ timeout: 2000 })
 
@@ -364,8 +408,7 @@ test.describe.serial('Todo Flow', () => {
     await page.getByPlaceholder('搜索待办...').fill('')
     await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 8000 })
 
-    await page.getByRole('button', { name: /筛选/ }).click()
-    await expect(page.locator('.n-select').first()).toBeVisible({ timeout: 3000 })
+    await openFilters(page)
 
     const tagSelect = page.locator('.n-select').nth(3)
     await tagSelect.click()

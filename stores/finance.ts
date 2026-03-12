@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { FinanceRecord, FinanceCategory, FinanceFilters, FinanceStatistics, Pagination, FinanceBudget, BudgetProgress } from '~/types'
+import type { FinanceRecord, FinanceCategory, FinanceFilters, FinanceStatistics, FinanceTrendItem, Pagination, FinanceBudget, BudgetProgress } from '~/types'
 
 export const useFinanceStore = defineStore('finance', () => {
   const api = useApi()
@@ -120,12 +120,21 @@ export const useFinanceStore = defineStore('finance', () => {
     return budgetProgress.value
   }
 
+  // ==================== Chart Statistics ====================
+  const trend = ref<FinanceTrendItem[]>([])
+
+  async function fetchTrend(months: number = 6) {
+    const res = await api.get<FinanceTrendItem[]>('/finance/statistics/trend', { months })
+    trend.value = res.data || []
+  }
+
   return {
     records, categories, statistics, pagination, filters, loading,
-    budgets, budgetProgress,
+    budgets, budgetProgress, trend,
     fetchCategories, createCategory, updateCategory, deleteCategory,
     fetchRecords, createRecord, updateRecord, deleteRecord,
     fetchStatistics, setFilters, setPage,
     fetchBudgets, saveBudget, deleteBudget, fetchBudgetProgress,
+    fetchTrend,
   }
 })

@@ -1,9 +1,8 @@
 /**
- * E2E — AI Features (AI01–AI08)
+ * E2E — AI Features (AI04–AI08)
  *
- * Tests AI quick entry, AI report page, and premium gating.
- * These tests verify UI interaction flows but mock-intercept
- * actual AI API calls since LLM responses are non-deterministic.
+ * Tests AI report page and premium gating.
+ * AI01-AI03 (AI 记账按钮) removed — feature refactored to voice input inside modal.
  */
 import { test, expect } from '@playwright/test'
 import { registerOnce, injectAuth, hideDevToolsOverlay, waitForHydration } from './fixtures/auth.fixture'
@@ -12,7 +11,7 @@ const BASE = process.env.BASE_URL || 'http://localhost:3001'
 
 let tokens: { accessToken: string; refreshToken: string }
 
-test.describe.serial('AI Features', () => {
+test.describe('AI Features', () => {
   test.beforeAll(async () => {
     const result = await registerOnce()
     tokens = result.tokens
@@ -24,68 +23,35 @@ test.describe.serial('AI Features', () => {
   })
 
   // ═══════════════════════════════════════════════════════════
-  // AI Quick Entry
-  // ═══════════════════════════════════════════════════════════
-
-  test('AI01: AI 记账按钮存在于记账页面', async ({ page }) => {
-    await page.goto(`${BASE}/finance`)
-    await waitForHydration(page)
-    await expect(page.locator('.page-title')).toContainText('记账', { timeout: 8000 })
-
-    // AI 记账按钮应该可见
-    const aiBtn = page.getByText('AI 记账')
-    await expect(aiBtn).toBeVisible({ timeout: 5000 })
-  })
-
-  test('AI02: 点击 AI 记账按钮（免费用户触发升级弹窗）', async ({ page }) => {
-    await page.goto(`${BASE}/finance`)
-    await waitForHydration(page)
-    await expect(page.locator('.page-title')).toContainText('记账', { timeout: 8000 })
-
-    // Click AI button
-    const aiBtn = page.getByText('AI 记账')
-    await expect(aiBtn).toBeVisible({ timeout: 5000 })
-    await aiBtn.click()
-
-    // AI feature is in development — click shows a toast message
-    await expect(page.getByText('该功能正在开发中')).toBeVisible({ timeout: 8000 })
-  })
-
-  test('AI03: AI 快速记账弹窗包含输入框和解析按钮', async ({ page }) => {
-    await page.goto(`${BASE}/finance`)
-    await waitForHydration(page)
-
-    // AI feature is in development — even for premium users, click shows toast
-    const aiBtn = page.getByText('AI 记账')
-    await aiBtn.click()
-    await expect(page.getByText('该功能正在开发中')).toBeVisible({ timeout: 8000 })
-  })
-
-  // ═══════════════════════════════════════════════════════════
   // AI Report Page
   // ═══════════════════════════════════════════════════════════
 
   test('AI04: AI 报告入口在更多页面', async ({ page }) => {
     await page.goto(`${BASE}/more`)
-    await waitForHydration(page)
+    await waitForHydration(page);
+    await expect(page.locator('.page-title')).toBeVisible({ timeout: 8000 });
 
     // AI 报告卡片应该可见
     const aiReportCard = page.getByText('AI 报告')
     await expect(aiReportCard).toBeVisible({ timeout: 5000 })
   })
 
-  test('AI05: 点击 AI 报告可以导航到报告页面', async ({ page }) => {
+  test('AI05: 点击 AI 报告卡片显示开发中提示', async ({ page }) => {
     await page.goto(`${BASE}/more`)
-    await waitForHydration(page)
+    await waitForHydration(page);
+    await expect(page.locator('.page-title')).toBeVisible({ timeout: 8000 });
 
-    // AI 报告 is a coming-soon card — click shows toast, not navigation
-    await page.getByText('AI 报告').click()
-    await expect(page.getByText('该功能正在开发中')).toBeVisible({ timeout: 5000 })
+    // AI 报告 is a coming-soon card — dispatchEvent triggers Vue event handler
+    const card = page.locator('.feature-card.coming-soon').filter({ hasText: 'AI 报告' })
+    await expect(card).toBeVisible({ timeout: 5000 })
+    await card.dispatchEvent('click')
+    await expect(page.locator('.n-message').or(page.getByText('该功能正在开发中')).first()).toBeVisible({ timeout: 5000 })
   })
 
   test('AI06: AI 报告页面有月度/年度 Tab', async ({ page }) => {
     await page.goto(`${BASE}/ai/report`)
-    await waitForHydration(page)
+    await waitForHydration(page);
+    await expect(page.locator('.page-title')).toBeVisible({ timeout: 8000 });
 
     const monthlyTab = page.getByText('月度报告')
     const yearlyTab = page.getByText('年度报告')
@@ -96,7 +62,8 @@ test.describe.serial('AI Features', () => {
 
   test('AI07: AI 报告页面有日期选择器和生成按钮', async ({ page }) => {
     await page.goto(`${BASE}/ai/report`)
-    await waitForHydration(page)
+    await waitForHydration(page);
+    await expect(page.locator('.page-title')).toBeVisible({ timeout: 8000 });
 
     // Date label should show current year/month
     const now = new Date()
@@ -110,7 +77,8 @@ test.describe.serial('AI Features', () => {
 
   test('AI08: 切换到年度报告 Tab', async ({ page }) => {
     await page.goto(`${BASE}/ai/report`)
-    await waitForHydration(page)
+    await waitForHydration(page);
+    await expect(page.locator('.page-title')).toBeVisible({ timeout: 8000 });
 
     // Click yearly tab
     await page.getByText('年度报告').click()

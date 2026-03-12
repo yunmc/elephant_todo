@@ -1,19 +1,4 @@
-import { readFileSync, existsSync } from 'node:fs'
-import { resolve } from 'node:path'
 
-// 读取 prompts 目录下的提示词文件（带安全检查）
-const promptsDir = resolve(process.cwd(), 'prompts')
-const promptPath = resolve(promptsDir, '智能建议提示词.md')
-let mergedPromptTemplate = ''
-try {
-  if (existsSync(promptPath)) {
-    mergedPromptTemplate = readFileSync(promptPath, 'utf-8').trim()
-  } else {
-    console.error('[SmartSuggest] 提示词文件不存在:', promptPath)
-  }
-} catch (err) {
-  console.error('[SmartSuggest] 读取提示词文件失败:', err)
-}
 
 export default defineEventHandler(async (event) => {
   // Rate limit: 20 requests per 5 minutes per IP
@@ -29,10 +14,6 @@ export default defineEventHandler(async (event) => {
   if (text.length > 500) {
     throw createError({ statusCode: 400, message: '输入文本不能超过 500 字' })
   }
-  if (!mergedPromptTemplate) {
-    throw createError({ statusCode: 500, message: '智能建议服务未就绪（提示词文件缺失）' })
-  }
-
   const similarityThreshold = 0.6
 
   // 获取用户未完成的 todo 列表
@@ -51,7 +32,7 @@ export default defineEventHandler(async (event) => {
     ? todos.map((t: any) => `- id=${t.id}, title="${t.title}"${t.description ? `, desc="${t.description}"` : ''}`).join('\n')
     : '（暂无待办）'
   const escapedText = text.replace(/"/g, '\\"').replace(/\n/g, ' ')
-  const mergedPrompt = mergedPromptTemplate
+  const mergedPrompt = loadPrompt('智能建议提示词.md')
     .replace('{{text}}', escapedText)
     .replace('{{todos}}', todosText)
 

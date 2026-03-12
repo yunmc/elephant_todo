@@ -9,6 +9,20 @@ import { registerOnce, injectAuth, hideDevToolsOverlay, waitForHydration } from 
 const BASE = process.env.BASE_URL || 'http://localhost:3001'
 const CONTENT = `E2E Idea ${Date.now()}`
 
+/** Fill search box reliably — pressSequentially triggers NaiveUI @update:value */
+async function searchIdeas(page: import('@playwright/test').Page, text: string) {
+  const input = page.getByPlaceholder('搜索随手记...')
+  await input.click()
+  await input.fill('')
+  if (text) {
+    await input.pressSequentially(text, { delay: 10 })
+  }
+  await page.waitForResponse(
+    resp => resp.url().includes('/api/ideas') && resp.request().method() === 'GET',
+    { timeout: 8000 }
+  )
+}
+
 let tokens: { accessToken: string; refreshToken: string }
 
 test.describe.serial('Ideas Flow', () => {
@@ -36,7 +50,7 @@ test.describe.serial('Ideas Flow', () => {
     }
 
     // Open quick-add
-    await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
+    await page.locator('.nav-add').waitFor(); await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
     // Wait for modal content to appear
     await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
 
@@ -125,15 +139,15 @@ test.describe.serial('Ideas Flow', () => {
     await expect(page.getByText(`${CONTENT} Updated`)).toBeVisible({ timeout: 8000 })
 
     // Search by content
-    await page.getByPlaceholder('搜索随手记...').fill('E2E Idea')
+    await searchIdeas(page, 'E2E Idea')
     await expect(page.getByText(`${CONTENT} Updated`)).toBeVisible({ timeout: 5000 })
 
     // Search non-existent
-    await page.getByPlaceholder('搜索随手记...').fill('ZZZZNOTEXIST')
+    await searchIdeas(page, 'ZZZZNOTEXIST')
     await expect(page.getByText(`${CONTENT} Updated`)).not.toBeVisible({ timeout: 5000 })
 
     // Clear search
-    await page.getByPlaceholder('搜索随手记...').fill('')
+    await searchIdeas(page, '')
     await expect(page.getByText(`${CONTENT} Updated`)).toBeVisible({ timeout: 5000 })
   })
 
@@ -171,7 +185,7 @@ test.describe.serial('Ideas Flow', () => {
     await waitForHydration(page)
     await expect(page.locator('.page-title')).toContainText('随手记', { timeout: 8000 })
     await page.keyboard.press('Escape')
-    await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
+    await page.locator('.nav-add').waitFor(); await page.evaluate(() => (document.querySelector('.nav-add') as HTMLElement)?.click())
     await expect(page.getByPlaceholder('输入内容...')).toBeVisible({ timeout: 15000 })
     await page.getByPlaceholder('输入内容...').fill(tmpContent)
     const [saveResp] = await Promise.all([

@@ -122,14 +122,13 @@ test.describe.serial('Admin Panel', () => {
 
     await expect(page.getByText('请输入用户名')).toBeVisible({ timeout: 5000 })
     await expect(page.locator('.n-form-item-feedback__line').getByText('请输入密码')).toBeVisible({ timeout: 5000 })
-    expect(page.url()).toContain('/admin/login')
+    await expect(page).toHaveURL(/\/admin\/login/, { timeout: 10000 })
   })
 
   test('A04: unauthenticated access redirects to /admin/login', async ({ page }) => {
     await page.context().clearCookies()
     await page.goto(`${BASE}/admin`)
-    await page.waitForURL('**/admin/login', { timeout: 10000 })
-    expect(page.url()).toContain('/admin/login')
+    await expect(page).toHaveURL(/\/admin\/login/, { timeout: 10000 })
   })
 
   test('A05: dashboard shows exactly 5 stat cards with correct labels', async ({ page }) => {
@@ -282,16 +281,20 @@ test.describe.serial('Admin Panel', () => {
     await waitForHydration(page)
     await expect(page.locator('.page-title')).toHaveText('商品管理', { timeout: 8000 })
 
-    // Product sorted by sort_order ASC, id ASC — newest is on the last page
-    if (!(await page.getByText(productName).isVisible().catch(() => false))) {
-      // Navigate to last page: click the last page-number item in pagination
-      const pageItems = page.locator('.n-pagination-item:not(.n-pagination-item--button)')
-      const count = await pageItems.count()
-      if (count > 1) {
+    // Nav until we find the created item
+    for (let i = 0; i < 15; i++) {
+      if (await page.getByText(productName).isVisible().catch(() => false)) break
+      const nextBtn = page.locator('.n-pagination-item--button').last()
+      if (await nextBtn.isVisible().catch(() => false)) {
+        const cls = await nextBtn.getAttribute('class').catch(() => '')
+        if (cls?.includes('disabled')) break
         await Promise.all([
-          page.waitForResponse(resp => resp.url().includes('/api/admin/products') && resp.request().method() === 'GET', { timeout: 5000 }),
-          pageItems.last().click(),
+          page.waitForResponse(resp => resp.url().includes('/api/admin/products'), { timeout: 5000 }).catch(() => {}),
+          nextBtn.dispatchEvent('click')
         ])
+        await page.waitForTimeout(500)
+      } else {
+        break
       }
     }
     await expect(page.getByText(productName)).toBeVisible({ timeout: 5000 })

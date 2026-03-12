@@ -13,15 +13,14 @@
         clearable
         @keyup.enter="handleParse"
       />
-      <n-button
+      <button
         v-if="voiceInput.isSupported.value"
-        :type="voiceInput.isListening.value ? 'error' : 'default'"
-        :loading="voiceInput.isListening.value"
-        style="margin-left: 8px;"
+        class="jp-btn"
+        :class="{ 'voice-active': voiceInput.isListening.value }"
         @click="toggleVoice"
       >
         {{ voiceInput.isListening.value ? '⏹' : '🎤' }}
-      </n-button>
+      </button>
     </div>
 
     <n-button
@@ -220,9 +219,15 @@ watch(visible, (v) => {
 </script>
 
 <style scoped>
+
+
 .ai-input-row {
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+.voice-active {
+  background: var(--color-danger) !important;
 }
 
 .ai-result {

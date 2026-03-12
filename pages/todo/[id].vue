@@ -57,10 +57,7 @@
             class="info-control"
           >
             <template #action>
-              <div class="select-create">
-                <n-input v-model:value="newCategoryName" size="tiny" placeholder="新分类名称" @keyup.enter="handleCreateCategory" />
-                <n-button size="tiny" type="primary" :disabled="!newCategoryName.trim()" @click="handleCreateCategory">添加</n-button>
-              </div>
+              <JpSelectCreate v-model="newCategoryName" placeholder="新分类名称" @submit="handleCreateCategory" />
             </template>
           </n-select>
         </div>
@@ -77,10 +74,7 @@
             class="info-control"
           >
             <template #action>
-              <div class="select-create">
-                <n-input v-model:value="newTagName" size="tiny" placeholder="新标签名称" @keyup.enter="handleCreateTag" />
-                <n-button size="tiny" type="primary" :disabled="!newTagName.trim()" @click="handleCreateTag">添加</n-button>
-              </div>
+              <JpSelectCreate v-model="newTagName" placeholder="新标签名称" @submit="handleCreateTag" />
             </template>
           </n-select>
         </div>
@@ -144,6 +138,9 @@
           <button v-show="newSubtaskTitle.trim()" class="add-subtask-btn" @click="addSubtask">添加</button>
         </div>
       </div>
+
+      <!-- Attachments -->
+      <AttachmentSection target-type="todo" :target-id="todoId" />
 
       <!-- Related Ideas -->
       <div class="ideas-section">
@@ -501,11 +498,6 @@ function formatFullDate(dateStr: string) {
 :deep(.info-control) {
   flex: 1;
   max-width: 200px;
-}
-.select-create {
-  display: flex;
-  gap: 6px;
-  padding: 4px 8px 6px;
 }
 
 /* Description */

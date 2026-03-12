@@ -4,6 +4,43 @@
  * OpenAI-compatible chat completions 格式
  */
 
+import { readFileSync, existsSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+// ─── 提示词加载与缓存 ───
+
+const promptCache = new Map<string, string>()
+
+/**
+ * 加载 prompts/ 目录下的提示词文件（启动时缓存）
+ * @param filename 文件名，如 'AI记账提示词.md'
+ * @returns 提示词内容
+ * @throws 文件不存在或为空时抛 500
+ */
+export function loadPrompt(filename: string): string {
+  if (promptCache.has(filename)) {
+    return promptCache.get(filename)!
+  }
+
+  const promptPath = resolve(process.cwd(), 'prompts', filename)
+  try {
+    if (!existsSync(promptPath)) {
+      console.error(`[LLM] 提示词文件不存在: ${promptPath}`)
+      throw createError({ statusCode: 500, message: `AI 服务未就绪（${filename} 缺失）` })
+    }
+    const content = readFileSync(promptPath, 'utf-8').trim()
+    if (!content) {
+      throw createError({ statusCode: 500, message: `AI 服务未就绪（${filename} 为空）` })
+    }
+    promptCache.set(filename, content)
+    return content
+  } catch (err: any) {
+    if (err.statusCode) throw err
+    console.error(`[LLM] 读取提示词文件失败: ${promptPath}`, err)
+    throw createError({ statusCode: 500, message: `AI 服务未就绪（${filename} 读取失败）` })
+  }
+}
+
 export interface LLMOptions {
   systemPrompt: string
   userMessage: string

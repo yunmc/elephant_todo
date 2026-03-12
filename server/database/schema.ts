@@ -492,3 +492,24 @@ export const checklistRecords = mysqlTable('checklist_records', {
   index('idx_checklist_records_user_date').on(t.user_id, t.check_date),
   index('idx_checklist_records_item_date').on(t.item_id, t.check_date),
 ])
+
+// ══════════════════════════════════════════════════════════════
+// 28. attachments (migrate-007)
+// ══════════════════════════════════════════════════════════════
+
+export const attachments = mysqlTable('attachments', {
+  id: int('id').autoincrement().primaryKey(),
+  user_id: int('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  target_type: mysqlEnum('target_type', ['finance_record', 'idea', 'todo']).notNull(),
+  target_id: int('target_id').notNull(),
+  filename: varchar('filename', { length: 255 }).notNull(),
+  oss_key: varchar('oss_key', { length: 500 }).notNull(),
+  url: varchar('url', { length: 500 }).notNull(),
+  file_size: int('file_size').notNull(),
+  mime_type: varchar('mime_type', { length: 50 }).notNull(),
+  sort_order: int('sort_order').notNull().default(0),
+  created_at: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (t) => [
+  index('idx_attachments_user').on(t.user_id),
+  index('idx_attachments_target').on(t.target_type, t.target_id),
+])
