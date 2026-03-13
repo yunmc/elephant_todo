@@ -30,9 +30,6 @@
           </n-button>
         </n-form>
 
-        <div style="text-align: center; margin-top: 16px;">
-          <NuxtLink to="/login"><n-text type="info">返回登录</n-text></NuxtLink>
-        </div>
       </n-card>
     </NuxtLayout>
   </div>

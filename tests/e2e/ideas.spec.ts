@@ -85,7 +85,7 @@ test.describe.serial('Ideas Flow', () => {
     expect(saveResp.ok()).toBe(true)
 
     // Go back and verify
-    await page.locator('.back-btn').click()
+    await page.goBack()
     await expect(page.getByText(`${CONTENT} Updated`)).toBeVisible({ timeout: 5000 })
   })
 

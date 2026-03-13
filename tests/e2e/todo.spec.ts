@@ -104,7 +104,7 @@ test.describe.serial('Todo Flow', () => {
     ])
     expect(saveResp.ok()).toBe(true)
 
-    await page.locator('.back-btn').click()
+    await page.goBack()
     await expect(page.getByText(`${TITLE} Updated`)).toBeVisible({ timeout: 5000 })
   })
 
@@ -183,7 +183,7 @@ test.describe.serial('Todo Flow', () => {
     ])
     expect(saveResp.ok()).toBe(true)
 
-    await page.locator('.back-btn').click()
+    await page.goBack()
     const todoItem = page.locator('.todo-item').filter({ hasText: `${TITLE} Updated` })
     await expect(todoItem.locator('.priority-high')).toBeVisible({ timeout: 5000 })
   })
@@ -220,7 +220,7 @@ test.describe.serial('Todo Flow', () => {
     ])
     expect(saveResp.ok()).toBe(true)
 
-    await page.locator('.back-btn').click()
+    await page.goBack()
     const todoItem = page.locator('.todo-item').filter({ hasText: `${TITLE} Updated` })
     await expect(todoItem.locator('.category')).toBeVisible({ timeout: 5000 })
   })
@@ -278,7 +278,7 @@ test.describe.serial('Todo Flow', () => {
     const saveBody = await saveResp.json()
     expect(saveBody.data?.due_date || saveBody.due_date).toBeTruthy()
 
-    await page.locator('.back-btn').click()
+    await page.goBack()
     const todoItem = page.locator('.todo-item').filter({ hasText: `${TITLE} Updated` })
     await expect(todoItem.locator('.meta-tag').nth(1)).toBeVisible({ timeout: 5000 })
   })
@@ -314,7 +314,7 @@ test.describe.serial('Todo Flow', () => {
     ])
     expect(saveResp.ok()).toBe(true)
 
-    await page.locator('.back-btn').click()
+    await page.goBack()
     const todoItem = page.locator('.todo-item').filter({ hasText: `${TITLE} Updated` })
     await expect(todoItem.locator('.tag-chip')).toBeVisible({ timeout: 5000 })
   })
@@ -439,7 +439,7 @@ test.describe.serial('Todo Flow', () => {
     await page.locator('.status-pill').click()
     await expect(page.locator('.status-pill')).toContainText('进行中', { timeout: 5000 })
 
-    await page.locator('.back-btn').click()
+    await page.goBack()
   })
 
   test('T18: subtask inline edit', async ({ page }) => {
@@ -464,7 +464,7 @@ test.describe.serial('Todo Flow', () => {
     await page.locator('.subtask-del').first().click()
     await expect(page.getByText('Edited subtask title')).not.toBeVisible({ timeout: 3000 })
 
-    await page.locator('.back-btn').click()
+    await page.goBack()
   })
 
   test('T19: data persistence after reload', async ({ page }) => {
