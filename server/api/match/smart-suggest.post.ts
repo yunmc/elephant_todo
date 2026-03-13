@@ -1,4 +1,4 @@
-
+import { loadPrompt } from '~/server/utils/llm'
 
 export default defineEventHandler(async (event) => {
   // Rate limit: 20 requests per 5 minutes per IP

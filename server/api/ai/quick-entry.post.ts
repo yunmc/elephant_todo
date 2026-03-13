@@ -1,4 +1,5 @@
 import type { AiQuickEntryResult } from '~~/types'
+import { loadPrompt } from '~/server/utils/llm'
 
 export default defineEventHandler(async (event) => {
   const userId = requireAuth(event)

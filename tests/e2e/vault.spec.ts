@@ -274,25 +274,37 @@ test.describe.serial('Vault Flow', () => {
     await page.goto(`${BASE}/vault`)
     await waitForHydration(page)
     await unlockVault(page)
-    // Wait for vault list to load — skip if no entries exist (V07 prerequisite)
-    const hasEntries = await page.getByText(ENTRY_NAME, { exact: false }).isVisible({ timeout: 20000 }).catch(() => false)
-    if (!hasEntries) {
-      test.skip(true, 'No vault entry found — V07 prerequisite may have failed')
-      return
-    }
-    // V09 may have renamed to "Updated" — accept either name
-    const updatedEntry = page.getByText(`${ENTRY_NAME} Updated`)
-    const originalEntry = page.getByText(ENTRY_NAME, { exact: false })
+    // V09 may have renamed to "Updated" — accept either name.
+    // If no target entry exists, create one so this case is self-contained.
+    const updatedName = `${ENTRY_NAME} Updated`
+    const fallbackName = `${ENTRY_NAME} DeleteSeed`
+    const hasUpdated = await page.getByText(updatedName, { exact: false }).isVisible().catch(() => false)
+    const hasOriginal = await page.getByText(ENTRY_NAME, { exact: false }).isVisible().catch(() => false)
 
-    // Click whichever entry is visible
-    const entryLink = await updatedEntry.isVisible().catch(() => false) ? updatedEntry : originalEntry
+    let targetName = hasUpdated ? updatedName : ENTRY_NAME
+    if (!hasUpdated && !hasOriginal) {
+      await page.getByRole('button', { name: '+ 条目' }).click()
+      await expect(page.getByPlaceholder('名称 (如: GitHub)')).toBeVisible({ timeout: 5000 })
+      await page.getByPlaceholder('名称 (如: GitHub)').fill(fallbackName)
+      await page.getByPlaceholder('用户名').fill('delete_seed_user')
+      await page.getByPlaceholder('密码').fill('delete_seed_pass')
+      const [createResp] = await Promise.all([
+        page.waitForResponse(resp => resp.url().includes('/api/vault/entries') && resp.request().method() === 'POST', { timeout: 10000 }),
+        page.getByRole('button', { name: '创建' }).click(),
+      ])
+      expect(createResp.ok()).toBe(true)
+      await expect(page.getByText(fallbackName)).toBeVisible({ timeout: 5000 })
+      targetName = fallbackName
+    }
+
+    const entryLink = page.getByText(targetName, { exact: false }).first()
     await entryLink.click()
     await page.waitForURL(/\/vault\/\d+/, { timeout: 5000 })
     await page.getByPlaceholder('主密码').click()
     await page.getByPlaceholder('主密码').fill('')
     await page.getByPlaceholder('主密码').pressSequentially(MASTER_PWD, { delay: 10 })
     await page.getByRole('button', { name: '解锁' }).click()
-    await expect(entryLink).toBeVisible({ timeout: 20000 })
+    await expect(page.getByText(targetName, { exact: false }).first()).toBeVisible({ timeout: 20000 })
 
     // Click delete button (n-popconfirm trigger)
     await page.getByRole('button', { name: '删除' }).click()

@@ -6,6 +6,11 @@
  *         默认跳过，设置 RUN_OSS_INTEGRATION=1 开启
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+vi.mock('ali-oss', () => ({
+  default: class MockOSS {},
+}))
+
 import {
   ossKeyAttachment,
   ossKeyProduct,
