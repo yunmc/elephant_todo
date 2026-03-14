@@ -564,7 +564,7 @@ describe('Finance — Statistics validation', () => {
         total_income: 0, total_expense: 0, balance: 0, by_category: [],
       }),
     })
-    handler = (await import('../../server/api/finance/statistics.get')).default
+    handler = (await import('../../server/api/finance/statistics/index.get')).default
   })
 
   it('should reject invalid date format in start_date', async () => {

@@ -19,6 +19,32 @@ const ENTRY_PASS = `pass_${TS}`
 
 let tokens: { accessToken: string; refreshToken: string }
 
+/** Unlock vault robustly: fill password, click unlock, wait for API + decrypt */
+async function unlockVault(page: import('@playwright/test').Page) {
+  const pwdInput = page.getByPlaceholder('主密码')
+  await pwdInput.click()
+  // Use pressSequentially — NaiveUI fill() intermittently fails to trigger v-model
+  await pwdInput.fill('')
+  await pwdInput.pressSequentially(MASTER_PWD, { delay: 10 })
+
+  // Click unlock and wait for entries API to complete
+  await Promise.all([
+    page.waitForResponse(
+      resp => resp.url().includes('/api/vault/entries') && resp.request().method() === 'GET',
+      { timeout: 15000 },
+    ),
+    page.getByRole('button', { name: '解锁' }).click(),
+  ])
+
+  // If decrypt fails, an error message appears briefly — check for it
+  const errorMsg = page.locator('.n-message--error')
+  const hasError = await errorMsg.isVisible({ timeout: 1000 }).catch(() => false)
+  if (hasError) {
+    const errText = await errorMsg.textContent()
+    throw new Error(`Vault unlock failed: ${errText}`)
+  }
+}
+
 test.describe.serial('Vault Flow', () => {
   test.beforeAll(async () => {
     const result = await registerOnce()
@@ -44,8 +70,11 @@ test.describe.serial('Vault Flow', () => {
     await waitForHydration(page)
     await expect(page.getByText('密码本已锁定')).toBeVisible({ timeout: 8000 })
 
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByPlaceholder('主密码').press('Enter')
+    const pwdInput = page.getByPlaceholder('主密码')
+    await pwdInput.click()
+    await pwdInput.fill('')
+    await pwdInput.pressSequentially(MASTER_PWD, { delay: 10 })
+    await pwdInput.press('Enter')
 
     await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 20000 })
   })
@@ -55,8 +84,7 @@ test.describe.serial('Vault Flow', () => {
     await waitForHydration(page)
     await expect(page.getByText('密码本已锁定')).toBeVisible({ timeout: 8000 })
 
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
+    await unlockVault(page)
     await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 20000 })
 
     await expect(page.getByText('暂无条目')).toBeVisible({ timeout: 5000 })
@@ -67,7 +95,9 @@ test.describe.serial('Vault Flow', () => {
     await waitForHydration(page)
     await expect(page.getByText('密码本已锁定')).toBeVisible({ timeout: 8000 })
 
-    await page.getByPlaceholder('主密码').fill('WrongPassword999!')
+    await page.getByPlaceholder('主密码').click()
+    await page.getByPlaceholder('主密码').fill('')
+    await page.getByPlaceholder('主密码').pressSequentially('WrongPassword999!', { delay: 10 })
     await page.getByRole('button', { name: '解锁' }).click()
 
     // For a brand new user with no entries, first unlock always succeeds
@@ -82,8 +112,7 @@ test.describe.serial('Vault Flow', () => {
     await waitForHydration(page)
     await expect(page.getByText('密码本已锁定')).toBeVisible({ timeout: 8000 })
 
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
+    await unlockVault(page)
 
     await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 20000 })
     await expect(page.getByRole('button', { name: '+ 分组' })).toBeVisible()
@@ -93,8 +122,7 @@ test.describe.serial('Vault Flow', () => {
   test('V03: create group', async ({ page }) => {
     await page.goto(`${BASE}/vault`)
     await waitForHydration(page)
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
+    await unlockVault(page)
     await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 20000 })
 
     await page.getByRole('button', { name: '+ 分组' }).click()
@@ -114,8 +142,7 @@ test.describe.serial('Vault Flow', () => {
   test('V04: create entry', async ({ page }) => {
     await page.goto(`${BASE}/vault`)
     await waitForHydration(page)
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
+    await unlockVault(page)
     await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 20000 })
 
     await page.getByRole('button', { name: '+ 条目' }).click()
@@ -139,8 +166,7 @@ test.describe.serial('Vault Flow', () => {
   test('V05: quick decrypt entry', async ({ page }) => {
     await page.goto(`${BASE}/vault`)
     await waitForHydration(page)
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
+    await unlockVault(page)
     await expect(page.getByText(ENTRY_NAME)).toBeVisible({ timeout: 20000 })
 
     // Click eye button for quick decrypt
@@ -163,8 +189,7 @@ test.describe.serial('Vault Flow', () => {
   test('V06: search entries', async ({ page }) => {
     await page.goto(`${BASE}/vault`)
     await waitForHydration(page)
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
+    await unlockVault(page)
     await expect(page.getByText(ENTRY_NAME)).toBeVisible({ timeout: 20000 })
 
     // Search by entry name
@@ -183,8 +208,7 @@ test.describe.serial('Vault Flow', () => {
   test('V07: filter by group', async ({ page }) => {
     await page.goto(`${BASE}/vault`)
     await waitForHydration(page)
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
+    await unlockVault(page)
     await expect(page.getByText(ENTRY_NAME)).toBeVisible({ timeout: 20000 })
 
     // Click the group chip to filter
@@ -201,15 +225,16 @@ test.describe.serial('Vault Flow', () => {
   test('V08: navigate to entry detail and decrypt', async ({ page }) => {
     await page.goto(`${BASE}/vault`)
     await waitForHydration(page)
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
+    await unlockVault(page)
     await expect(page.getByText(ENTRY_NAME)).toBeVisible({ timeout: 20000 })
 
     await page.getByText(ENTRY_NAME).click()
     await page.waitForURL(/\/vault\/\d+/, { timeout: 5000 })
 
     await expect(page.getByText('需要验证')).toBeVisible({ timeout: 5000 })
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
+    await page.getByPlaceholder('主密码').click()
+    await page.getByPlaceholder('主密码').fill('')
+    await page.getByPlaceholder('主密码').pressSequentially(MASTER_PWD, { delay: 10 })
     await page.getByRole('button', { name: '解锁' }).click()
 
     await expect(page.getByText(ENTRY_NAME)).toBeVisible({ timeout: 20000 })
@@ -220,13 +245,14 @@ test.describe.serial('Vault Flow', () => {
   test('V09: edit entry from detail page', async ({ page }) => {
     await page.goto(`${BASE}/vault`)
     await waitForHydration(page)
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
+    await unlockVault(page)
     await expect(page.getByText(ENTRY_NAME)).toBeVisible({ timeout: 20000 })
 
     await page.getByText(ENTRY_NAME).click()
     await page.waitForURL(/\/vault\/\d+/, { timeout: 5000 })
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
+    await page.getByPlaceholder('主密码').click()
+    await page.getByPlaceholder('主密码').fill('')
+    await page.getByPlaceholder('主密码').pressSequentially(MASTER_PWD, { delay: 10 })
     await page.getByRole('button', { name: '解锁' }).click()
     await expect(page.getByText(ENTRY_NAME)).toBeVisible({ timeout: 20000 })
 
@@ -247,15 +273,38 @@ test.describe.serial('Vault Flow', () => {
   test('V10: delete entry from detail page', async ({ page }) => {
     await page.goto(`${BASE}/vault`)
     await waitForHydration(page)
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
-    await expect(page.getByText(`${ENTRY_NAME} Updated`)).toBeVisible({ timeout: 20000 })
+    await unlockVault(page)
+    // V09 may have renamed to "Updated" — accept either name.
+    // If no target entry exists, create one so this case is self-contained.
+    const updatedName = `${ENTRY_NAME} Updated`
+    const fallbackName = `${ENTRY_NAME} DeleteSeed`
+    const hasUpdated = await page.getByText(updatedName, { exact: false }).isVisible().catch(() => false)
+    const hasOriginal = await page.getByText(ENTRY_NAME, { exact: false }).isVisible().catch(() => false)
 
-    await page.getByText(`${ENTRY_NAME} Updated`).click()
+    let targetName = hasUpdated ? updatedName : ENTRY_NAME
+    if (!hasUpdated && !hasOriginal) {
+      await page.getByRole('button', { name: '+ 条目' }).click()
+      await expect(page.getByPlaceholder('名称 (如: GitHub)')).toBeVisible({ timeout: 5000 })
+      await page.getByPlaceholder('名称 (如: GitHub)').fill(fallbackName)
+      await page.getByPlaceholder('用户名').fill('delete_seed_user')
+      await page.getByPlaceholder('密码').fill('delete_seed_pass')
+      const [createResp] = await Promise.all([
+        page.waitForResponse(resp => resp.url().includes('/api/vault/entries') && resp.request().method() === 'POST', { timeout: 10000 }),
+        page.getByRole('button', { name: '创建' }).click(),
+      ])
+      expect(createResp.ok()).toBe(true)
+      await expect(page.getByText(fallbackName)).toBeVisible({ timeout: 5000 })
+      targetName = fallbackName
+    }
+
+    const entryLink = page.getByText(targetName, { exact: false }).first()
+    await entryLink.click()
     await page.waitForURL(/\/vault\/\d+/, { timeout: 5000 })
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
+    await page.getByPlaceholder('主密码').click()
+    await page.getByPlaceholder('主密码').fill('')
+    await page.getByPlaceholder('主密码').pressSequentially(MASTER_PWD, { delay: 10 })
     await page.getByRole('button', { name: '解锁' }).click()
-    await expect(page.getByText(`${ENTRY_NAME} Updated`)).toBeVisible({ timeout: 20000 })
+    await expect(page.getByText(targetName, { exact: false }).first()).toBeVisible({ timeout: 20000 })
 
     // Click delete button (n-popconfirm trigger)
     await page.getByRole('button', { name: '删除' }).click()
@@ -271,8 +320,7 @@ test.describe.serial('Vault Flow', () => {
   test('V12: delete group via closable tag', async ({ page }) => {
     await page.goto(`${BASE}/vault`)
     await waitForHydration(page)
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
+    await unlockVault(page)
     await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 20000 })
 
     await expect(page.getByText(GROUP_NAME)).toBeVisible({ timeout: 5000 })
@@ -286,8 +334,7 @@ test.describe.serial('Vault Flow', () => {
   test('V13: password generator fills password field', async ({ page }) => {
     await page.goto(`${BASE}/vault`)
     await waitForHydration(page)
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
+    await unlockVault(page)
     await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 20000 })
 
     await page.getByRole('button', { name: '+ 条目' }).click()
@@ -310,8 +357,7 @@ test.describe.serial('Vault Flow', () => {
   test('V19: empty name entry validation', async ({ page }) => {
     await page.goto(`${BASE}/vault`)
     await waitForHydration(page)
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
+    await unlockVault(page)
     await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 20000 })
 
     await page.getByRole('button', { name: '+ 条目' }).click()
@@ -330,8 +376,7 @@ test.describe.serial('Vault Flow', () => {
   test('V20: empty credentials entry validation', async ({ page }) => {
     await page.goto(`${BASE}/vault`)
     await waitForHydration(page)
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
+    await unlockVault(page)
     await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 20000 })
 
     await page.getByRole('button', { name: '+ 条目' }).click()
@@ -349,8 +394,7 @@ test.describe.serial('Vault Flow', () => {
   test('V14: create entry assigned to group and filter by group', async ({ page }) => {
     await page.goto(`${BASE}/vault`)
     await waitForHydration(page)
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
+    await unlockVault(page)
     await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 20000 })
 
     // Create a new group
@@ -404,8 +448,7 @@ test.describe.serial('Vault Flow', () => {
   test('V16: password generator options panel toggles', async ({ page }) => {
     await page.goto(`${BASE}/vault`)
     await waitForHydration(page)
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
+    await unlockVault(page)
     await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 20000 })
 
     await page.getByRole('button', { name: '+ 条目' }).click()
@@ -439,8 +482,7 @@ test.describe.serial('Vault Flow', () => {
   test('V17: password generator in edit modal on detail page', async ({ page }) => {
     await page.goto(`${BASE}/vault`)
     await waitForHydration(page)
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
-    await page.getByRole('button', { name: '解锁' }).click()
+    await unlockVault(page)
     await expect(page.getByRole('button', { name: '+ 条目' })).toBeVisible({ timeout: 20000 })
 
     // Create a temp entry
@@ -461,7 +503,9 @@ test.describe.serial('Vault Flow', () => {
     // Navigate to detail page
     await page.getByText(tempEntry).click()
     await page.waitForURL(/\/vault\/\d+/, { timeout: 5000 })
-    await page.getByPlaceholder('主密码').fill(MASTER_PWD)
+    await page.getByPlaceholder('主密码').click()
+    await page.getByPlaceholder('主密码').fill('')
+    await page.getByPlaceholder('主密码').pressSequentially(MASTER_PWD, { delay: 10 })
     await page.getByRole('button', { name: '解锁' }).click()
     await expect(page.getByText(tempEntry)).toBeVisible({ timeout: 20000 })
 

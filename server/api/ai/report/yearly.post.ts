@@ -1,19 +1,5 @@
-import { readFileSync, existsSync } from 'node:fs'
-import { resolve } from 'node:path'
 import type { AiYearlyReport } from '~~/types'
-
-// 读取年度报告提示词模板
-const promptPath = resolve(process.cwd(), 'prompts', '年度报告提示词.md')
-let promptTemplate = ''
-try {
-  if (existsSync(promptPath)) {
-    promptTemplate = readFileSync(promptPath, 'utf-8').trim()
-  } else {
-    console.error('[AiReport] 年度报告提示词文件不存在:', promptPath)
-  }
-} catch (err) {
-  console.error('[AiReport] 读取年度报告提示词失败:', err)
-}
+import { loadPrompt } from '~/server/utils/llm'
 
 export default defineEventHandler(async (event) => {
   const userId = requireAuth(event)
@@ -29,9 +15,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: '请提供有效的年份' })
   }
 
-  if (!promptTemplate) {
-    throw createError({ statusCode: 500, message: 'AI 报告服务未就绪（提示词文件缺失）' })
-  }
+
 
   // regenerate: 先删缓存
   if (regenerate) {
@@ -73,7 +57,7 @@ export default defineEventHandler(async (event) => {
     : '无消费记录'
 
   // 构造 prompt
-  const prompt = promptTemplate
+  const prompt = loadPrompt('年度报告提示词.md')
     .replace('{year}', String(year))
     .replace('{totalIncome}', String(data.finance.totalIncome))
     .replace('{totalExpense}', String(data.finance.totalExpense))

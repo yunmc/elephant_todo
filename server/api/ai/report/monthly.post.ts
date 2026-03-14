@@ -1,19 +1,5 @@
-import { readFileSync, existsSync } from 'node:fs'
-import { resolve } from 'node:path'
 import type { AiMonthlyReport } from '~~/types'
-
-// 读取月度报告提示词模板
-const promptPath = resolve(process.cwd(), 'prompts', '月度报告提示词.md')
-let promptTemplate = ''
-try {
-  if (existsSync(promptPath)) {
-    promptTemplate = readFileSync(promptPath, 'utf-8').trim()
-  } else {
-    console.error('[AiReport] 月度报告提示词文件不存在:', promptPath)
-  }
-} catch (err) {
-  console.error('[AiReport] 读取月度报告提示词失败:', err)
-}
+import { loadPrompt } from '~/server/utils/llm'
 
 export default defineEventHandler(async (event) => {
   const userId = requireAuth(event)
@@ -36,9 +22,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: '不能查看未来月份的报告' })
   }
 
-  if (!promptTemplate) {
-    throw createError({ statusCode: 500, message: 'AI 报告服务未就绪（提示词文件缺失）' })
-  }
+
 
   // regenerate: 先删缓存
   if (regenerate) {
@@ -67,7 +51,7 @@ export default defineEventHandler(async (event) => {
     ? data.finance.categoryBreakdown.map((c: { name: string, amount: number, count: number }) => `${c.name} ¥${c.amount}（${c.count}笔）`).join('、')
     : '无消费记录'
 
-  const prompt = promptTemplate
+  const prompt = loadPrompt('月度报告提示词.md')
     .replace('{year}', String(year))
     .replace('{month}', String(month))
     .replace('{totalIncome}', String(data.finance.totalIncome))

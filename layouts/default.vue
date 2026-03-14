@@ -10,7 +10,7 @@
     <!-- Bottom Tab Navigation -->
     <nav class="bottom-nav">
       <NuxtLink to="/" class="nav-item" :class="{ active: route.path === '/' }">
-        <span class="nav-icon">✅</span>
+        <span class="nav-icon">📋</span>
         <span class="nav-label">待办</span>
       </NuxtLink>
 

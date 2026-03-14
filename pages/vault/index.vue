@@ -34,7 +34,7 @@
       </div>
 
       <!-- Search -->
-      <n-input v-model:value="searchQuery" placeholder="搜索条目..." clearable size="small" style="margin-bottom: 12px;">
+      <n-input v-model:value="searchQuery" placeholder="搜索条目..." clearable style="margin-bottom: 12px;">
         <template #prefix>
           <n-text depth="3" style="font-size: 13px;">🔍</n-text>
         </template>
@@ -144,10 +144,10 @@
         />
         <n-divider style="margin: 4px 0;">加密内容</n-divider>
         <n-input v-model:value="entryForm.username" placeholder="用户名" />
-        <n-space align="center">
+        <div style="display: flex; gap: 8px; align-items: center;">
           <n-input v-model:value="entryForm.password" type="password" show-password-on="click" placeholder="密码" style="flex: 1;" />
-          <n-button size="small" @click="handleGeneratePassword">🎲 生成</n-button>
-        </n-space>
+          <button class="jp-btn" @click="handleGeneratePassword">🎲 生成</button>
+        </div>
         <n-input v-model:value="entryForm.notes" type="textarea" placeholder="备注 (可选)" :rows="3" />
       </n-space>
 

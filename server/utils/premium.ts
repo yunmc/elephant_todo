@@ -21,15 +21,15 @@ export async function getPremiumStatus(userId: number): Promise<PremiumStatus> {
 
   const now = new Date()
   const expiresAt = user.plan_expires_at ? new Date(user.plan_expires_at) : null
-  const notExpired = expiresAt && expiresAt > now
+  // plan_expires_at 为空视为永久会员（管理员手动授权场景）
+  const notExpired = !expiresAt || expiresAt > now
   // auto_renew=1 时给宽限期（Apple billing retry 最多 60 天），上限 65 天防止异常
   const MAX_GRACE_PERIOD_MS = 65 * 24 * 60 * 60 * 1000
   const withinGrace = !!user.auto_renew
     && expiresAt
     && (now.getTime() - expiresAt.getTime()) < MAX_GRACE_PERIOD_MS
   const isPremium = user.plan === 'premium'
-    && !!expiresAt
-    && (notExpired || withinGrace)
+    && (notExpired || !!withinGrace)
 
   return {
     isPremium,

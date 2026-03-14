@@ -111,7 +111,7 @@ describe('getPremiumStatus', () => {
     await expect(fn(999)).rejects.toThrow('用户不存在')
   })
 
-  it('premium 但 plan_expires_at=null 时 isPremium=false', async () => {
+  it('premium 但 plan_expires_at=null 时视为永久会员', async () => {
     const mockQuery = vi.fn().mockResolvedValue([[{
       plan: 'premium',
       plan_expires_at: null,
@@ -122,7 +122,7 @@ describe('getPremiumStatus', () => {
     const { getPremiumStatus: fn } = await import('../../server/utils/premium')
     const status = await fn(1)
 
-    expect(status.isPremium).toBe(false)
+    expect(status.isPremium).toBe(true)
     expect(status.plan).toBe('premium')
     expect(status.expiresAt).toBeNull()
     expect(status.expired).toBe(false)

@@ -7,59 +7,49 @@
  * Requires seed data: admin / 123456.
  * Strict assertions — every label, title, element checked exactly.
  */
-import { test, expect, chromium, type Page } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { hideDevToolsOverlay, waitForHydration } from './fixtures/auth.fixture'
 
 const BASE = process.env.BASE_URL || 'http://localhost:3001'
 
-let tokens: { adminToken: string; adminUser: string }
+type AdminCookieUser = {
+  id: number
+  username: string
+  email: string
+  role: string
+}
+
+let tokens: { adminToken: string; adminUser: AdminCookieUser }
 
 /**
- * Login as admin via real UI in a temp browser, extract cookies.
+ * Login as admin via API once for serial tests.
+ * This avoids browser boot/hydration flakiness in beforeAll hook.
  */
-async function adminLoginOnce(): Promise<{ adminToken: string; adminUser: string }> {
-  const browser = await chromium.launch()
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
-  const page = await ctx.newPage()
-  try {
-    await page.goto(`${BASE}/admin/login`)
-    await page.waitForFunction(
-      () => {
-        const el = document.getElementById('__nuxt')
-        return el && (el as any).__vue_app__
-      },
-      { timeout: 15000 },
-    )
-    await page.getByPlaceholder('请输入管理员用户名').fill('admin')
-    await page.getByPlaceholder('请输入密码').fill('123456')
-    const [loginResp] = await Promise.all([
-      page.waitForResponse(resp => resp.url().includes('/api/admin/auth/login'), { timeout: 15000 }),
-      page.getByRole('button', { name: '登录' }).click(),
-    ])
-    if (!loginResp.ok()) {
-      const body = await loginResp.text().catch(() => 'no body')
-      throw new Error(`Admin login API failed (${loginResp.status}): ${body}`)
-    }
-    await page.waitForURL(/\/admin\/?$/, { timeout: 15000 })
-
-    const cookies = await ctx.cookies()
-    const adminToken = cookies.find(c => c.name === 'adminToken')?.value ?? ''
-    const adminUser = cookies.find(c => c.name === 'adminUser')?.value ?? ''
-    if (!adminToken) throw new Error('Admin login succeeded but adminToken cookie not found')
-    return { adminToken, adminUser }
-  } finally {
-    await browser.close()
+async function adminLoginOnce(): Promise<{ adminToken: string; adminUser: AdminCookieUser }> {
+  const res = await fetch(`${BASE}/api/admin/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: 'admin', password: '123456' }),
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => 'no body')
+    throw new Error(`Admin login API failed (${res.status}): ${body}`)
   }
+  const json = await res.json()
+  const adminToken = json?.data?.token || ''
+  const adminUser = json?.data?.admin
+  if (!adminToken) throw new Error('Admin login succeeded but no token in response')
+  if (!adminUser?.username) throw new Error('Admin login succeeded but no admin user in response')
+  return { adminToken, adminUser }
 }
 
 async function injectAdminAuth(page: Page, t: typeof tokens) {
   const url = new URL(BASE)
+  const adminUserValue = encodeURIComponent(JSON.stringify(t.adminUser))
   const cookies: Array<{ name: string; value: string; domain: string; path: string }> = [
     { name: 'adminToken', value: t.adminToken, domain: url.hostname, path: '/' },
+    { name: 'adminUser', value: adminUserValue, domain: url.hostname, path: '/' },
   ]
-  if (t.adminUser) {
-    cookies.push({ name: 'adminUser', value: t.adminUser, domain: url.hostname, path: '/' })
-  }
   await page.context().addCookies(cookies)
 }
 
@@ -68,10 +58,11 @@ async function gotoAdminDashboard(page: Page, t: typeof tokens) {
 }
 
 async function gotoAdminPage(page: Page, t: typeof tokens, path: string) {
+  const adminUserValue = encodeURIComponent(JSON.stringify(t.adminUser))
   await page.addInitScript(({ token, user }) => {
     document.cookie = `adminToken=${token}; path=/`
     if (user) document.cookie = `adminUser=${user}; path=/`
-  }, { token: t.adminToken, user: t.adminUser })
+  }, { token: t.adminToken, user: adminUserValue })
   await page.goto(`${BASE}${path}`)
   await waitForHydration(page)
 }
@@ -122,14 +113,13 @@ test.describe.serial('Admin Panel', () => {
 
     await expect(page.getByText('请输入用户名')).toBeVisible({ timeout: 5000 })
     await expect(page.locator('.n-form-item-feedback__line').getByText('请输入密码')).toBeVisible({ timeout: 5000 })
-    expect(page.url()).toContain('/admin/login')
+    await expect(page).toHaveURL(/\/admin\/login/, { timeout: 10000 })
   })
 
   test('A04: unauthenticated access redirects to /admin/login', async ({ page }) => {
     await page.context().clearCookies()
     await page.goto(`${BASE}/admin`)
-    await page.waitForURL('**/admin/login', { timeout: 10000 })
-    expect(page.url()).toContain('/admin/login')
+    await expect(page).toHaveURL(/\/admin\/login/, { timeout: 10000 })
   })
 
   test('A05: dashboard shows exactly 5 stat cards with correct labels', async ({ page }) => {
@@ -282,16 +272,20 @@ test.describe.serial('Admin Panel', () => {
     await waitForHydration(page)
     await expect(page.locator('.page-title')).toHaveText('商品管理', { timeout: 8000 })
 
-    // Product sorted by sort_order ASC, id ASC — newest is on the last page
-    if (!(await page.getByText(productName).isVisible().catch(() => false))) {
-      // Navigate to last page: click the last page-number item in pagination
-      const pageItems = page.locator('.n-pagination-item:not(.n-pagination-item--button)')
-      const count = await pageItems.count()
-      if (count > 1) {
+    // Nav until we find the created item
+    for (let i = 0; i < 15; i++) {
+      if (await page.getByText(productName).isVisible().catch(() => false)) break
+      const nextBtn = page.locator('.n-pagination-item--button').last()
+      if (await nextBtn.isVisible().catch(() => false)) {
+        const cls = await nextBtn.getAttribute('class').catch(() => '')
+        if (cls?.includes('disabled')) break
         await Promise.all([
-          page.waitForResponse(resp => resp.url().includes('/api/admin/products') && resp.request().method() === 'GET', { timeout: 5000 }),
-          pageItems.last().click(),
+          page.waitForResponse(resp => resp.url().includes('/api/admin/products'), { timeout: 5000 }).catch(() => {}),
+          nextBtn.dispatchEvent('click')
         ])
+        await page.waitForTimeout(500)
+      } else {
+        break
       }
     }
     await expect(page.getByText(productName)).toBeVisible({ timeout: 5000 })

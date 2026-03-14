@@ -58,8 +58,8 @@ test.describe.serial('Premium', () => {
       }
     })
 
-    // Premium 用户应看到"高级功能"卡片
-    const premiumCard = page.locator('.jp-card--premium').filter({ hasText: '高级功能' })
+    // Premium 用户应看到"Premium 会员"卡片
+    const premiumCard = page.locator('.jp-card--premium-active').filter({ hasText: 'Premium 会员' })
     await expect(premiumCard).toBeVisible({ timeout: 5000 })
   })
 

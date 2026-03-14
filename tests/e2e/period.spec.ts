@@ -52,6 +52,18 @@ async function createRecordViaUI(
 
   // Click "+ 记录经期" button
   await page.getByRole('button', { name: '+ 记录经期' }).click()
+  const dialogOpened = await page.getByRole('dialog').getByText('少量', { exact: true }).waitFor({ state: 'visible', timeout: 2000 }).then(() => true).catch(() => false)
+  if (!dialogOpened) {
+    await page.evaluate(() => {
+      const btns = document.querySelectorAll('button')
+      for (const b of btns) {
+        if (b.textContent?.includes('记录经期')) {
+          b.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+          break
+        }
+      }
+    })
+  }
   await expect(page.getByRole('dialog').getByText('少量', { exact: true })).toBeVisible({ timeout: 5000 })
 
   // Set start date

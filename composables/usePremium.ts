@@ -5,7 +5,8 @@ export function usePremium() {
     const user = authStore.user
     if (!user) return false
     if (user.plan !== 'premium') return false
-    if (!user.plan_expires_at) return false
+    // plan_expires_at 为空视为永久会员（管理员手动授权场景）
+    if (!user.plan_expires_at) return true
     const now = new Date()
     const expiresAt = new Date(user.plan_expires_at)
     const notExpired = expiresAt > now
@@ -19,7 +20,9 @@ export function usePremium() {
   const isExpired = computed(() => {
     const user = authStore.user
     if (!user) return false
-    if (user.plan !== 'premium' || !user.plan_expires_at) return false
+    if (user.plan !== 'premium') return false
+    // 无过期时间视为永久会员，不会过期
+    if (!user.plan_expires_at) return false
     const now = new Date()
     const expiresAt = new Date(user.plan_expires_at)
     if (expiresAt > now) return false
@@ -46,10 +49,11 @@ export function usePremium() {
   const upgradeModalExpired = useState('upgrade-modal-expired', () => false)
 
   /** 检查是否 Premium，非会员弹出升级引导，返回 false */
+  // TODO: 支付功能就绪后恢复弹窗逻辑
   function guardPremium(): boolean {
     if (isPremium.value) return true
-    upgradeModalExpired.value = isExpired.value
-    showUpgradeModal.value = true
+    // upgradeModalExpired.value = isExpired.value
+    // showUpgradeModal.value = true
     return false
   }
 

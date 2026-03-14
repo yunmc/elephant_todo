@@ -1,9 +1,8 @@
 <template>
   <div class="page-container">
     <!-- Top Bar -->
-    <div class="top-bar">
-      <button class="back-btn" @click="navigateTo('/')">←</button>
-      <button v-show="hasChanges" class="action-btn save" @click="handleSave">保存</button>
+    <div v-if="hasChanges" class="top-bar">
+      <button class="action-btn save" @click="handleSave">保存</button>
     </div>
 
     <n-spin v-if="todosStore.loading" style="display: flex; justify-content: center; padding: 48px 0;" />
@@ -57,10 +56,7 @@
             class="info-control"
           >
             <template #action>
-              <div class="select-create">
-                <n-input v-model:value="newCategoryName" size="tiny" placeholder="新分类名称" @keyup.enter="handleCreateCategory" />
-                <n-button size="tiny" type="primary" :disabled="!newCategoryName.trim()" @click="handleCreateCategory">添加</n-button>
-              </div>
+              <JpSelectCreate v-model="newCategoryName" placeholder="新分类名称" @submit="handleCreateCategory" />
             </template>
           </n-select>
         </div>
@@ -77,10 +73,7 @@
             class="info-control"
           >
             <template #action>
-              <div class="select-create">
-                <n-input v-model:value="newTagName" size="tiny" placeholder="新标签名称" @keyup.enter="handleCreateTag" />
-                <n-button size="tiny" type="primary" :disabled="!newTagName.trim()" @click="handleCreateTag">添加</n-button>
-              </div>
+              <JpSelectCreate v-model="newTagName" placeholder="新标签名称" @submit="handleCreateTag" />
             </template>
           </n-select>
         </div>
@@ -144,6 +137,9 @@
           <button v-show="newSubtaskTitle.trim()" class="add-subtask-btn" @click="addSubtask">添加</button>
         </div>
       </div>
+
+      <!-- Attachments -->
+      <AttachmentSection target-type="todo" :target-id="todoId" />
 
       <!-- Related Ideas -->
       <div class="ideas-section">
@@ -385,23 +381,10 @@ function formatFullDate(dateStr: string) {
 <style scoped>
 .top-bar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: 12px;
-}
-.back-btn {
-  background: none;
-  border: none;
-  color: var(--color-primary);
-  font-size: 18px;
-  cursor: pointer;
-  padding: 4px 8px 4px 0;
-  min-height: 36px;
-  min-width: 36px;
-}
-.top-actions {
-  display: flex;
-  gap: 8px;
+  margin-bottom: 8px;
+  min-height: 40px;
 }
 .action-btn {
   background: var(--color-bg-card);
@@ -427,18 +410,21 @@ function formatFullDate(dateStr: string) {
 /* Title + Status Row */
 .title-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
   gap: 10px;
   margin-bottom: 16px;
+  min-height: 40px;
 }
 .inline-title {
   flex: 1;
   min-width: 0;
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
+  letter-spacing: 1px;
   color: var(--color-text);
-  line-height: 1.3;
-  padding: 2px 0;
+  line-height: 1.35;
+  padding: 0;
   border: none;
   outline: none;
   background: transparent;
@@ -460,7 +446,6 @@ function formatFullDate(dateStr: string) {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  margin-top: 4px;
   min-height: auto;
   min-width: auto;
 }
@@ -501,11 +486,6 @@ function formatFullDate(dateStr: string) {
 :deep(.info-control) {
   flex: 1;
   max-width: 200px;
-}
-.select-create {
-  display: flex;
-  gap: 6px;
-  padding: 4px 8px 6px;
 }
 
 /* Description */

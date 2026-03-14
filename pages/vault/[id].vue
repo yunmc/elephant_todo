@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <div class="detail-header">
-      <n-button text @click="navigateTo('/vault')">← 返回</n-button>
+      <span></span>
       <n-space :size="8">
         <n-button size="small" @click="openEdit">编辑</n-button>
         <n-popconfirm @positive-click="handleDelete">
@@ -97,10 +97,10 @@
         <n-select v-model:value="editForm.group_id" :options="groupOptions" placeholder="分组" clearable />
         <n-divider style="margin: 4px 0;">加密内容</n-divider>
         <n-input v-model:value="editForm.username" placeholder="用户名" />
-        <n-space align="center">
+        <div style="display: flex; gap: 8px; align-items: center;">
           <n-input v-model:value="editForm.password" type="password" show-password-on="click" placeholder="密码" style="flex: 1;" />
-          <n-button size="small" @click="handleGeneratePassword">🎲 生成</n-button>
-        </n-space>
+          <button class="jp-btn" @click="handleGeneratePassword">🎲 生成</button>
+        </div>
         <n-input v-model:value="editForm.notes" type="textarea" placeholder="备注" :rows="3" />
       </n-space>
 

@@ -7,9 +7,6 @@
         </template>
 
         <n-result v-if="sent" status="success" title="邮件已发送" description="请检查您的邮箱，点击链接重置密码">
-          <template #footer>
-            <NuxtLink to="/login"><n-button type="primary">返回登录</n-button></NuxtLink>
-          </template>
         </n-result>
 
         <n-form v-else @submit.prevent="handleSubmit">
@@ -21,9 +18,6 @@
           </n-button>
         </n-form>
 
-        <div style="text-align: center; margin-top: 16px;">
-          <NuxtLink to="/login"><n-text type="info">返回登录</n-text></NuxtLink>
-        </div>
       </n-card>
     </NuxtLayout>
   </div>

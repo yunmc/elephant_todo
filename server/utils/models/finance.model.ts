@@ -200,4 +200,30 @@ export const FinanceRecordModel = {
       by_category: byCategory,
     }
   },
+
+  async getTrend(
+    userId: number,
+    startDate: string,
+    endDate: string,
+  ): Promise<{ month: string; income: number; expense: number }[]> {
+    const pool = getPool()
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT
+        DATE_FORMAT(record_date, '%Y-%m') AS month,
+        COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS income,
+        COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) AS expense
+       FROM finance_records
+       WHERE user_id = ?
+         AND record_date >= ?
+         AND record_date <= ?
+       GROUP BY DATE_FORMAT(record_date, '%Y-%m')
+       ORDER BY month ASC`,
+      [userId, startDate, endDate],
+    )
+    return rows.map(r => ({
+      month: r.month,
+      income: Number(r.income),
+      expense: Number(r.expense),
+    }))
+  },
 }

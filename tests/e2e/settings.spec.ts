@@ -286,15 +286,14 @@ test.describe.serial('Settings', () => {
     const catSection = page.locator('.jp-card').filter({ hasText: '分类管理' })
     const countBefore = await catSection.locator('.jp-list-row').count()
 
-    // Leave category name empty and click "添加"
+    // Leave category name empty — button should be disabled
     await page.getByPlaceholder('新分类名称').fill('')
-    await catSection.getByRole('button', { name: '添加' }).click()
+    const addBtn = catSection.getByRole('button', { name: '添加' })
+    await expect(addBtn).toBeDisabled({ timeout: 3000 })
 
-    // Brief wait then verify count unchanged
-    await expect(async () => {
-      const countAfter = await catSection.locator('.jp-list-row').count()
-      expect(countAfter).toBe(countBefore)
-    }).toPass({ timeout: 3000 })
+    // Verify count unchanged
+    const countAfter = await catSection.locator('.jp-list-row').count()
+    expect(countAfter).toBe(countBefore)
   })
 
   test('S12: empty password fields submit shows warning', async ({ page }) => {

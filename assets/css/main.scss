@@ -38,7 +38,7 @@ input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
   -webkit-text-fill-color: var(--color-text) !important;
-  -webkit-box-shadow: 0 0 0 1000px var(--color-bg-card) inset !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--color-bg-input) inset !important;
   transition: background-color 5000s ease-in-out 0s;
   caret-color: var(--color-text);
 }
@@ -89,6 +89,12 @@ button,
 .touchable {
   min-height: 44px;
   min-width: 44px;
+}
+
+// n-input-number 内部 +/- 按钮不需要 44px 触控区
+.n-input-number .n-button {
+  min-height: unset;
+  min-width: unset;
 }
 
 // ---------- Scrollbar ----------
@@ -142,9 +148,9 @@ button,
   -webkit-appearance: none;
   appearance: none;
   width: 40px;
-  height: 34px;
+  height: 40px;
   flex-shrink: 0;
-  border: 2px solid var(--color-border);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 2px;
   cursor: pointer;
@@ -302,28 +308,155 @@ button,
 // ----- 添加行 -----
 .jp-add-row {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--color-border);
 }
 
+// ----- 添加行内原生输入框 -----
+.jp-add-input {
+  flex: 1;
+  height: 40px;
+  min-width: 0;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-input);
+  color: var(--color-text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  &:focus {
+    border-color: var(--color-primary);
+  }
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+}
+
+// ----- Emoji 选择按钮 -----
+.jp-emoji-btn {
+  width: 40px;
+  height: 40px;
+  min-height: auto;
+  min-width: auto;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-input);
+  font-size: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+// ----- Select 下拉内联创建行 -----
+.jp-select-create {
+  display: flex;
+  gap: 8px;
+  padding: 4px 8px 6px;
+  align-items: center;
+}
+.jp-select-create-input {
+  flex: 1;
+  height: 28px;
+  min-width: 0;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-bg-input);
+  color: var(--color-text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  &:focus {
+    border-color: var(--color-primary);
+  }
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+}
+.jp-select-create-btn {
+  flex-shrink: 0;
+  min-width: auto;
+  min-height: auto;
+  height: 28px;
+  padding: 0 12px;
+  border: none;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:active:not(:disabled) { opacity: 0.8; }
+}
+
+// ----- Premium 升级引导卡片 -----
+.jp-premium-upsell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(196, 152, 80, 0.06), rgba(255, 215, 0, 0.04));
+  border: 1px solid rgba(196, 152, 80, 0.25);
+  border-radius: var(--radius-md, 12px);
+  cursor: pointer;
+  transition: background 0.2s;
+  &:active {
+    background: linear-gradient(135deg, rgba(196, 152, 80, 0.12), rgba(255, 215, 0, 0.08));
+  }
+}
+.jp-premium-upsell-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.jp-premium-upsell-body {
+  flex: 1;
+  min-width: 0;
+}
+.jp-premium-upsell-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+.jp-premium-upsell-desc {
+  font-size: 12px;
+  color: var(--color-text-tertiary, #999);
+  margin-top: 2px;
+}
+.jp-premium-upsell-arrow {
+  font-size: 18px;
+  color: var(--color-accent);
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
 // ----- 主按钮（藏青色） -----
 .jp-btn {
   flex-shrink: 0;
   min-width: auto;
-  height: auto;
-  padding: 8px 18px;
+  height: 40px;
+  padding: 0 18px;
   border: none;
   background: var(--color-primary);
   color: var(--color-text-inverse);
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
   font-size: 15px;
   cursor: pointer;
   min-height: auto;
   font-family: inherit;
-  &:active { opacity: 0.8; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:active:not(:disabled) { opacity: 0.8; }
 }
 
 // ----- 强调按钮（金色） -----
@@ -414,32 +547,21 @@ button,
   margin-bottom: 16px;
 }
 
-// ----- Naive UI 输入框覆盖 -----
-.jp-input-override {
-  :deep(.n-input) {
-    --n-border-radius: #{var(--radius-sm)} !important;
-    --n-color: var(--color-bg-input) !important;
-    --n-color-focus: var(--color-bg-input) !important;
-    --n-border: none !important;
-    --n-border-hover: none !important;
-    --n-border-focus: none !important;
-    --n-box-shadow-focus: none !important;
-    --n-font-size: 15px !important;
-    --n-placeholder-color: var(--color-text-secondary) !important;
-    --n-text-color: var(--color-text) !important;
-    --n-caret-color: var(--color-accent) !important;
-    --n-height: auto !important;
-    --n-padding-left: 14px !important;
-    --n-padding-right: 14px !important;
-  }
-  :deep(.n-input__input),
-  :deep(.n-input__textarea) {
-    padding: 10px 0 !important;
-  }
-  :deep(.n-input__eye) {
-    color: var(--color-text-secondary) !important;
-  }
+// ----- Naive UI 输入框全局覆盖 -----
+// 所有 n-input 统一使用 --color-bg-input 底色
+.n-input {
+  --n-color: var(--color-bg-input) !important;
+  --n-color-focus: var(--color-bg-input) !important;
+  --n-text-color: var(--color-text) !important;
+  --n-placeholder-color: var(--color-text-muted) !important;
+  --n-caret-color: var(--color-accent) !important;
+  --n-border: 1px solid var(--color-border) !important;
+  --n-border-hover: 1px solid var(--color-text-muted) !important;
+  --n-border-focus: 1px solid var(--color-primary) !important;
+  --n-box-shadow-focus: none !important;
+  --n-border-radius: 8px !important;
 }
 
 // ----- Dark mode pill override -----
 // (已通过 --color-pill-active 变量在 _classic.scss 深色模式中统一管理)
+

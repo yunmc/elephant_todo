@@ -367,39 +367,39 @@ function formatDateShort(dateStr: string) {
 }
 .person-input {
   flex: 1;
-  height: 34px;
-  padding: 0 10px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--color-text, #fff);
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-input);
+  color: var(--color-text);
   font-size: 14px;
   outline: none;
   box-sizing: border-box;
 }
 .person-input:focus {
-  border-color: var(--color-primary, #7c5cfc);
+  border-color: var(--color-primary);
 }
 .person-input::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--color-text-muted);
 }
 .person-action-btn {
-  height: 34px;
-  min-height: 34px;
-  padding: 0 14px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--color-text, #fff);
-  font-size: 14px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 8px;
+  background: var(--color-bg-input);
+  color: var(--color-text);
+  font-size: 15px;
   cursor: pointer;
   box-sizing: border-box;
   white-space: nowrap;
 }
 .person-action-btn.primary {
-  background: var(--color-primary, #7c5cfc);
-  border-color: var(--color-primary, #7c5cfc);
-  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-text-inverse);
 }
 .person-action-btn:disabled {
   opacity: 0.5;

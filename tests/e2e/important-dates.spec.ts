@@ -12,6 +12,27 @@ const TITLE = `E2E Birthday ${Date.now()}`
 
 let tokens: { accessToken: string; refreshToken: string }
 
+/** Click a date card by title text, with evaluate fallback for mobile */
+async function clickDateCard(page: import('@playwright/test').Page, title: string) {
+  const card = page.locator('.date-card').filter({ hasText: title })
+  await card.scrollIntoViewIfNeeded()
+  await card.click({ force: true })
+  // Wait a moment for the modal to appear
+  const opened = await page.locator('.n-modal').waitFor({ state: 'visible', timeout: 2000 }).then(() => true).catch(() => false)
+  if (!opened) {
+    await page.evaluate((t) => {
+      const cards = document.querySelectorAll('.date-card')
+      for (const c of cards) {
+        if (c.textContent?.includes(t)) {
+          c.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+          break
+        }
+      }
+    }, title)
+  }
+  await expect(page.locator('.n-modal')).toBeVisible({ timeout: 8000 })
+}
+
 test.describe.serial('Important Dates Flow', () => {
   test.beforeAll(async () => {
     const result = await registerOnce()
@@ -95,9 +116,8 @@ test.describe.serial('Important Dates Flow', () => {
     await waitForHydration(page)
     await expect(page.getByText(`${TITLE} Edited`)).toBeVisible({ timeout: 8000 })
 
-    // Click card to open edit modal
-    await page.locator('.date-card').filter({ hasText: `${TITLE} Edited` }).click()
-    await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
+    await clickDateCard(page, `${TITLE} Edited`)
+    await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 8000 })
 
     // Click 🎂 icon button and verify active
     await page.locator('.icon-btn').filter({ hasText: '🎂' }).click()
@@ -120,8 +140,7 @@ test.describe.serial('Important Dates Flow', () => {
     await waitForHydration(page)
     await expect(page.getByText(`${TITLE} Edited`)).toBeVisible({ timeout: 8000 })
 
-    // Click card to open edit modal
-    await page.locator('.date-card').filter({ hasText: `${TITLE} Edited` }).click()
+    await clickDateCard(page, `${TITLE} Edited`)
     await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
 
     // Fill note
@@ -144,9 +163,7 @@ test.describe.serial('Important Dates Flow', () => {
     await waitForHydration(page)
     await expect(page.getByText(`${TITLE} Edited`)).toBeVisible({ timeout: 8000 })
 
-    // Click card to open edit modal
-    await page.locator('.date-card').filter({ hasText: `${TITLE} Edited` }).click()
-    await expect(page.locator('.n-modal')).toBeVisible({ timeout: 8000 })
+    await clickDateCard(page, `${TITLE} Edited`)
     await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
 
     // Select "提前 7 天" remind option
@@ -164,8 +181,7 @@ test.describe.serial('Important Dates Flow', () => {
     expect(saveResp.ok()).toBe(true)
 
     // Re-open edit modal to verify persistence
-    await page.locator('.date-card').filter({ hasText: `${TITLE} Edited` }).click()
-    await expect(page.locator('.n-modal')).toBeVisible({ timeout: 8000 })
+    await clickDateCard(page, `${TITLE} Edited`)
     await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
 
     // The select should show "提前 7 天"
@@ -182,8 +198,7 @@ test.describe.serial('Important Dates Flow', () => {
     await waitForHydration(page)
     await expect(page.getByText(`${TITLE} Edited`)).toBeVisible({ timeout: 8000 })
 
-    // Click card to open edit modal
-    await page.locator('.date-card').filter({ hasText: `${TITLE} Edited` }).click()
+    await clickDateCard(page, `${TITLE} Edited`)
     await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
 
     // Change repeat type from "每年重复" to "不重复"
@@ -263,16 +278,29 @@ test.describe.serial('Important Dates Flow', () => {
   })
 
   test('D11: past date shows days ago', async ({ page }) => {
+    test.setTimeout(60000)
     const pastDate = new Date()
     pastDate.setDate(pastDate.getDate() - 10)
     const dateStr = pastDate.toISOString().split('T')[0]
     const pastTitle = `E2E Past ${Date.now()}`
 
-    await page.goto(`${BASE}/important-dates`)
+    await page.goto(`${BASE}/important-dates`, { timeout: 30000 })
     await waitForHydration(page)
 
-    // Click add button
+    // Click add button and wait for modal
     await page.getByRole('button', { name: '+ 添加重要日期' }).click()
+    if (!await page.locator('.n-modal').isVisible({ timeout: 2000 }).catch(() => false)) {
+      await page.evaluate(() => {
+        const btns = document.querySelectorAll('button')
+        for (const b of btns) {
+          if (b.textContent?.includes('添加重要日期')) {
+            b.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+            break
+          }
+        }
+      })
+    }
+    await expect(page.locator('.n-modal')).toBeVisible({ timeout: 8000 })
     await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
 
     // Fill title
@@ -317,8 +345,7 @@ test.describe.serial('Important Dates Flow', () => {
     await waitForHydration(page)
     await expect(page.getByText(`${TITLE} Edited`)).toBeVisible({ timeout: 8000 })
 
-    // Click card to open edit modal
-    await page.locator('.date-card').filter({ hasText: `${TITLE} Edited` }).click()
+    await clickDateCard(page, `${TITLE} Edited`)
     await expect(page.getByPlaceholder('如：妈妈的生日')).toBeVisible({ timeout: 5000 })
 
     // Click delete

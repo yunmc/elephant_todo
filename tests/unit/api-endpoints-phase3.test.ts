@@ -610,7 +610,7 @@ describe('Finance — Statistics', () => {
         total_income: 1000, total_expense: 500, balance: 500, by_category: []
       }),
     })
-    handler = (await import('../../server/api/finance/statistics.get')).default
+    handler = (await import('../../server/api/finance/statistics/index.get')).default
   })
 
   it('should reject invalid date format', async () => {

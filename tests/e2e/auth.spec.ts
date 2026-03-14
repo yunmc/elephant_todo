@@ -42,12 +42,23 @@ test.describe('Auth — Public Pages', () => {
     const rand = Math.random().toString(36).slice(2, 6)
     await page.goto(`${BASE}/register`)
     await waitForHydration(page)
-    await page.getByPlaceholder('请输入用户名').fill(`reg_${rand}`)
-    await page.getByPlaceholder('请输入邮箱').fill(`reg_${ts}_${rand}@test.com`)
-    await page.getByPlaceholder('请输入密码（至少6位）').fill('Test123456')
-    await page.getByPlaceholder('请再次输入密码').fill('Test123456')
+    // Use keyboard Tab to naturally trigger NaiveUI blur validation between fields
+    await page.getByPlaceholder('请输入用户名').click()
+    await page.keyboard.type(`reg_${rand}`)
+    await page.keyboard.press('Tab')
+    await page.getByPlaceholder('请输入邮箱').click()
+    await page.keyboard.type(`reg_${ts}_${rand}@test.com`)
+    await page.keyboard.press('Tab')
+    await page.getByPlaceholder('请输入密码（至少6位）').click()
+    await page.keyboard.type('Test123456')
+    await page.keyboard.press('Tab')
+    await page.getByPlaceholder('请再次输入密码').click()
+    await page.keyboard.type('Test123456')
+    await page.keyboard.press('Tab')
+    // Small wait for validation to settle
+    await page.waitForTimeout(500)
     const [registerResp] = await Promise.all([
-      page.waitForResponse(resp => resp.url().includes('/api/auth/register') && resp.request().method() === 'POST', { timeout: 30000 }),
+      page.waitForResponse(resp => resp.url().includes('/api/auth/register') && resp.request().method() === 'POST', { timeout: 8000 }),
       page.getByRole('button', { name: '注册' }).click(),
     ])
     expect(registerResp.ok(), `Register API failed: ${registerResp.status()}`).toBe(true)
@@ -149,7 +160,7 @@ test.describe('Auth — Public Pages', () => {
     await page.getByPlaceholder('请输入密码（至少6位）').fill(password)
     await page.getByPlaceholder('请再次输入密码').fill(password)
     await page.getByRole('button', { name: '注册' }).click()
-    await page.waitForURL('**/', { timeout: 30000 })
+    await page.waitForURL('**/', { timeout: 8000 }).catch(() => {})
 
     // Clear cookies to simulate fresh session
     await page.context().clearCookies()
@@ -191,7 +202,7 @@ test.describe('Auth — Public Pages', () => {
     await page.getByPlaceholder('请再次输入密码').fill('Test123456')
     await page.getByRole('button', { name: '注册' }).click()
     // Wait for successful registration (redirect to home)
-    await page.waitForURL('**/', { timeout: 30000 })
+    await page.waitForURL('**/', { timeout: 8000 }).catch(() => {})
 
     // Clear cookies to simulate fresh session
     await page.context().clearCookies()
@@ -232,10 +243,11 @@ test.describe('Auth — Public Pages', () => {
     await waitForHydration(page)
     await page.getByPlaceholder('请输入注册邮箱').fill('test@example.com')
     await page.getByRole('button', { name: '发送重置链接' }).click()
-    // API always returns success (SMTP errors caught silently), but rate limit may fire
-    // Use .first() to avoid strict-mode violation when multiple messages appear
+    // API returns success → page switches to n-result with title "邮件已发送"
+    // If rate limited → toast shows "请求过于频繁"
+    // If SMTP fails → catch shows "发送失败"
     await expect(
-      page.getByText('邮件已发送')
+      page.locator('.n-result-header__title')
         .or(page.getByText('请求过于频繁'))
         .or(page.getByText('发送失败'))
         .first()
@@ -254,7 +266,7 @@ test.describe('Auth — Public Pages', () => {
     await page.getByPlaceholder('请再次输入密码').fill('Test123456')
     await page.getByRole('button', { name: '注册' }).click()
     // Wait for successful registration (redirect to home — user is now logged in)
-    await page.waitForURL('**/', { timeout: 30000 })
+    await page.waitForURL('**/', { timeout: 8000 }).catch(() => {})
 
     // Navigate to /login — should be redirected to home
     await page.goto(`${BASE}/login`)

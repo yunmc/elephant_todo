@@ -2,7 +2,6 @@
   <div class="page-container">
     <!-- Top Bar -->
     <div class="top-bar">
-      <button class="back-btn" @click="navigateTo('/ideas')">←</button>
       <button v-show="hasChanges" class="action-btn save" @click="handleSave">保存</button>
     </div>
 
@@ -36,6 +35,9 @@
           <button class="link-action-btn" @click="showLinkModal = true">关联已有待办</button>
         </div>
       </div>
+
+      <!-- Attachments -->
+      <AttachmentSection target-type="idea" :target-id="ideaId" />
 
       <!-- Delete -->
       <button class="delete-btn" @click="confirmDelete = true">删除这条随手记</button>
@@ -167,19 +169,9 @@ function formatDate(dateStr: string) {
 <style scoped>
 .top-bar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-bottom: 12px;
-}
-.back-btn {
-  background: none;
-  border: none;
-  color: var(--color-primary);
-  font-size: 18px;
-  cursor: pointer;
-  padding: 4px 8px 4px 0;
-  min-height: 36px;
-  min-width: 36px;
 }
 .action-btn {
   background: var(--color-bg-card);

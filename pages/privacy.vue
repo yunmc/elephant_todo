@@ -115,9 +115,6 @@
         </ul>
       </section>
 
-      <div class="back-link">
-        <NuxtLink to="/login">← 返回登录</NuxtLink>
-      </div>
     </div>
   </div>
 </template>
@@ -188,16 +185,5 @@ useHead({
     }
   }
 
-  .back-link {
-    margin-top: 40px;
-    padding-top: 20px;
-    border-top: 1px solid var(--color-border);
-
-    a {
-      color: var(--color-primary);
-      text-decoration: none;
-      font-size: 14px;
-    }
-  }
 }
 </style>

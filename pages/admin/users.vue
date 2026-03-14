@@ -41,7 +41,7 @@
             <n-radio value="free">免费用户</n-radio>
             <n-radio value="premium">Premium</n-radio>
           </n-radio-group>
-          <n-date-picker v-if="editPlan === 'premium'" v-model:value="editExpires" type="datetime" clearable style="width: 100%;" />
+          <n-date-picker v-if="editPlan === 'premium'" v-model:value="editExpires" type="datetime" clearable placeholder="留空则为永久会员" style="width: 100%;" />
           <n-button type="primary" :loading="saving" @click="savePlan">保存</n-button>
         </n-space>
 

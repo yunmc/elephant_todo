@@ -4,10 +4,11 @@ export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : 3,
-  reporter: 'html',
+  retries: process.env.CI ? 2 : 1,
+  workers: process.env.CI ? 1 : 2,
+  reporter: [['list'], ['html']],
   timeout: 30_000,
+  reportSlowTests: { max: 10, threshold: 5000 },
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:3001',
     trace: 'on-first-retry',
@@ -16,7 +17,10 @@ export default defineConfig({
   projects: [
     {
       name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      use: {
+        ...devices['Pixel 5'],
+        channel: 'chrome',
+      },
     },
   ],
 })
