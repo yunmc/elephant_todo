@@ -21,6 +21,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 # Copy only built output and scripts
 COPY --from=builder /app/.output ./.output
 COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/prompts ./prompts
 
 RUN chown -R nuxtjs:nodejs /app
 
